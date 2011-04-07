@@ -1,5 +1,8 @@
 {-# OPTIONS -Wall #-}
 
+-- | Paraiso main module.
+-- I think adding this will expose source for run?
+
 module Paraiso (run) where
 
 -- | Generate Wonderful Program
