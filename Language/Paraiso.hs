@@ -2,5 +2,6 @@
 
 module Paraiso (run) where
 
+-- | Generate Wonderful Program
 run :: () -> String
-run _ = "cout << \"hello\" << endl;"
+run _ = "#include <iostream>\nint main () {cout << \"hello\" << endl;}\n"
