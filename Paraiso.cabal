@@ -52,7 +52,7 @@ Build-type:          Simple
 -- Extra-source-files:  
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.2
+Cabal-version:       >=1.6
 
 
 Library
@@ -61,10 +61,13 @@ Library
   
   -- Packages needed in order to build this package.
   Build-depends:       base   == 4.*
-  
+
   -- Modules not exported by this package.
   -- Other-modules:       
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
-  
+source-repository head
+    type:     git
+    location: https://github.com/nushio3/Paraiso
+    
