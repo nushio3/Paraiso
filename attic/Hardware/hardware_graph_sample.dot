@@ -1,0 +1,71 @@
+graph sample {
+  Interconnects [label = "Interconnect\n(Manual)";;
+  Storages [shape = parallelogram];
+  Interconnects2[shape = house, label = "Interconnect\n(Automated)";
+  Processors [shape = box, peripheries = 2];
+  Interconnects--Storages--Interconnects2--Processors;
+
+  net0  [ label = "OpenMPI:InfiniBand"];
+  net0--net01;
+
+  net1  [ label = "MPICH2:GbE"];
+  net1--net011;
+  net1--net111;
+
+
+  subgraph cluster_nvnode {
+    label = "144x";
+    net01  [ label = "OpenMPI:\nInfiniBand SDR (1GB/s)"];
+    net011 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
+    storage01 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
+    net02  [shape = house; label = "[]:QPI (25.6GB/s)"];
+    proc01 [shape = box, peripheries = 2, label = "icpc:iCore7\n(100Gflops DP/50Gflops DP)"];
+
+    net01--storage01;
+    net011--storage01;
+    storage01--net02--proc01;
+    storage01--net03;
+    subgraph cluster_gtx {
+      label = "4x";
+      net03 [ label = "cudaMemcpy:\nPCIe2.0x16 (8GB/s)"];
+      storage03 [shape = parallelogram, label = "cudaMalloc:\nVRAM (800MB)"];
+      net04 [shape = house; label = "[]:GDDR3 (112GB/s)"];
+      proc02 [shape = box, peripheries = 2, label = "cuda:\nGTR200 (894Gflops SP)"];
+      
+      net03--storage03--net04--proc02;
+    }
+    
+  }
+
+  subgraph cluster_amdnode {
+    label = "32x";
+    net111 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
+    storage11 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
+    net12  [shape = house; label = "[]:AM3+ (32GB/s)"];
+    proc11 [shape = box, peripheries = 2, label = "open64:Shovel\n(200Gflops DP/100Gflops DP)"];
+
+    net111--storage11
+    storage11--net12--proc11; 
+    storage11--net13;
+
+
+
+    subgraph cluster_amd {
+      label = "6x";
+      net13 [ label = "cuMemcpy:\nPCIe2.0x16 (8GB/s)"];
+      storage12 [shape = parallelogram, label = "cuMemAlloc:\nRAM (1024MB)"];
+      net14 [shape = house; label = "[]:GDDR5 (128GB/s)"];
+      proc12 [shape = box, peripheries = 2, label = "opencl:\nRedone (2320Gflops SP/464Gflops DP)"];
+      net13--storage12--net14--proc12;
+    }
+
+    storage11--net15;
+    subgraph cluster_raid {
+      label = "2x"
+      net15 [label = "stdio:\nSATA3 (220MB/s)"];
+      storage14 [shape = parallelogram, label = "fopen:SSD (160GB)"];
+      net15--storage14;
+    }
+  }
+
+}
