@@ -1,7 +1,7 @@
 graph sample {
-  Interconnects [label = "Interconnect\n(Manual)";;
+  Interconnects [label = "Interconnect\n(Manual)"];
   Storages [shape = parallelogram];
-  Interconnects2[shape = house, label = "Interconnect\n(Automated)";
+  Interconnects2[shape = house, label = "Interconnect\n(Automated)"];
   Processors [shape = box, peripheries = 2];
   Interconnects--Storages--Interconnects2--Processors;
 
@@ -18,7 +18,7 @@ graph sample {
     net01  [ label = "OpenMPI:\nInfiniBand SDR (1GB/s)"];
     net011 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
     storage01 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
-    net02  [shape = house; label = "[]:QPI (25.6GB/s)"];
+    net02  [shape = house, label = "[]:QPI (25.6GB/s)"];
     proc01 [shape = box, peripheries = 2, label = "icpc:iCore7\n(100Gflops DP/50Gflops DP)"];
 
     net01--storage01;
@@ -29,7 +29,7 @@ graph sample {
       label = "4x";
       net03 [ label = "cudaMemcpy:\nPCIe2.0x16 (8GB/s)"];
       storage03 [shape = parallelogram, label = "cudaMalloc:\nVRAM (800MB)"];
-      net04 [shape = house; label = "[]:GDDR3 (112GB/s)"];
+      net04 [shape = house, label = "[]:GDDR3 (112GB/s)"];
       proc02 [shape = box, peripheries = 2, label = "cuda:\nGTR200 (894Gflops SP)"];
       
       net03--storage03--net04--proc02;
@@ -41,7 +41,7 @@ graph sample {
     label = "32x";
     net111 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
     storage11 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
-    net12  [shape = house; label = "[]:AM3+ (32GB/s)"];
+    net12  [shape = house, label = "[]:AM3+ (32GB/s)"];
     proc11 [shape = box, peripheries = 2, label = "open64:Shovel\n(200Gflops DP/100Gflops DP)"];
 
     net111--storage11
@@ -54,7 +54,7 @@ graph sample {
       label = "6x";
       net13 [ label = "cuMemcpy:\nPCIe2.0x16 (8GB/s)"];
       storage12 [shape = parallelogram, label = "cuMemAlloc:\nRAM (1024MB)"];
-      net14 [shape = house; label = "[]:GDDR5 (128GB/s)"];
+      net14 [shape = house, label = "[]:GDDR5 (128GB/s)"];
       proc12 [shape = box, peripheries = 2, label = "opencl:\nRedone (2320Gflops SP/464Gflops DP)"];
       net13--storage12--net14--proc12;
     }
