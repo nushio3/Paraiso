@@ -1,5 +1,39 @@
 \documentclass{article}
 \usepackage{amsmath}
+\bibliographystyle{alpha}
+
+\title{Orthotope Machine}
+\author{Takayuki Muranushi}
 \begin{document}
-Hello, world!
+\maketitle
+\begin{quote}
+  In geometry, an orthotope (also called a hyperrectangle or a box) is
+  the generalization of a rectangle for higher dimensions, formally
+  defined as the Cartesian product of intervals.
+\end{quote}
+
+\section{Introduction}
+
+This document describes the {\em Orthotope Machine}, a virtual machine
+that operates on multidimensional arrays. The Orthotope Machine is one
+of the main components for Paraiso project. The goal of Paraiso
+project is to create a high-level programming language for massively
+parallel, partial differential equation solving.
+
+Data Parallel Haskell\cite{nested-data-parallelism}.
+
+Stencil.
+
+High Performance Fortran, which James Stone described me in Taiwan as
+a "Failed Project." 
+
+The unique point of Paraiso compared to those projects is its focus on
+multidimensional array computations. Multidimensional
+arrays are different from nested arrays, 
+
+The Orthotope Machine is designed to model and utilize these
+characteristics of the computational domain.
+
+\bibliography{paraiso}
 \end{document}
+
