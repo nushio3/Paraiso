@@ -1,5 +1,14 @@
 \documentclass{article}
 \usepackage{amsmath}
+
+%% \setlength{\oddsidemargin}{-0.4mm} 
+%% \setlength{\evensidemargin}{\oddsidemargin}
+%% \setlength{\textwidth}{170mm} 
+\setlength{\textheight}{44\baselineskip}
+\addtolength{\textheight}{\topskip}
+\setlength{\voffset}{-0.6in}
+
+
 \bibliographystyle{alpha}
 
 \title{Orthotope Machine}
@@ -25,14 +34,38 @@ Data Parallel Haskell\cite{nested-data-parallelism}.
 Stencil.
 
 High Performance Fortran, which James Stone described me in Taiwan as
-a "Failed Project." 
+a "Failed Project\cite{Kennedy:2007:RFH:1238844.1238851}." 
+DEQSOL\cite{SAGAWANOBUTOSHI:1989-01-15,Kon'no:1986:AIS:324493.325029}
 
 The unique point of Paraiso compared to those projects is its focus on
-multidimensional array computations. Multidimensional
-arrays are different from nested arrays, 
+multidimensional array computations. Multidimensional arrays are different
+from nested arrays.
 
 The Orthotope Machine is designed to model and utilize these
 characteristics of the computational domain.
+
+\section{Overall Design of Paraiso, and Orthotope Machine's Role}
+
+
+\section{Definitions of Orthotope, Orthotree, and Distributed Orthotope}
+
+\section{API for Orthotope Machine}
+
+
+\section{Hardware Model}
+\section{Instruction Set}
+\subsection{Instruction Set for Primodial Orthotope Machine}
+\subsection{Instruction Set for Distributed Orthotope Machine}
+
+\section{Possible Program Transformations}
+\subsection{Common Techniques}
+\subsection{Timestep Fusion}
+\subsection{Manual Cache}
+\subsection{Synchronization Insertion}
+\subsection{Trapezium Splitting}
+\subsection{Parallelogram Splitting}
+
+
 
 \bibliography{paraiso}
 \end{document}
