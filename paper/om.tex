@@ -173,7 +173,10 @@ certain interval of time, say, $0 < t < t_{\mathrm max}$ (1). In the each step
 of the simulation, the time {\tt t} increases by a certain amount {\tt dt}.
 In many problems, the timestep {\tt dt} is not a constant but depends on the
 state of the fluid. In such case, you need to calculate the timesteps adequate
-for the fluid state of every mesh (2), and then perform reduction over the entire computational domain to calculate the smallest {\tt dt} (3).
+for the fluid state of every mesh (2), and then perform reduction over the
+entire computational domain to calculate the smallest {\tt dt} (3). Then,
+amount of fluid flow across X, Y, and Z mesh boundaries are calculated from
+the fluid state of the meshes that are adjacent to the boundaries (4). 
 
 
 \section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
