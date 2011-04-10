@@ -23,28 +23,51 @@
 
 \section{Introduction}
 
-This document describes the {\em Orthotope Machine}, a virtual machine
-that operates on multidimensional arrays. The Orthotope Machine is one
-of the main components for Paraiso project. The goal of Paraiso
-project is to create a high-level programming language for massively
-parallel, partial differential equation solving.
+This document describes the {\em Orthotope Machine}, a virtual machine that
+operates on multidimensional arrays. The Orthotope Machine is one of the main
+components for Paraiso project. The goal of Paraiso project is to create a
+high-level programming language for generating massively parallel, explicit
+solver algorithms of partial differential equations.
 
-Data Parallel Haskell\cite{nested-data-parallelism}.
+From computational viewpoint, explicit solvers of partial differential
+equations belongs to the algorithm category called stencil codes. Stencil
+codes are algorithms that updates the array, each element accessing the nearby
+elements in the same pattern. Stencil codes are commonly used algorithms in
+fields such as solving partial differential equations and image
+processing. Code generations and automated tuning for stencil codes has been
+studied \cite[e.g.]{Datta:EECS-2009-177, Datta:2008:SCO:1413370.1413375}.
 
-Stencil.
+There are many methods other than stencil codes for solving partial
+differential equations. They have different merits. A notable project in
+progress is Liszt \cite{Chafi:2010:LVH:1932682.1869527}, an embedded DSL in
+programmin language Scala, designed for generating hydrodynamics solver on
+unstructured mesh.
 
-High Performance Fortran, which James Stone described me in Taiwan as
-a "Failed Project\cite{Kennedy:2007:RFH:1238844.1238851}." 
-DEQSOL\cite{SAGAWANOBUTOSHI:1989-01-15,Kon'no:1986:AIS:324493.325029}
+Data Parallel Haskell \cite{nested-data-parallelism}.
+
+
+
+High Performance Fortran was a very promising approach to introduce a
+high-level parallelism in Fortran but, as James Stone described me in Taiwan,
+it was a failed project \cite{Kennedy:2007:RFH:1238844.1238851}.
+DEQSOL\cite{SAGAWANOBUTOSHI:1989-01-15,Kon'no:1986:AIS:324493.325029} was
+another project which had design similar to that of Paraiso. The language was
+initially designed for Hitachi vector machines. The extension of DEQSOL for
+parallel vector machines has been planned \cite{SagawaNobutoshi:1989-03-15}
+but seemingly did not realize.
 
 The unique point of Paraiso compared to those projects is its focus on
-multidimensional array computations. Multidimensional arrays are different
-from nested arrays.
+computational domains that utilize localized access to multidimensional
+arrays.
 
-The Orthotope Machine is designed to model and utilize these
-characteristics of the computational domain.
+Multidimensional arrays are different from nested arrays.
 
-\section{Overall Design of Paraiso, and Orthotope Machine's Role}
+The Orthotope Machine is designed to capture and utilize these
+characteristics of the localized multidimensional array computations.
+
+\section{Explicit Solvers of Partial Differential Equations}
+
+\section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
 
 
 \section{Definitions of Orthotope, Orthotree, and Distributed Orthotope}
