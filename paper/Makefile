@@ -1,6 +1,6 @@
 all: om.dvi
 
-om.dvi: om.tex
+om.dvi: om.tex  paraiso.bib
 	latex om.tex
 	bibtex om
 	latex om.tex
