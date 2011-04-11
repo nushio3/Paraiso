@@ -216,6 +216,9 @@ globally constant value onto an array. We should avoid this.
 {\tt Data.Vector} {\tt Data.Array.Repa}
 
 
+\paragraph{Common Subexpression Elimination}
+
+To avoid performing the same calculation twice.
 
 \subsection{Timestep Fusion}
 \subsection{Cache}
@@ -223,7 +226,8 @@ globally constant value onto an array. We should avoid this.
 \subsection{Synchronization Insertion}
 \subsection{Trapezium Splitting}
 \subsection{Parallelogram Splitting}
-
+\subsection{Block Skew}
+Fluid consists of multiple orthotope of the same shape.
 
 
 \bibliography{paraiso}
