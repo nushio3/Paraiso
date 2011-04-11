@@ -201,6 +201,25 @@ the fluid state of the meshes that are adjacent to the boundaries (4).
 
 \section{Possible Program Transformations}
 \subsection{Common Techniques}
+A lot of important optimization techniques are known for scalar
+processors. Some of them are equally applicable to Orthotope Machine
+AST.  Even if we emit the code without such optimizations, we can
+expect the native compilers do the job for us. At least Paraiso should
+not hinder native optimizations. It's better if we can optimize OM AST
+using modern optimization platform such as LLVM.
+
+\paragraph{Constant Folding}
+Constant folding is to calculate constant expression in compile
+time. It'll be fairly easy, and if we forget to do it, native
+compilers are also good at it. One very stupid thing is to store a
+globally constant value onto an array. We should avoid this.
+
+\paragraph{Loop Fusion}
+
+{\tt Data.Vector} {\tt Data.Array.Repa}
+
+
+
 \subsection{Timestep Fusion}
 \subsection{Cache}
 \subsection{Data-Flow-Tree Manipulations by User Specification}
