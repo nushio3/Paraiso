@@ -153,10 +153,10 @@ for (double t=0; t<t_max; t+=dt) {
   for (int z=1; y<NZ-1; ++z) 
     for (int y=1; y<NY-1; ++y) 
       for (int x=1; x<NX-1; ++x)
-          fluid[z][y][x] +=
-          dt*(flow_x[z][y][x]-flow_x[z][y][x+1])/dx
-         +dt*(flow_y[z][y][x]-flow_x[z][y+1][x])/dy
-         +dt*(flow_z[z][y][x]-flow_x[z+1][y][x])/dz;
+          fluid[z][y][x] += dt*(
+            (flow_x[z][y][x]-flow_x[z][y][x+1])/dx
+            (flow_y[z][y][x]-flow_x[z][y+1][x])/dy
+            (flow_z[z][y][x]-flow_x[z+1][y][x])/dz);
 
 }
 \end{verbatim}
@@ -177,6 +177,36 @@ for the fluid state of every mesh (2), and then perform reduction over the entir
 
 
 \section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
+
+\begin{figure}
+\begin{verbatim}
+
+timescale = ...
+calcFX = ...
+
+proceed :: DPDEL ...
+proceed = do
+  t <- input $ Orthotope0
+  fluid <- input $ Orthotope3
+  dtLocal <- bind $ timescale fluid
+  dt <- bind $ reduce Min dtLocal
+
+  flowX <- bind $ calcFX fluid (shift ((-1):.0:.0) fluid)
+  flowY <- bind $ calcFY fluid (shift (0:.(-1):.0) fluid)
+  flowZ <- bind $ calcFZ fluid (shift (0:.0:.(-1)) fluid)
+  
+  newField <- bind $ field + dt * 
+  
+\end{verbatim}
+\caption{A DPDEL monad that corresponds to the pseudocode in Fig. \ref{FigureHydroPseudoCode}.}\label{FigureStencilPseudoCode}
+\end{figure}
+
+\begin{figure}
+\begin{verbatim}
+\end{verbatim}
+\caption{An example of stencil code.}\label{FigureStencilPseudoCode}
+\end{figure}
+
 
 
 \section{Definitions of Orthotope, Orthotree, and Distributed Orthotope}
