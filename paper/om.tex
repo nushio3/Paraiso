@@ -1,12 +1,15 @@
 \documentclass[twocolumn]{article}
 \usepackage{amsmath,algorithmic}
-\usepackage[dvipdfmx]{graphicx,hyperref}
-\usepackage{hyperref}
+%\usepackage[dvipdfmx]{graphicx,hyperref}
+%\usepackage{hyperref}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{url}
 
 %% \setlength{\oddsidemargin}{-0.4mm} 
 %% \setlength{\evensidemargin}{\oddsidemargin}
 %% \setlength{\textwidth}{170mm} 
-\setlength{\textheight}{44\baselineskip}
+\setlength{\textheight}{50\baselineskip}
 \addtolength{\textheight}{\topskip}
 \setlength{\voffset}{-0.6in}
 
@@ -219,8 +222,7 @@ generated from a more compact, but less readable ruby script :
     \hline 
     Language                             &  Sample code & Handled by \\
     \hline 
-    DPDEL                                & & DPDEL monad, quasiquoter and parser 
-    Fig.\ref{FigureDPDEL1},\ref{FigureDPDEL2}\\
+    DPDEL                                & Fig.\ref{FigureDPDEL1},\ref{FigureDPDEL2} & DPDEL monad, quasiquoter and parser     \\
     Primordial Orthotope Machine AST     & Fig.\ref{FigureOMInst} & Orthotope Machine divider \\
     Distributed Orthotope Machine AST    & & Orthotope AST optimizer and compiler \\
     Native codes (Fortran,C,CUDA,OpenCL with MPI) & Fig.\ref{FigureHydroPseudoCode} & Native compilers\\
