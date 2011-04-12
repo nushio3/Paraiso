@@ -1,6 +1,7 @@
 \documentclass[twocolumn]{article}
 \usepackage{amsmath,algorithmic}
 \usepackage[dvipdfmx]{graphicx}
+\usepackage{url}
 
 %% \setlength{\oddsidemargin}{-0.4mm} 
 %% \setlength{\evensidemargin}{\oddsidemargin}
@@ -154,8 +155,8 @@ for (double t=0; t<t_max; t+=dt) {
     for (int y=1; y<NY-1; ++y) 
       for (int x=1; x<NX-1; ++x)
           fluid[z][y][x] += dt*(
-            (flow_x[z][y][x]-flow_x[z][y][x+1])/dx
-            (flow_y[z][y][x]-flow_x[z][y+1][x])/dy
+            (flow_x[z][y][x]-flow_x[z][y][x+1])/dx +
+            (flow_y[z][y][x]-flow_x[z][y+1][x])/dy +
             (flow_z[z][y][x]-flow_x[z+1][y][x])/dz);
 
 }
@@ -181,11 +182,27 @@ the fluid state of the meshes that are adjacent to the boundaries (4).
 
 \section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
 
-\begin{figure}
-\begin{verbatim}
+\begin{table*}
+  \begin{tabular}{ll}
+    Language                             & Handled by \\
+    DPDEL                                & DPDEL monad, quasiquoter and parser\\
+    OM Abstract Syntax Tree              & Orthotope Machine or OM compiler \\
+    Native codes (Fortran,C,CUDA,OpenCL with MPI) & Native compilers \\
+    Executables                          & Real machines
+  \end{tabular}
+  \caption{
+    The software stack of Paraiso, through which DPDEL programs are translated to executables.
+  }\label{TableSoftwareStack}
+\end{table*}
 
+\url{http://paraiso-lang.org/wiki/index.php/Grand_Design}
+
+\begin{figure*}
+\begin{verbatim}
 timescale = ...
-calcFX = ...
+calcFX f1 f2 = ...
+calcFY f1 f2 = ...
+calcFZ f1 f2 = ...
 
 proceed :: DPDEL ...
 proceed = do
@@ -198,17 +215,86 @@ proceed = do
   flowY <- bind $ calcFY fluid (shift (0:.(-1):.0) fluid)
   flowZ <- bind $ calcFZ fluid (shift (0:.0:.(-1)) fluid)
   
-  newField <- bind $ field + dt * 
-  
+  newFluid <- bind $ fluid + dt * (
+    (flowX - shift (1:.0:.0) flowX)/dx +
+    (flowY - shift (0:.1:.0) flowY)/dy +
+    (flowZ - shift (0:.0:.1) flowZ)/dz )
+
+  output (t+dt) t
+  output newFluid fluid
+
 \end{verbatim}
-\caption{A DPDEL monad that corresponds to the pseudocode in Fig. \ref{FigureHydroPseudoCode}.}\label{FigureStencilPseudoCode}
-\end{figure}
+\caption{A DPDEL monad that corresponds to the pseudocode in
+  Fig. \ref{FigureHydroPseudoCode}.}\label{FigureDPDEL1}
+\end{figure*}
+
+\begin{figure*}
+\begin{verbatim}
+timescale = ...
+calcF axis f1 f2 = ...
+
+proceed :: DPDEL ...
+proceed = do
+  t <- input $ Orthotope0
+  fluid <- input $ Orthotope3
+  dtLocal <- bind $ timescale fluid
+  dt <- bind $ reduce Min dtLocal
+
+  flow <- forAxes (\axis ->
+    [qb| o -> calcF axis fluid[o] fluid[o-axis]] )
+
+  
+  updates <- forAxes (\axis -> [qb| (flow_axis[o] - flow_axis[o+axis]) / dr_axis ]
+
+  newFluid = bind $ fluid + dt * sum updates
+
+  output (t+dt) t
+  output newFluid fluid
+
+\end{verbatim}
+\caption{A more sophisticated DPDEL code using quasiquote and Axis. {\bf qb}
+  is a quoted bind. The argument of {\bf qb} is parsed by a separate parser
+  that understands e.g. the Einstein rules, and a {\bf bind} is added.
+  Compare with Fig. \ref{FigureDPDEL1}.}\label{FigureDPDEL2}
+\end{figure*}
 
 \begin{figure}
 \begin{verbatim}
+t <- input 
+fluid <- input
+dtLocal <- ...
+dt <- reduce dtLocal
+
+a1 <- shift ((-1):.0:.0) fluid
+flowX   <- arith calcFX fluid a1
+a2 <- shift (0:.(-1):.0) fluid
+flowY   <- arith calcFY fluid a2
+a3 <- shift (0:.0:.(-1)) fluid
+flowZ   <- arith calcFZ fluid a3
+
+a4 <- shift (1:.0:.0) flowX
+a5 <- arith (-) flowX a4
+a6 <- arith (/) a5 dx
+a7 <- shift (0:.1:.0) flowY
+a8 <- arith (-) flowY a7
+a9 <- arith (/) a8 dy
+a10 <- shift (0:.0:.1) flowZ
+a11 <- arith (-) flowZ a10
+a12 <- arith (/) a11 dz
+a13 <- arith (+) a6 a9
+a14 <- arith (+) a13 a12
+a15 <- arith (*) a14 dt
+a16 <- arith (+) a15 fluid
+
+newT <- arith (+) t dt
+
+output newT t
+output a16 fluid
 \end{verbatim}
-\caption{An example of stencil code.}\label{FigureStencilPseudoCode}
+\caption{A sketch of how an Orthotope Machine instruction will look like.}\label{FigureOMInst}
 \end{figure}
+
+
 
 
 
@@ -251,7 +337,8 @@ globally constant value onto an array. We should avoid this.
 
 \paragraph{Common Subexpression Elimination}
 
-To avoid performing the same calculation twice.
+To avoid performing the same calculation twice, by storing the intermediate
+value to the memory. 
 
 \subsection{Timestep Fusion}
 \subsection{Cache}
@@ -260,8 +347,15 @@ To avoid performing the same calculation twice.
 \subsection{Trapezium Splitting}
 \subsection{Parallelogram Splitting}
 \subsection{Block Skew}
-Fluid consists of multiple orthotope of the same shape.
+Fluid consists of multiple orthotope of the same shape and extent.
+\subsection{Batch Reduce/Broadcast}
+Reduce and broadcast needs global communications. To have large-grained
+communications, it will be a good idea to perform many reduce/broadcast
+instructions at once. 
 
+It's good if we can detect the portions of calculations that do not depend on
+the broadcast data, and perform such calculations in parallel while the
+communications are going on.
 
 \bibliography{paraiso}
 \end{document}
