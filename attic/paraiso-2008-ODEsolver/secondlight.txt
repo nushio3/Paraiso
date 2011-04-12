@@ -1,0 +1,23 @@
+[nushio@h171 paracuda]$ make lorenz; make cpu; make run-cpu
+ghc --make MainLorenz.hs -o gen.exe
+./gen.exe > tmp.cpp
+indent -br < tmp.cpp > main.cpp
+g++ main.cpp -O3 -o cpu.exe
+./cpu.exe > out-cpu.txt
+time ./cpu.exe > /dev/null
+
+real    8m6.377s
+user    8m6.319s
+sys     0m0.012s
+[nushio@h171 paracuda]$ make lorenz; make gpu; make run-gpu
+ghc --make MainLorenz.hs -o gen.exe
+./gen.exe --cuda > tmp.cu
+indent -br < tmp.cu > main.cu
+nvcc -c main.cu -o main-gpu.o --host-compilation 'C++' -O3 -I  /opt/NVIDIA_CUDA_SDK/common/inc  -I  /usr/local/cuda/include
+g++ main-gpu.o -o gpu.exe -L/usr/local/cuda/lib -L/opt/NVIDIA_CUDA_SDK/lib -lcuda -lcudart -lGL  -lcutil
+LD_LIBRARY_PATH=/usr/local/cuda/lib ./gpu.exe > out-gpu.txt
+time LD_LIBRARY_PATH=/usr/local/cuda/lib ./gpu.exe > /dev/null
+
+real    0m5.681s
+user    0m5.494s
+sys     0m0.181s

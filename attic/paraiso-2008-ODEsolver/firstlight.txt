@@ -1,0 +1,12 @@
+./cpu.exe > out-cpu.txt
+time ./cpu.exe > /dev/null
+
+real    0m29.603s
+user    0m29.570s
+sys     0m0.021s
+LD_LIBRARY_PATH=/usr/local/cuda/lib ./gpu.exe > out-gpu.txt
+time LD_LIBRARY_PATH=/usr/local/cuda/lib ./gpu.exe > /dev/null
+
+real    0m0.213s
+user    0m0.032s
+sys     0m0.180s
