@@ -19,7 +19,7 @@ graph sample {
     net011 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
     storage01 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
     net02  [shape = house, label = "[]:QPI (25.6GB/s)"];
-    proc01 [shape = box, peripheries = 2, label = "icpc:iCore7\n(100Gflops DP/50Gflops DP)"];
+    proc01 [shape = box, peripheries = 2, label = "icpc:iCore7\n(100Gflops SP/50Gflops DP)"];
 
     net01--storage01;
     net011--storage01;
@@ -42,7 +42,7 @@ graph sample {
     net111 [ label = "MPICH2:\nOnboard GbE (120MB/s)"];
     storage11 [shape = parallelogram, label = "malloc:\nRAM (24GB)"];
     net12  [shape = house, label = "[]:AM3+ (32GB/s)"];
-    proc11 [shape = box, peripheries = 2, label = "open64:Shovel\n(200Gflops DP/100Gflops DP)"];
+    proc11 [shape = box, peripheries = 2, label = "open64:Shovel\n(200Gflops SP/100Gflops DP)"];
 
     net111--storage11
     storage11--net12--proc11; 
