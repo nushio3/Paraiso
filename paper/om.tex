@@ -212,17 +212,19 @@ generated from a more compact, but less readable ruby script :
 
 
 
-\section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
+\section{Overall Design of Paraiso}
 
 \begin{table*}
-  \begin{tabular}{|l|l|}
+  \begin{tabular}{|l|l|l|}
     \hline 
-    Language                             & Handled by \\
+    Language                             &  Sample code & Handled by \\
     \hline 
-    DPDEL                                & DPDEL monad, quasiquoter and parser\\
-    OM Abstract Syntax Tree              & Orthotope Machine or OM compiler \\
-    Native codes (Fortran,C,CUDA,OpenCL with MPI) & Native compilers \\
-    Executables                          & Real machines \\
+    DPDEL                                & & DPDEL monad, quasiquoter and parser 
+    Fig.\ref{FigureDPDEL1},\ref{FigureDPDEL2}\\
+    Primordial Orthotope Machine AST     & Fig.\ref{FigureOMInst} & Orthotope Machine divider \\
+    Distributed Orthotope Machine AST    & & Orthotope AST optimizer and compiler \\
+    Native codes (Fortran,C,CUDA,OpenCL with MPI) & Fig.\ref{FigureHydroPseudoCode} & Native compilers\\
+    Executables                          & & Real machines \\
     \hline
   \end{tabular}
   \caption{
@@ -230,8 +232,85 @@ generated from a more compact, but less readable ruby script :
   }\label{TableSoftwareStack}
 \end{table*}
 
-Paraiso c.f. Table \ref{TableSoftwareStack}.
-Please also c.f. \url{http://paraiso-lang.org/wiki/index.php/Grand_Design}
+In this section I briefly describe the overall design of Paraiso, to clarify
+the Orthotope Machine's Role in it. Please also
+c.f. \url{http://paraiso-lang.org/wiki/index.php/Grand_Design}.
+
+Paraiso translates the input programs into native programs with several steps:
+c.f. Table \ref{TableSoftwareStack}. The input language is DPDEL (Discretized
+Partial Differential Equation Language); the language to describe the
+numerical simulation algorithms, in as simple form as possible
+c.f. \url{http://paraiso-lang.org/wiki/index.php/DPDEL}.  Then it is
+translated to Orthotope Machine (OM) program. Its name used to be Virtual
+Vector Machine (VVM) in original Paraiso proposal c.f.
+\url{http://paraiso-lang.org/wiki/index.php/VVM}. There are two versions of
+Orthotope Machine: one is Primordial OM, the other is Distributed OM.  DPDEL
+program is first translated to Primordial OM program, on which it can use
+arbitrary large arrays. Then ``machine division'' operations are applied,
+according to the hardware specifications, producing Distributed OM
+instructions. Distributed OM instructions are then translated to native
+codes. Native codes are compiled by existing compilers, and finally, all
+programs are executable.
+
+
+
+\subsection{Discretized Partial Differential Equation Language (DPDEL)}
+
+DPDEL program is constructed within a monad: This technique is described in
+tanakh's blog \url{http://d.hatena.ne.jp/tanakh/20070918} and is featured in
+both the prototypes of Paraiso.
+
+Fig.\ref{FigureDPDEL1} shows the possible DPDEL program. Although it is fairly
+readable, it has some shabby points.
+\begin{itemize}
+  \item Calculations for X,Y,Z directions are repeated,
+  \item Vectors are represented in scary ways: {\tt ((-1):.0:.0)},
+  \item Most part of the program is to assign an expression {\tt expr} to a
+    new AST node {\tt a}, but you cannot write {\tt a <- expr} since lhs is
+    also an expression and both must have the same type; {\tt expr} cannot be
+    a monad that returns {\tt expr}.  Expression must go through some function
+    e.g. {\tt bind :: AST a -> DPDEL (AST a)}.
+  \item You are forced to use customized operators {\tt+. *.} ... instead of
+    usual operators {\tt+ *}... . This may not happen in the arithmetric
+    operators, but at least it surely happens for comparison operators such as
+    {\tt>}, because their type is {\tt a -> a -> Bool}. You cannot get it have
+    the type {\tt AST a -> AST a -> AST Bool}. This barrier is also observed
+    in Nikola, a DSL for GPU in Haskell
+    \ref{Mainland:2010:NEC:1863523.1863533}.
+\end{itemize}
+
+Fig.\ref{FigureDPDEL2} shows another possible version of DPDEL with above
+drawbacks removed.  First improvement is the concept of Axis. In the sample
+code, axis has two role.  One is to specify a certain component of
+three-dimensional vector, e.g. {\tt flow\_axis}. The other is to shift the
+indices for three-dimensional arrays. The indices are represented as {\tt o}
+and shifted like {\tt [o+axis]}.
+
+This double-roled Axis is invented for my magnetohydrodynamics program. The
+two role combined, it really helps generating the program fragment for X,Y,Z
+directions from a single code. They are defined in
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/direction.h} as a
+dummy struct {\tt XAxis, YAxis, Zaxis} etc. It is extensively used to
+construct a three-dimensional array
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/crystal.h}
+as well as the main program.
+
+But how does Haskell know that the name {\tt flow\_axis} is related with the
+name {\tt axis}? Isn't {\tt flow\_axis} a single name identifier in Haskell
+syntax? Here comes the second point.
+
+We introduce {\bf \tt qb}, quasiquote-and-bind operation. This lifts the
+constraints coming from the Haskell syntax. It parses its argument string and
+does several things: it changes {\tt flow\_axis} into something like {\tt
+  getComponent axis flow}. It renames the arithmetic operators
+appropriately. It translates {\tt [o+axis]} into type-correct expression like
+{\tt [o+getUnitVector axis]}. It has implicit antiquotes. Finally, {\tt qb}
+adds {\tt bind} to the entire expression. {\tt qb} grants us magical power.
+
+Well, things may not go too well with {\tt qb}. We may find some of the
+facilities described above impossible to implement. We may need several
+quasiquoters instead of just one. Even so, use of quasiquote is essential in
+making DPDEL syntax simpler.
 
 \begin{figure*}
 \begin{verbatim}
@@ -251,10 +330,10 @@ proceed = do
   flowY <- bind $ calcFY fluid (shift (0:.(-1):.0) fluid)
   flowZ <- bind $ calcFZ fluid (shift (0:.0:.(-1)) fluid)
   
-  newFluid <- bind $ fluid + dt * (
-    (flowX - shift (1:.0:.0) flowX)/dx +
-    (flowY - shift (0:.1:.0) flowY)/dy +
-    (flowZ - shift (0:.0:.1) flowZ)/dz )
+  newFluid <- bind $ fluid +. dt *. (
+    (flowX -. shift (1:.0:.0) flowX)/.dx +
+    (flowY -. shift (0:.1:.0) flowY)/.dy +
+    (flowZ -. shift (0:.0:.1) flowZ)/.dz )
 
   output (t+dt) t
   output newFluid fluid
@@ -280,9 +359,9 @@ proceed = do
     [qb| o -> calcF axis fluid[o] fluid[o-axis]] )
 
   
-  updates <- forAxes (\axis -> [qb| (flow_axis[o] - flow_axis[o+axis]) / dr_axis ]
+  updates <- forAxes (\axis -> [qb| o-> (flow_axis[o] - flow_axis[o+axis]) / dr_axis ]
 
-  newFluid = bind $ fluid + dt * sum updates
+  newFluid = [qb| o-> fluid[o] + dt * (sum updates)[o]]
 
   output (t+dt) t
   output newFluid fluid
@@ -404,6 +483,8 @@ calculations. But its result is correct.
 
 
 \subsection{Instruction Set for Primordial Orthotope Machine}
+Primordial OM is an imaginary machine with infinite amount of memory and
+infinitely long vector arithmetric instructions. 
 \subsection{Instruction Set for Distributed Orthotope Machine}
 
 \section{Possible Program Transformations}
