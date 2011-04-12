@@ -1,7 +1,7 @@
 \documentclass[twocolumn]{article}
 \usepackage{amsmath,algorithmic}
-\usepackage[dvipdfmx]{graphicx}
-\usepackage{url}
+\usepackage[dvipdfmx]{graphicx,hyperref}
+\usepackage{hyperref}
 
 %% \setlength{\oddsidemargin}{-0.4mm} 
 %% \setlength{\evensidemargin}{\oddsidemargin}
@@ -43,9 +43,9 @@ tuning for stencil codes has been studied e.g. \cite{Datta:EECS-2009-177,
 
 There are many methods other than stencil codes for solving partial
 differential equations. They have different merits. A notable project in
-progress is Liszt \cite{Chafi:2010:LVH:1932682.1869527}, an embedded DSL in
-programmin language Scala, designed for generating hydrodynamics solver on
-unstructured mesh.
+progress is Liszt \cite{Chafi:2010:LVH:1932682.1869527}, an embedded
+DSL(domain specific language) in programming language Scala, designed for
+generating hydrodynamics solver on unstructured mesh.
 
 \begin{figure}
 \begin{verbatim}
@@ -76,7 +76,7 @@ We need new languages for parallel hardwares --- this is a long-standing
 idea. Many project sought for them, and some failed. Failures from which we
 can learn. High Performance Fortran was a very promising approach to introduce
 a high-level parallelism in Fortran but, as James Stone told me in Taiwan, and
-as is summarised by the project leader
+as is summarized by the project leader
 \cite{Kennedy:2007:RFH:1238844.1238851}, it failed.  DEQSOL
 \cite{SAGAWANOBUTOSHI:1989-01-15,Kon'no:1986:AIS:324493.325029} was another
 project which had design similar to that of Paraiso. The language was
@@ -89,13 +89,13 @@ computational domains that utilize localized access to multidimensional
 arrays.
 
 Multidimensional arrays are different from nested arrays. For example in the
-psueudocode Fig.\ref{FigureStencilPseudoCode}, in order to calculate {\tt
+pseudocode Fig.\ref{FigureStencilPseudoCode}, in order to calculate {\tt
   b[y][x]} you need to read from {\tt a[y-1][x]} and {\tt a[y+1][x]}, which
 are usually located much farther in the memory compared to {\tt a[y][x-32]} or
 {\tt a[y][x+64]}. The code generator must be aware of such locality in
 multidimensional space.  For most of the cases, the basic equations to be
 solved is symmetric under exchange of the axes (X,Y,Z ...). Still, there are
-nonnegligible differences between the axes from computational point of view,
+non-negligible differences between the axes from computational point of view,
 especially if the multidimensional arrays are stored in row-major or
 column-major order. To utilize the cache and/or vector instructions, we need
 to know, or decide upon, the order the array is stored in the memory.
@@ -114,6 +114,8 @@ The Orthotope Machine is designed to capture and utilize these
 characteristics of the multidimensional array computations.
 
 \section{Explicit Solvers of Partial Differential Equations}
+
+To begin with, let me describe what kind of problem I want to solve.
 
 \begin{figure*}
 \begin{verbatim}
@@ -166,36 +168,70 @@ for (double t=0; t<t_max; t+=dt) {
 \end{figure*}
 
 Fig. \ref{FigureHydroPseudoCode} shows a pseudocode for a hydrodynamic
-equations solver. Although it is a bit simplified from the real solvers, it
+equations solver. Although it is a bit simplified to be a real solvers, it
 shows what components needed to build one.
 
 A common task for the solver is to simulate the evolution of the fluid for a
 certain interval of time, say, $0 < t < t_{\mathrm max}$ (1). In the each step
 of the simulation, the time {\tt t} increases by a certain amount {\tt dt}.
-In many problems, the timestep {\tt dt} is not a constant but depends on the
-state of the fluid. In such case, you need to calculate the timesteps adequate
+In many problems, the time-step {\tt dt} is not a constant but depends on the
+state of the fluid. In such case, you need to calculate the time-steps adequate
 for the fluid state of every mesh (2), and then perform reduction over the
 entire computational domain to calculate the smallest {\tt dt} (3). Then,
 amount of fluid flow across X, Y, and Z mesh boundaries are calculated from
 the fluid state of the meshes that are adjacent to the boundaries (4). 
 
+To generate a real-world fluid solver, there are more complexity compared to
+the example in Fig. \ref{FigureHydroPseudoCode}. First, the {\tt fluid} has
+not one but several component. For example, we typically need five 3D arrays
+(or an array of a struct with five elements) to solve hydrodynamics. They are
+density, three components of the velocity, and energy. For
+magneto-hydrodynamics, we need eight components. For general relativity we
+need twenty-one.
+
+Second, the size of the stencil (the number of input mesh needed to calculate
+the answer for one mesh) is larger. {\tt calc\_fx} in
+Fig. \ref{FigureHydroPseudoCode} reads two mesh. In real solvers, they may
+read four, six or more meshes, to achieve higher-order interpolation in space.
+Third, the entire solver will be replicated several times, to achieve
+higher-order time integral. Runge-Kutta method is a well known example of such
+a technique. This also make the stencil larger.
+
+Too large stencil is a bad thing. We need to perform duplicated calculations,
+and we need communication buffer so large that distributed computation do not
+contribute to better performance. So we need to split the algorithm into
+several components with smaller stencil. Splitting it into too many pieces, is
+again not a good idea. We must search for the middle path.
+
+To get a feeling of a real ``real-world solver,'' please look at {\tt proceed}
+function of my magneto-hydrodynamics solver I'm working right now :
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inl} . I
+just wanted you to see how the code repeats itself. The code is actually
+generated from a more compact, but less readable ruby script :
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inlrb} .
+
+
 
 \section{Overall Design of Paraiso, and Orthotope Machine's Role in it}
 
 \begin{table*}
-  \begin{tabular}{ll}
+  \begin{tabular}{|l|l|}
+    \hline 
     Language                             & Handled by \\
+    \hline 
     DPDEL                                & DPDEL monad, quasiquoter and parser\\
     OM Abstract Syntax Tree              & Orthotope Machine or OM compiler \\
     Native codes (Fortran,C,CUDA,OpenCL with MPI) & Native compilers \\
-    Executables                          & Real machines
+    Executables                          & Real machines \\
+    \hline
   \end{tabular}
   \caption{
     The software stack of Paraiso, through which DPDEL programs are translated to executables.
   }\label{TableSoftwareStack}
 \end{table*}
 
-\url{http://paraiso-lang.org/wiki/index.php/Grand_Design}
+Paraiso c.f. Table \ref{TableSoftwareStack}.
+Please also c.f. \url{http://paraiso-lang.org/wiki/index.php/Grand_Design}
 
 \begin{figure*}
 \begin{verbatim}
@@ -252,13 +288,13 @@ proceed = do
   output newFluid fluid
 
 \end{verbatim}
-\caption{A more sophisticated DPDEL code using quasiquote and Axis. {\bf qb}
+\caption{A more sophisticated DPDEL code using quasi-quote and Axis. {\bf qb}
   is a quoted bind. The argument of {\bf qb} is parsed by a separate parser
   that understands e.g. the Einstein rules, and a {\bf bind} is added.
   Compare with Fig. \ref{FigureDPDEL1}.}\label{FigureDPDEL2}
 \end{figure*}
 
-\begin{figure}
+\begin{figure*}
 \begin{verbatim}
 t <- input 
 fluid <- input
@@ -292,7 +328,7 @@ output newT t
 output a16 fluid
 \end{verbatim}
 \caption{A sketch of how an Orthotope Machine instruction will look like.}\label{FigureOMInst}
-\end{figure}
+\end{figure*}
 
 
 
@@ -312,7 +348,62 @@ output a16 fluid
 \end{figure*}
 
 \section{Instruction Set}
-\subsection{Instruction Set for Primodial Orthotope Machine}
+
+Orthotope Machine (OM) is a virtual machine that has an instruction set
+operating on orthotopes. Each instruction is presented in static single
+assignment (SSA) form. For example, {\tt add} instruction in common CPUs or in
+LLVM adds two scalar value. The {\tt add} instruction in Orthotope Machine
+takes two orthotope and returns one, acting much like {\tt zipWith (+)}.
+
+\subsection{Static Addressed Single Assignment}
+
+We extend the static single assignment (SSA) form concept to static addressed
+single assignment(SASA) form.  Consider the following DPDEL program, where
+{\tt a,b,c} are orthotopes:
+\begin{verbatim}
+b <- shift (-1) a * shift 1 a;
+c <- shift (-1) b + b + shift (+1) b;
+\end{verbatim}
+the program is in SSA (static single assignment) form.
+If we generate the following code from the DPDEL, it will give a wrong result.
+\begin{verbatim}
+for (int i=2; i<N-2; ++i) {
+  b[i] =a[i-1]*a[i+1];
+  c[i] =b[i-1]+b[i]+b[i+1];
+}
+\end{verbatim}
+In parallel language such as CUDA, the execution order of the loop is
+nondeterministic, so the result of the above program is not even
+well-defined. In SSA (static single assignment) form, every variable is only
+assigned once. However, there remains some ambiguity.  Assigning {\em each
+  orthotope} variable only once does not fix the meaning of program uniquely
+in such nondeterministically parallel environment.
+
+One way to fix this is to assure that {\em each element of each orthotope} is
+statically assigned at most once. To do this, first we must detect how the
+output ({\tt c[i]} in this case) depends on every SSA orthotope and how large
+is the stencil (dependency size). Then we can generate code like this:
+\begin{verbatim}
+for (int i=2; i<N-2; ++i) {
+  a_i_minus_2 = a[i-2];
+  a_i_minus_1 = a[i-1];
+  a_i = a[i];
+  a_i_plus_1 = a[i+1];
+  a_i_plus_2 = a[i+2];
+  b_i_minus_1 = a_i_minus_2 + a_i;
+  b_i = a_i_minus_1 + a_i_plus_1;
+  b_i_plus_1 = a_i + a_i_plus_2;
+  c_i = b_i_minus_1 + b_i + b_i_plus_1;
+  c[i] = c_i;
+}
+\end{verbatim}
+Let us call this SASA (Static and Addressed Single Assignment)
+form. Generating programs in SASA form obviously introduces a lot of extra
+calculations. But its result is correct. 
+
+
+
+\subsection{Instruction Set for Primordial Orthotope Machine}
 \subsection{Instruction Set for Distributed Orthotope Machine}
 
 \section{Possible Program Transformations}
@@ -332,7 +423,9 @@ globally constant value onto an array. We should avoid this.
 
 \paragraph{Loop Fusion}
 
-{\tt Data.Vector} {\tt Data.Array.Repa}
+Loop fusion is a source of high performance in Haskell's array operating
+libraries {\tt Data.Vector} and {\tt Data.Array.Repa}, and also in many other
+libraries in other languages.
 
 
 \paragraph{Common Subexpression Elimination}
@@ -340,7 +433,7 @@ globally constant value onto an array. We should avoid this.
 To avoid performing the same calculation twice, by storing the intermediate
 value to the memory. 
 
-\subsection{Timestep Fusion}
+\subsection{Time-step Fusion}
 \subsection{Cache}
 \subsection{Data-Flow-Tree Manipulations by User Specification}
 \subsection{Synchronization Insertion}
