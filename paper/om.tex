@@ -125,6 +125,12 @@ characteristics of the multidimensional array computations.
 
 To begin with, let me describe what kind of problem I want to solve.
 
+\begin{figure}
+  \includegraphics[scale=0.5]{figure/fluid.eps}
+  \caption {Schematic image of how a fluid simulator
+    works. }\label{FigureFluidScheme}
+\end{figure}
+
 \begin{figure*}
 \begin{verbatim}
 double fluid[NZ][NY][NX];
@@ -171,13 +177,21 @@ for (double t=0; t<t_max; t+=dt) {
 
 }
 \end{verbatim}
-\caption{A typical hydrodynamic equations solver does something like
-  this.}\label{FigureHydroPseudoCode}
+  \caption{A pseudocode showing the typical design of a hydrodynamic
+    equations solving algorithm.  c.f.  Fig. \ref{FigureFluidScheme}
+  }\label{FigureHydroPseudoCode}
 \end{figure*}
 
-Fig. \ref{FigureHydroPseudoCode} shows a pseudocode for a hydrodynamic
-equations solver. Although it is a bit simplified to be a real solvers, it
-shows what components needed to build one.
+Let us take for example a hydrodynamics solver that represent the
+fluid by a mesh structure c.f. Fig. \ref{FigureFluidScheme}. Each mesh
+stores the amount of fluid that is in that mesh. The solver's
+algorithm is to calculate the flows of the fluid accross the mesh
+boundaries, and add/subtract the amount of fluid.
+
+Fig. \ref{FigureHydroPseudoCode} shows a pseudocode for a
+three-dimensional hydrodynamic equations solver. Although it is a bit
+simplified to be a real solvers, it shows what components needed to
+build one.
 
 A common task for the solver is to simulate the evolution of the fluid for a
 certain interval of time, say, $0 < t < t_{\mathrm max}$ (1). In the each step
@@ -459,7 +473,7 @@ definition. So there's some hope.
 
 \begin{figure*}
   \begin{center}
-    \includegraphics[scale=0.3]{hardware_graph.eps}
+    \includegraphics[scale=0.3]{figure/hardware_graph.eps}
   \end{center}
   \caption{Hardware model, generated from graphVis.}\label{FigureHardware}
 \end{figure*}
