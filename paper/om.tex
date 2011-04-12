@@ -1,8 +1,11 @@
 \documentclass[twocolumn]{article}
 \usepackage{amsmath,algorithmic}
+
+% Create link to web,figures (better)
 %\usepackage[dvipdfmx]{graphicx,hyperref}
 %\usepackage{hyperref}
 
+% Don't link (failsafe option)
 \usepackage[dvipdfmx]{graphicx}
 \usepackage{url}
 
@@ -21,9 +24,11 @@
 \begin{document}
 \maketitle
 \begin{quote}
-  In geometry, an orthotope (also called a hyperrectangle or a box) is
+  In geometry, an {\em orthotope} (also called a hyperrectangle or a box) is
   the generalization of a rectangle for higher dimensions, formally
   defined as the Cartesian product of intervals.
+
+  ``Orthotope'' means ``multidimensional array'' in this document.
 \end{quote}
 
 \section{Introduction}
@@ -206,12 +211,15 @@ contribute to better performance. So we need to split the algorithm into
 several components with smaller stencil. Splitting it into too many pieces, is
 again not a good idea. We must search for the middle path.
 
-To get a feeling of a real ``real-world solver,'' please look at {\tt proceed}
-function of my magneto-hydrodynamics solver I'm working right now :
-\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inl} . I
-just wanted you to see how the code repeats itself. The code is actually
-generated from a more compact, but less readable ruby script :
-\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inlrb} .
+To get a feeling of a real ``real-world solver,'' please look at {\tt
+  proceed} function of my magneto-hydrodynamics solver I'm working
+right now :
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inl}
+. I just wanted you to see how dirty the code is and how it repeats
+itself. The code is actually generated from a more compact, but less
+readable ruby script :
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/mhd_solver.inlrb}
+.
 
 
 
@@ -235,7 +243,7 @@ generated from a more compact, but less readable ruby script :
 \end{table*}
 
 In this section I briefly describe the overall design of Paraiso, to clarify
-the Orthotope Machine's Role in it. Please also
+the Orthotope Machine's role in it. Please also
 c.f. \url{http://paraiso-lang.org/wiki/index.php/Grand_Design}.
 
 Paraiso translates the input programs into native programs with several steps:
@@ -258,9 +266,12 @@ programs are executable.
 
 \subsection{Discretized Partial Differential Equation Language (DPDEL)}
 
-DPDEL program is constructed within a monad: This technique is described in
-tanakh's blog \url{http://d.hatena.ne.jp/tanakh/20070918} and is featured in
-both the prototypes of Paraiso.
+DPDEL program is constructed within a monad: This technique is
+described in tanakh's blog \url{http://d.hatena.ne.jp/tanakh/20070918}
+and is featured in the first prototype of Paraiso. The monad is called
+{\tt Dsl} and defined in
+\url{https://github.com/nushio3/Paraiso/blob/master/attic/paraiso-2008-ODEsolver/Paraiso.hs}.
+
 
 Fig.\ref{FigureDPDEL1} shows the possible DPDEL program. Although it is fairly
 readable, it has some shabby points.
@@ -278,24 +289,26 @@ readable, it has some shabby points.
     {\tt>}, because their type is {\tt a -> a -> Bool}. You cannot get it have
     the type {\tt AST a -> AST a -> AST Bool}. This barrier is also observed
     in Nikola, a DSL for GPU in Haskell
-    \ref{Mainland:2010:NEC:1863523.1863533}.
+    \cite{Mainland:2010:NEC:1863523.1863533}.
 \end{itemize}
 
-Fig.\ref{FigureDPDEL2} shows another possible version of DPDEL with above
-drawbacks removed.  First improvement is the concept of Axis. In the sample
-code, axis has two role.  One is to specify a certain component of
-three-dimensional vector, e.g. {\tt flow\_axis}. The other is to shift the
-indices for three-dimensional arrays. The indices are represented as {\tt o}
-and shifted like {\tt [o+axis]}.
+Fig.\ref{FigureDPDEL2} shows another possible version of DPDEL with
+above drawbacks removed.  First improvement is the concept of Axis. In
+the sample code, axis has two role.  One is to specify a certain
+component of three-dimensional vector, e.g. {\tt flow\_axis}. The
+other is to shift the indices for three-dimensional arrays. The
+indices are represented as lambda-bound variable {\tt o} and shifted
+like {\tt [o+axis]}.
 
-This double-roled Axis is invented for my magnetohydrodynamics program. The
-two role combined, it really helps generating the program fragment for X,Y,Z
-directions from a single code. They are defined in
-\url{https://github.com/nushio3/nmhd/blob/master/src/library/direction.h} as a
-dummy struct {\tt XAxis, YAxis, Zaxis} etc. It is extensively used to
-construct a three-dimensional array
+This double-roled Axis is invented for my magnetohydrodynamics
+program. The two role combined, it really helps writing template
+functions, instantiated three times, each of which handles one of
+X,Y,Z directions. The concept of Axis is defined in
+\url{https://github.com/nushio3/nmhd/blob/master/src/library/direction.h}
+as a set of dummy structs {\tt XAxis, YAxis, Zaxis} etc. It is
+extensively used to construct three-dimensionally accessible arrays
 \url{https://github.com/nushio3/nmhd/blob/master/src/library/crystal.h}
-as well as the main program.
+as well as to write the main program.
 
 But how does Haskell know that the name {\tt flow\_axis} is related with the
 name {\tt axis}? Isn't {\tt flow\_axis} a single name identifier in Haskell
@@ -375,6 +388,21 @@ proceed = do
   Compare with Fig. \ref{FigureDPDEL1}.}\label{FigureDPDEL2}
 \end{figure*}
 
+\subsection{Orthotope Machine}
+
+DPDEL programs are translated into programs for the Orthotope Machine,
+the main topic of this document. The OM program describes dataflow
+from one orthotope to others, in static single assignment (SSA) style
+machine-language-flavor program, forming a directed asyclic graph. The
+DPDEL program in Fig. \ref{FigureDPDEL2} will translate to something
+like Fig. \ref{FigureOMInst} . Also look at
+\url{https://github.com/nushio3/Paraiso/blob/master/attic/paraiso-2010-lifegame/}
+for the working example, the second prototype of Paraiso. When you
+{\tt make} this program, you'll see the Conway's game of life
+running. {\tt Main.hs} contains the program for the cellular
+automata. {\tt VVM.hs} defines the instruction set and the syntax
+tree, and {\tt VVMCompiler.hs} is a compiler.
+
 \begin{figure*}
 \begin{verbatim}
 t <- input 
@@ -408,7 +436,8 @@ newT <- arith (+) t dt
 output newT t
 output a16 fluid
 \end{verbatim}
-\caption{A sketch of how an Orthotope Machine instruction will look like.}\label{FigureOMInst}
+  \caption{A sketch of how an Orthotope Machine instruction will look
+    like.}\label{FigureOMInst}
 \end{figure*}
 
 
@@ -422,10 +451,17 @@ output a16 fluid
 
 \section{Hardware Model}
 
+Machine division is performed to fit a target parallel computer, so we
+need to describe the hardware configuration in machine-readable form.
+Fig.~\ref{FigureHardware} shows a hardware model, and is generated by
+graphViz program --- from machine readable {\tt .dot} graph
+definition. So there's some hope. 
+
 \begin{figure*}
   \begin{center}
     \includegraphics[scale=0.3]{hardware_graph.eps}
   \end{center}
+  \caption{Hardware model, generated from graphVis.}\label{FigureHardware}
 \end{figure*}
 
 \section{Instruction Set}
