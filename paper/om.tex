@@ -501,6 +501,7 @@ c <- shift (-1) b + b + shift (+1) b;
 the program is in SSA (static single assignment) form.
 If we generate the following code from the DPDEL, it will give a wrong result.
 \begin{verbatim}
+double a[N], b[N], c[N];
 for (int i=2; i<N-2; ++i) {
   b[i] =a[i-1]*a[i+1];
   c[i] =b[i-1]+b[i]+b[i+1];
@@ -518,6 +519,7 @@ statically assigned at most once. To do this, first we must detect how the
 output ({\tt c[i]} in this case) depends on every SSA orthotope and how large
 is the stencil (dependency size). Then we can generate code like this:
 \begin{verbatim}
+double a[N], c[N];
 for (int i=2; i<N-2; ++i) {
   a_i_minus_2 = a[i-2];
   a_i_minus_1 = a[i-1];
@@ -532,8 +534,44 @@ for (int i=2; i<N-2; ++i) {
 }
 \end{verbatim}
 Let us call this SASA (Static and Addressed Single Assignment)
-form. Generating programs in SASA form obviously introduces a lot of extra
-calculations. But its result is correct. 
+form. Generating programs in SASA form introduces a lot of redundant
+calculations. But it produces correct results.
+
+At any point of time of execution, we can insert a global
+synchronization, thus dividing the abstract syntax tree into several
+parts, like this:
+
+\begin{verbatim}
+b <- shift (-1) a * shift 1 a;
+-- cut here --
+c <- shift (-1) b + b + shift (+1) b;
+\end{verbatim}
+
+From this AST, following code is generated:
+
+\begin{verbatim}
+double a[N], b[N], c[N];
+for (int i=1; i<N-1; ++i) {
+  a_i_minus_1 = a[i-1];
+  a_i_plus_1 = a[i+1];
+  b[i] = a_i_minus_1 + a_i_plus_1;
+}
+for (int i=2; i<N-2; ++i) {
+  b_i_minus_1 = b[i-1];
+  b_i = b[i];
+  b_i_plus_1 = b[i+1];
+  c_i = b_i_minus_1 + b_i + b_i_plus_1;
+  c[i] = c_i;
+}
+\end{verbatim}
+
+Synchronization insertion reduces the number of arithmetic operations
+performed per mesh, at the cost of increased number of load/store
+operations and increased storage consumption. Since the ratio of
+calculation speed to storage access speed vary from hardware to
+hardware, we need to search for the best number and place to insert
+synchronizations for each hardware to achieve maximum performance .
+
 
 
 
