@@ -9,8 +9,11 @@ import Language.Paraiso.Set as Set
 import Language.Paraiso.Interval
 import Data.Array.Repa ((:.)(..))
 
-data Orthotope0 a = Z0 | Z deriving (Eq,Ord,Show,Read)
+data Orthotope0 a = Z0 -- | an empty, zero-dimensional orthotope
+                  | Z  -- | a filled, zero-dimensional orthotope
+                    deriving (Eq,Ord,Show,Read)
 
+-- | higher dimensional 
 type Orthotope1 a = Orthotope0 a :. Interval a
 type Orthotope2 a = Orthotope1 a :. Interval a
 type Orthotope3 a = Orthotope2 a :. Interval a
