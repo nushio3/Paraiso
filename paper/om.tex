@@ -133,15 +133,38 @@ cases.
 The Orthotope Machine is designed to capture and utilize these
 characteristics of the multidimensional array computations.
 
+This document is organized as follows.  In \S\ref{SectionPDE}, I describe the
+computational natures of the algorithms used to solve the partial differential
+equations explicitly. In \S\ref{SectionParaiso}, I describe the overall design
+of Paraiso, to clarify the Orthotope Machine's role in it. In
+\S\ref{SectionOrthotope}, I give definitions for Orthotope and
+Orthotree. \S\ref{SectionHardware} gives an idea for modeling the parallel
+computer hardware. \S\ref{SectionAPI} presents a c++ API for
+Paraiso. \S\ref{SectionInst} gives the instruction set for Orthotope
+Machines. Finally, \S\ref{SectionOptimization} deals with possible
+optimization techniques for Orthotope Machines.
+
+In short, I'd like to make something called Paraiso, that takes DPDEL
+(Fig.~\ref{FigureDPDEL2}) as the input, then translates it to Orthotope
+Machine instruction (Fig.\ref{FigureOMInst}), then to native program like
+(Fig.\ref{FigureHydroPseudoCode}), and generates a solver library with API
+described in \S\ref{SectionAPI}.
+
+
 \section{Explicit Solvers of Partial Differential Equations}
+\label{SectionPDE}
+
 
 To begin with, let me describe what kind of problem I want to solve.
 
 \begin{figure}
-  \includegraphics[scale=0.5]{figure/fluid.eps}
+  \vspace{-5cm}
+  \includegraphics[scale=0.4]{figure/fluid.eps}
   \caption {Schematic image of how a fluid simulator
     works. }\label{FigureFluidScheme}
 \end{figure}
+
+
 
 \begin{figure*}
 \begin{verbatim}
@@ -251,6 +274,7 @@ readable ruby script :
 
 
 \section{Overall Design of Paraiso}
+\label{SectionParaiso}
 
 \begin{table*}
   \begin{tabular}{|l|l|l|}
@@ -477,6 +501,7 @@ output a16 fluid
 
 
 \section{Orthotope and Orthotree}
+\label{SectionOrthotope}o
 \subsection{Orthotope}
 
 Orthotope is a rectangle in $n$-dimension. A zero-dimensional orthotope is a
@@ -586,7 +611,7 @@ on any heterogeneous architecture. This is quite amazing.
 
 
 \section{Hardware Model}
-
+\label{SectionHardware}
 
 \begin{figure*}
   \begin{center}
@@ -629,6 +654,7 @@ identical component in the model.
 
 
 \section{API for Orthotope Machine}
+\label{SectionAPI}
 
 An orthotope machine definition consists of
 \begin{itemize}
@@ -679,6 +705,7 @@ We can be easily imagine interfaces for other languages.
 
 
 \section{Instruction Set}
+\label{SectionInst}
 
 Orthotope Machine (OM) is a virtual machine that has an instruction set
 operating on orthotopes. Each instruction is presented in static single
@@ -867,6 +894,7 @@ issued arbitrary, but only for those orthotopes that was once united. As long
 as this rule is obeyed, there's no worry of an impossible merge request.
 
 \section{Possible Program Transformations}
+\label{SectionOptimization}
 \subsection{Common Techniques}
 A lot of important optimization techniques are known for scalar
 processors. Some of them are equally applicable to Orthotope Machine
