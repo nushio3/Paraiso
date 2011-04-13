@@ -512,6 +512,12 @@ and example
 
 \subsection{Orthotree}
 
+\begin{figure}
+  \includegraphics[scale=0.5]{figure/orthotree.eps}
+  \caption{An Orthotree with five leaves.}
+  \label{FigureOrthotree}
+\end{figure}
+
 So far, we assumed a single ideal machine with infinite amount of memory. Real
 machines have finite memories and consist of distributed components connected
 with limited bandwidth.  So we have to fit the ideal into the reality.
@@ -543,8 +549,8 @@ t = Warp Y (Interval 0 60) $
         (Divide X 40 Leaf Leaf))
 \end{verbatim}
 
-denotes the structure in Fig.?? Orthotree is a variation of data structures to
-represent domain decompositions, such as oct-trees.
+denotes the structure in Fig.~\ref{FigureOrthotree} Orthotree is a variation
+of data structures to represent domain decompositions, such as oct-trees.
 
 The reason why we do not introduce union between orthotopes is that we can
 always backtrace this orthotree. Unions are allowed only between orthotopes
@@ -748,6 +754,17 @@ synchronizations for each hardware to achieve maximum performance .
 \subsection{Instruction Set for Primordial Orthotope Machine}
 Primordial OM is an imaginary machine with infinite amount of memory and
 infinitely long vector arithmetric instructions. 
+
+To begin with, let us assume that each OM has a fixed dimension $n$. An
+$n$-dimensianal OM only deals with $n$-dimensional orthotopes and
+0-dimensional orthotopes.
+
+See also \url{http://paraiso-lang.org/wiki/index.php/VVM} for VVM instruction
+set plan, an ancestor of OM.
+
+\begin{verbatim}
+
+\end{verbatim}
 
 \subsection{Instruction Set for Distributed Orthotope Machine}
 Distributed Orthotope Machine operates on an Orthotree. Each leaf of the
