@@ -1015,13 +1015,20 @@ Reduce and broadcast needs global communications. To have large-grained
 communications, it will be a good idea to perform many reduce/broadcast
 instructions at once. 
 
-\subsection{Overlapped Computation and Communication}
+\subsection{Overlapped Computation / Communication}
 
 It's good if we can detect the portions of calculations that do not depend on
 the broadcast data, and perform such calculations in parallel while the
 communications or reduces/broadcasts are going on. We may need trapezium or
 parallelogram splitting to detach some of the computation regions from the
 rest that are waiting for incoming data.
+
+More generally speaking, the Orthotope Machine programs represented in
+the form of data flow graphs naturally contain paralellism. The
+branches that do not depend on each other can be executed in
+parallel. This may consist of computation-communication pair, a pair
+of communication that uses different processors or different parts of
+a same processor.
 
 \bibliography{paraiso}
 \end{document}
