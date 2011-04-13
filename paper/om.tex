@@ -456,16 +456,20 @@ output a16 fluid
 
 
 \clearpage
+~
+\newpage
+~
+\newpage
 
-
-\section{Definitions of Orthotope, Orthotree, and Distributed Orthotope}
+\section{Orthotope and Orthotree}
+\subsection{Orthotope}
 
 Orthotope is a rectangle in $n$-dimension. A zero-dimensional orthotope is a
 point; an one-dimensional orthotope is an interval; a two-dimensional
 orthotope is a rectangle and a three dimensional orthotope is a box. The
 intersection of two orthotopes is also an orthotope, but union of two
 orthotopes is not. The set of all $n$-dimensional orthotopes is closed under
-intersections, but not under unions. Such system is called a $\pi$ system in
+intersections, but not under unions. Such system is called a $\pi$-system in
 mathematics.
 
 \begin{verbatim}
@@ -475,10 +479,135 @@ class PiSystem a where
   intersection :: a -> a -> a
 \end{verbatim}
 
+We do not introduce union between two orthotopes. The reason why we don't need
+union will be explained in the next subsection.
+
+An interval is either empty, or a pair of two ordered elements. Interval is an
+instance of $\pi$-system.
+
+\begin{verbatim}
+data Interval a = Empty |
+     Interval {lower::a, upper::a}
+instance (Ord a) => PiSystem (Interval a) 
+  where
+\end{verbatim}
+
+A zero-dimensional orthotope can have two unit state: it can either be vacant
+({\tt Z0}) or occupied ({\tt Z}). Orthotopes of higher dimensions are built
+using the {\em snoc} operator {\tt (:.)} borrowed from Repa
+\cite{Keller:2010:RSP:1932681.1863582}.
+
+\begin{verbatim}
+data Orthotope0 a = Z0 | Z
+
+type Orthotope1 a=Orthotope0 a:.Interval a
+type Orthotope2 a=Orthotope1 a:.Interval a
+type Orthotope3 a=Orthotope2 a:.Interval a
+\end{verbatim}
+
+Please refer to the source
+\url{https://github.com/nushio3/Paraiso/blob/master/Language/Paraiso/Orthotope.hs}
+and example
+\url{https://github.com/nushio3/Paraiso/blob/master/attic/TestOrthotope.hs} .
+
+\subsection{Orthotree}
+
+So far, we assumed a single ideal machine with infinite amount of memory. Real
+machines have finite memories and consist of distributed components connected
+with limited bandwidth.  So we have to fit the ideal into the reality.
+
+We first start from an infinitely large orthotope, and cut it recursively
+until each computer node has a portion of the orthotope. Introducing boundary
+conditions and domain splitting are treated uniformly. Either of the
+operations introduces restrictions on the parent orthotope, and generates
+needs for additional communications so that the divided calculations is
+identical to the calculations before division.
+
+The recursive division of an Orthotope is denoted as an Orthotree :
+\begin{verbatim}
+data Orthotree a = 
+  Leaf |
+  Warp Axis (Interval a) Orthotree |
+  Divide Axis a Orthotree Orthotree
+\end{verbatim}
+
+For example, 
+
+\begin{verbatim}
+t :: Orthotree Int
+t = Warp Y (Interval 0 60) $
+    Warp X (Interval 0 60) $
+    Divide Y 24 
+      (Divide X 30 Leaf Leaf)
+      (Divide X 20 Leaf
+        (Divide X 40 Leaf Leaf))
+\end{verbatim}
+
+denotes the structure in Fig.?? Orthotree is a variation of data structures to
+represent domain decompositions, such as oct-trees.
+
+The reason why we do not introduce union between orthotopes is that we can
+always backtrace this orthotree. Unions are allowed only between orthotopes
+that are apart but used to be united. Those are only kinds of unions that we
+need, and the union results are always guaranteed to be orthotopes.
+
+\subsection{Load Balancing}
+
+Generally speaking, boundary indices are not compile-time constants. This is
+because each MPI instance of the program do not know which portion of the
+Orthotree to solve until execution. Moreover, we can design Distributed OM so
+that boundary indices are changeable at runtime. It opens path to dynamic load
+balancing.
 
 
 \section{API for Orthotope Machine}
 
+An orthotope machine definition consists of
+\begin{itemize}
+  \item a list of name and shape of Static Orthotopes, and
+  \item one or more {\em kernel} definitions in DPDEL. Kernels are programs
+    that modifies the Static Orthotopes.
+\end{itemize}
+
+There are Static and Local Orthotopes. Static Orthotopes, like static
+variables, survive kernel calls. On the other hand, Local Orthotopes exist
+within OM AST. There are lots of them, but most of them don't even get
+allocated, due to loop fusions and other optimizations.
+
+Kernels are large-grained portion of solver program. We do not attempt right
+now to write the entire solver in DPDEL; instead, we prefer to write a few
+kernels and control them from more sophisticated languages. Simple solver may
+consist of two kernels, one for setting the initial condition of the
+simulation, and the other is for performing the one step of the simulation.
+
+An API for Distributed Orthotope Machine has
+\begin{itemize}
+  \item an interface to read/write any 0-dimensional static orthotopes
+  \item interface for invoking each kernels
+  \item a function that causes the entire machine state saved to a file
+  \item a function that loads from such savepoints
+\end{itemize}
+
+This will do for simple simulation tasks. A c++/MPI interface will be a good
+starting point. Upon constructing the solver, all but rank0 goes to a passive
+mode, and APIs are called from the rank0 node.
+
+\begin{verbatim}
+Solver s;
+s.load("old");
+if (mpi_rank!=0) {
+  s.passive();
+} else {
+  s.set_initial_condition();
+  for(s.t()=0; s.t() < time_max;
+      s.t()+=s.dt()){
+    s.proceed();
+  }
+}
+s.save("new");
+\end{verbatim}
+
+We can be easily imagine interfaces for other languages.
 
 \section{Hardware Model}
 
@@ -619,7 +748,11 @@ synchronizations for each hardware to achieve maximum performance .
 \subsection{Instruction Set for Primordial Orthotope Machine}
 Primordial OM is an imaginary machine with infinite amount of memory and
 infinitely long vector arithmetric instructions. 
+
 \subsection{Instruction Set for Distributed Orthotope Machine}
+Distributed Orthotope Machine operates on an Orthotree. Each leaf of the
+Orthotree is tied to a Storage in hardware representation.
+
 
 \section{Possible Program Transformations}
 \subsection{Common Techniques}
@@ -639,8 +772,9 @@ globally constant value onto an array. We should avoid this.
 \paragraph{Loop Fusion}
 
 Loop fusion is a source of high performance in Haskell's array operating
-libraries {\tt Data.Vector} and {\tt Data.Array.Repa}, and also in many other
-libraries in other languages.
+libraries {\tt Data.Vector} and {\tt Data.Array.Repa}
+\cite{Keller:2010:RSP:1932681.1863582}, and also in many other libraries in
+other languages.
 
 
 \paragraph{Common Subexpression Elimination}
@@ -650,12 +784,13 @@ value to the memory.
 
 \subsection{Time-step Fusion}
 \subsection{Cache}
-\subsection{Data-Flow-Tree Manipulations by User Specification}
+\subsection{AST Manipulations by User Specification}
 \subsection{Synchronization Insertion}
 \subsection{Trapezium Splitting}
 \subsection{Parallelogram Splitting}
 \subsection{Block Skew}
 Fluid consists of multiple orthotope of the same shape and extent.
+\subsection{Overlapped Communication and Calculation}
 \subsection{Batch Reduce/Broadcast}
 Reduce and broadcast needs global communications. To have large-grained
 communications, it will be a good idea to perform many reduce/broadcast
