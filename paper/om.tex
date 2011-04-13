@@ -896,8 +896,8 @@ value to the memory.
 
 \subsection{Time-step Fusion}
 
-Fuse several timestep into one kernel, and access to the storage only at the
-beginning and end of the fused kerernel. This increases the ratio of
+Fuse several time-step into one kernel, and access to the storage only at the
+beginning and end of the fused kernel. This increases the ratio of
 calculation per storage access. This is easier if the time-step is always a
 constant and we do not need a global reduce within a kernel. The simulation
 for relativistic systems meets such criteria because time-step is always bound
@@ -918,25 +918,25 @@ One of the reason High Performance Fortran (HPF) has failed
 have fine-grained control over the generated code.  First of all, the machine
 generated code like Fig.~\ref{FigureOMInst} is unreadable.
 
-I'm thinking of introducing an annotation operator like Parsec's {\tt <?>} to
-Paraiso. You can choose the name for the AST nodes so that the code is more
-tractable. One good idea is that every identifier that passes {\tt qb} gets
-annotated as well as antiquoted.
+I'm thinking of introducing an annotation operator like Parsec's {\tt <?>}
+(c.f. \url{http://bit.ly/ef15ty}) to Paraiso. You can choose the name for the
+AST nodes so that the code is more tractable. One good idea is that every
+identifier that passes {\tt qb} gets annotated as well as antiquoted.
 
 AST is a large, directed acyclic graph and we have large degree of freedom in
-how we fold it into one timeline. Here, users can add pragmas such as {\tt <?>
-  ballon} and {\tt <?> stone} to the DPDEL code portion, so that the portion
-get executed as soon/late as possible.
+how we fold it into one time-line. Here, users can also add pragmas such as
+{\tt (<?> balloon)} and {\tt (<?> stone)} to the DPDEL code portion, so that the
+portion get executed as soon/late as possible.
 
 \subsection{Synchronization Insertion}
 
 This issue is mentioned in \S\ref{SectionSASA}.  At any point of execution
-timeline, we can insert a global synchronization, thus dividing the abstract
+time-line, we can insert a global synchronization, thus dividing the abstract
 syntax tree into several parts. This reduces the number of arithmetic
 operations performed per mesh, at the cost of increased number of load/store
 operations and increased storage consumption.
 
-The paragraphs of the programs, such as steps of the higer order Runge-Kutta
+The paragraphs of the programs, such as steps of the higher order Runge-Kutta
 method, are good candidate for synchronization insertion. Often the actual
 programs are written so. So before implementing an automated synchronization
 insertion, we can let users provide synchronization point candidates, and try
@@ -944,10 +944,35 @@ and benchmark on them.
 
 \subsection{Trapezium Splitting}
 
+Trapezium splitting (c.f. Fig.~\ref{FigureTrapezium}) is a transformation of
+one computation to a set of computation that requires less storage space. To
+perform the trapezium splitting, first split the output orthotope into several
+smaller portions. Then for each of the small orthotope, load the portion of
+the input such that the output portion depends on, and calculate the answer
+for the portion. Repeat this process until you obtain results for all the
+output.
 
+This method is fairly easy, and can be a building block for other optimization
+such as use of scratchpad and computation / communication
+overlapping. However, trapezium splitting introduces duplicated computations.
+
+
+\begin{figure*}
+  \includegraphics[scale=0.5,angle=270]{figure/trapezium.eps}
+  \caption{Trapezium Splitting}\label{FigureTrapezium}
+\end{figure*}
 
 \subsection{Parallelogram Splitting}
 
+Parallelogram splitting (c.f. Fig.~\ref{FigureParallelogram}) is an improved
+version of trapezium splitting. The difference is that in parallelogram
+splitting, after every computation for a portion you keep the ``rightmost
+states'' within the scratchpad so that duplicated computations do not happen.
+
+\begin{figure*}
+  \includegraphics[scale=0.5,angle=270]{figure/parallelogram.eps}
+  \caption{Parallelogram Splitting}\label{FigureParallelogram}
+\end{figure*}
 
 \subsection{Block Skew}
 Fluid consists of multiple orthotope of the same shape and extent. As in
@@ -961,12 +986,12 @@ Reduce and broadcast needs global communications. To have large-grained
 communications, it will be a good idea to perform many reduce/broadcast
 instructions at once. 
 
-\subsection{Overlapped Communication and Calculation}
+\subsection{Overlapped Computation and Communication}
 
 It's good if we can detect the portions of calculations that do not depend on
 the broadcast data, and perform such calculations in parallel while the
 communications or reduces/broadcasts are going on. We may need trapezium or
-parallelogram splitting to detouch some of the computation regions from the
+parallelogram splitting to detach some of the computation regions from the
 rest that are waiting for incoming data.
 
 \bibliography{paraiso}
