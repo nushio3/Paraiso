@@ -454,12 +454,12 @@ output a16 fluid
     like.}\label{FigureOMInst}
 \end{figure*}
 
-
+\newpage
+~
+\newpage
+~
 \clearpage
-~
-\newpage
-~
-\newpage
+
 
 \section{Orthotope and Orthotree}
 \subsection{Orthotope}
@@ -505,12 +505,12 @@ type Orthotope2 a=Orthotope1 a:.Interval a
 type Orthotope3 a=Orthotope2 a:.Interval a
 \end{verbatim}
 
-Please refer to the source
+For more detail, please refer to the source
 \url{https://github.com/nushio3/Paraiso/blob/master/Language/Paraiso/Orthotope.hs}
 and example
 \url{https://github.com/nushio3/Paraiso/blob/master/attic/TestOrthotope.hs} .
 
-\subsection{Orthotree}
+\subsection{Orthotree} \label{SectionOrthotree}
 
 \begin{figure}
   \includegraphics[scale=0.5]{figure/orthotree.eps}
@@ -537,7 +537,8 @@ data Orthotree a =
   Divide Axis a Orthotree Orthotree
 \end{verbatim}
 
-For example, 
+Here, {\tt Warp} introduces a cyclic boundary condition, and {\tt Divide}
+denotes an orthotope division. For example,
 
 \begin{verbatim}
 t :: Orthotree Int
@@ -757,19 +758,93 @@ infinitely long vector arithmetric instructions.
 
 To begin with, let us assume that each OM has a fixed dimension $n$. An
 $n$-dimensianal OM only deals with $n$-dimensional orthotopes and
-0-dimensional orthotopes.
+0-dimensional orthotopes. 0-dimensional orthomopes are just variables.
 
 See also \url{http://paraiso-lang.org/wiki/index.php/VVM} for VVM instruction
 set plan, an ancestor of OM.
 
-\begin{verbatim}
+For this and next section, let us denote {\tt n}-dimensianal Orthotope of
+element type {\tt a} as {\tt O n a}.
 
+\paragraph{reduce and broadcast}
+\begin{verbatim}
+reduce :: ReduceOp -> O n a-> (O 0 a)
+broadcast :: (O 0 a)-> O n a
 \end{verbatim}
+{\tt reduce} creates a 0-dimensional orthotope from an n-dimensional orthotope, by {\tt
+  ReduceOp}, an associative operator. This will possibly use MPI\_Reduce, and
+thus {\tt ReduceOp} will be restricted to one of {\tt Max}, {\tt Min}, {\tt
+  Sum}, {\tt Multiply}.
+
+{\tt broadcast} creates an n-dimensional orthotope from a 0-dimensional
+orthotope, simply copying its value.
+
+\paragraph{shift}
+\begin{verbatim}
+shift :: (Vector n) -> O n a-> O n a
+\end{verbatim}
+Coordinate-shift the ingredient of the orthotope.  The shift vector must be a
+small, and compile-time constant value.
+
+For example, 
+\begin{verbatim}
+b <- shift (sx:.sy:.sz) a
+\end{verbatim}
+means
+\begin{verbatim}
+for (int z=0; y<NZ; ++z) 
+  for (int y=0; y<NY; ++y) 
+    for (int x=0; x<NX; ++x) 
+      b[z][y][x] = a[z-sz][y-sy][x-sx];
+\end{verbatim}
+
+\paragraph{arithmetic operations}
+\begin{verbatim}
+imm :: a -> O n a
+add :: O n a -> O n a -> O n a
+cmp :: O n a -> O n a -> (O n Bool)
+hatena :: (O n Bool) -> O n a -> O n a
+                     -> O n a
+sincos :: O n a -> (O n a, O n a)
+\end{verbatim}
+There are arithmetic operations of various kind. Arithmetic operations can
+generally have $n_i$ input and $n_o$ output, but all the reads and writes go
+to the same coordinate in an orthotope. 
+
+Possibly, we can summarize the various arithmetic operations to a single
+polymorphic instruction {\tt arith}. We can think of a way to store the
+information on generating arithmetic operations for various hardwaer in
+pluggable manner.
+
+The shapes of the output orthotopes of an {\tt arith} are the intersection
+of all the input orthotopes.
+
 
 \subsection{Instruction Set for Distributed Orthotope Machine}
 Distributed Orthotope Machine operates on an Orthotree. Each leaf of the
-Orthotree is tied to a Storage in hardware representation.
+Orthotree is tied to a Storage in hardware representation. Orthotope now has
+the form {\tt (O (Maybe Storage) n a)}, where {\tt Maybe Storage} denotes the
+storage the orthotope is stored. If it's {\tt Nothing}, then it's a global value
+(possibly stored at MPI rank 0.)
 
+\paragraph{communication}
+\begin{verbatim}
+communicate :: Storage -> Storage -> O s n a
+            -> O s n a
+\end{verbatim}
+Move data from one storage to other.
+
+\paragraph{split and merge}
+\begin{verbatim}
+split :: Cutter -> O s n a
+      -> (O s n a, O s n a)
+merge :: Cutter -> O s n a -> O s n a
+      -> O s n a
+\end{verbatim}
+{\tt split} divides an orthotope into two, and {\tt merge} does the opposite.
+As is mentioned in \S\ref{SectionOrthotree}, {\tt merge} instruction is not
+issued arbitrary, but only for those orthotopes that was once united. As long
+as this rule is obeyed, there's no worry of an impossible merge request.
 
 \section{Possible Program Transformations}
 \subsection{Common Techniques}
