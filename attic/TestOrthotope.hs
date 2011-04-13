@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 
 import Data.Array.Repa((:.)(..))
-import Language.Paraiso.Set
+import Language.Paraiso.PiSystem
 import Language.Paraiso.Interval
 import Language.Paraiso.Orthotope
 
