@@ -39,6 +39,16 @@ components for Paraiso project. The goal of Paraiso project is to create a
 high-level programming language for generating massively parallel, explicit
 solver algorithms of partial differential equations. 
 
+From astrophysical interest, the Paraiso project will make simulations much
+easier for basic equations such as hydrodynamics, magnetohydrodynamics,
+general relativity, relativistic radiative transfer and so on. Buiding complex
+model from combinations of these basic equations, chemistry, nuclear
+reactions, will also become much easier and tractable. The generated program
+will support various machines from 1-node GPU workstation to the K computer in
+Kobe. One feature that is desired but missing in this document is support for
+fixed mesh refinement (FMR). And of course, there are lots of problems in
+astrophysics, that do not reduce to solving partial differential equations
+explicitly.
 
 From computational viewpoint, explicit solvers of partial differential
 equations belongs to the algorithm category called stencil codes. Stencil
@@ -94,7 +104,8 @@ but seemingly did not realize.
 
 The unique point of Paraiso compared to those projects is its focus on
 computational domains that utilize localized access to multidimensional
-arrays.
+arrays. Paraiso is also not a caller of libraries for known algorithms;
+rather, it is a tool for testing and implementing new algorithms.
 
 Multidimensional arrays are different from nested arrays. For example in the
 pseudocode Fig.\ref{FigureStencilPseudoCode}, in order to calculate {\tt
@@ -105,8 +116,9 @@ multidimensional space.  For most of the cases, the basic equations to be
 solved is symmetric under exchange of the axes (X,Y,Z ...). Still, there are
 non-negligible differences between the axes from computational point of view,
 especially if the multidimensional arrays are stored in row-major or
-column-major order. To utilize the cache and/or vector instructions, we need
-to know, or decide upon, the order the array is stored in the memory.
+column-major order. To utilize the cache and/or vector instructions the code
+generator need to know and decide upon the order the array is stored in the
+memory.
 
 In parallel machines, the array must be decomposed and distributed among
 computer nodes. It is important to take care of the continuity in
@@ -182,11 +194,11 @@ for (double t=0; t<t_max; t+=dt) {
   }\label{FigureHydroPseudoCode}
 \end{figure*}
 
-Let us take for example a hydrodynamics solver that represent the
-fluid by a mesh structure c.f. Fig. \ref{FigureFluidScheme}. Each mesh
-stores the amount of fluid that is in that mesh. The solver's
-algorithm is to calculate the flows of the fluid across the mesh
-boundaries, and add/subtract the amount of fluid.
+Let us take for example a hydrodynamics solver that represent the fluid by a
+mesh structure c.f. Fig. \ref{FigureFluidScheme}. Each mesh has volume
+$\mathit{dx} \mathit{dy}$. Each mesh stores the amount of fluid wihin that
+volume. The solver's algorithm is to calculate the flows of the fluid across the
+mesh boundaries, and add/subtract the amount of fluid.
 
 Fig. \ref{FigureHydroPseudoCode} shows a pseudocode for a
 three-dimensional hydrodynamic equations solver. Although it is a bit
@@ -219,11 +231,12 @@ Third, the entire solver will be replicated several times, to achieve
 higher-order time integral. Runge-Kutta method is a well known example of such
 a technique. This also make the stencil larger.
 
-Too large stencil is a bad thing. We need to perform duplicated calculations,
-and we need communication buffer so large that distributed computation do not
-contribute to better performance. So we need to split the algorithm into
-several components with smaller stencil. Splitting it into too many pieces, is
-again not a good idea. We must search for the middle path.
+Too large stencil is a bad thing. With larger stencil we need to perform more
+duplicated calculations, and we need communication buffer so large that
+distributed computation do not contribute to better performance. So we need to
+split the algorithm into several components with smaller stencil. Splitting it
+into too many pieces, is again not a good idea. We must search for the middle
+path.
 
 To get a feeling of a real ``real-world solver,'' please look at {\tt
   proceed} function of my magneto-hydrodynamics solver I'm working
@@ -303,7 +316,8 @@ readable, it has some shabby points.
     {\tt>}, because their type is {\tt a -> a -> Bool}. You cannot get it have
     the type {\tt AST a -> AST a -> AST Bool}. This barrier is also observed
     in Nikola, a DSL for GPU in Haskell
-    \cite{Mainland:2010:NEC:1863523.1863533}.
+    \cite{Mainland:2010:NEC:1863523.1863533}. Well, you can, in Haskell, but
+    in nasty ways.
 \end{itemize}
 
 Fig.\ref{FigureDPDEL2} shows another possible version of DPDEL with
@@ -328,18 +342,19 @@ But how does Haskell know that the name {\tt flow\_axis} is related with the
 name {\tt axis}? Isn't {\tt flow\_axis} a single name identifier in Haskell
 syntax? Here comes the second point.
 
-We introduce {\bf \tt qb}, quasiquote-and-bind operation. This lifts the
+Let me introduce {\bf \tt qb}, quasiquote-and-bind operation. This lifts the
 constraints coming from the Haskell syntax. It parses its argument string and
 does several things: it changes {\tt flow\_axis} into something like {\tt
-  getComponent axis flow}. It renames the arithmetic operators
-appropriately. It translates {\tt [o+axis]} into type-correct expression like
-{\tt [o+getUnitVector axis]}. It has implicit antiquotes. Finally, {\tt qb}
-adds {\tt bind} to the entire expression. {\tt qb} grants us magical power.
+  getComponent axis flow}, and translates {\tt [o+axis]} into type-correct
+expression like {\tt [o+getUnitVector axis]}, thus enables the use of
+double-roled Axis with succinct notation. It renames other arithmetic
+operators appropriately.  It has implicit antiquotes. Finally, {\tt qb} adds
+{\tt bind} to the entire expression. {\tt qb} grants us magical power.
 
-Well, things may not go too well with {\tt qb}. We may find some of the
-facilities described above impossible to implement. We may need several
-quasiquoters instead of just one. Even so, use of quasiquote is essential in
-making DPDEL syntax simpler.
+Well, although what {\tt qb} offers us seem so alluring, things may not go too
+well with {\tt qb}. We may find some of the facilities described above
+impossible to implement. We may need several quasiquoters instead of just
+one. Even so, use of quasiquote is essential in making DPDEL syntax simpler.
 
 \begin{figure*}
 \begin{verbatim}
@@ -564,7 +579,53 @@ Generally speaking, boundary indices are not compile-time constants. This is
 because each MPI instance of the program do not know which portion of the
 Orthotree to solve until execution. Moreover, we can design Distributed OM so
 that boundary indices are changeable at runtime. It opens path to dynamic load
-balancing.
+balancing. If we achieve that, and also achieve the overlapped communication
+and calculation, any program that is generated from Paraiso and communication
+time is less than computation time will achieve near 100\% machine utilization
+on any heterogeneous architecture. This is quite amazing.
+
+
+\section{Hardware Model}
+
+
+\begin{figure*}
+  \begin{center}
+    \includegraphics[scale=0.3]{figure/hardware_graph.eps}
+  \end{center}
+  \caption{Possible hardware model.}\label{FigureHardware}
+\end{figure*}
+
+Machine division is performed to fit a target parallel computer, so we
+need to describe the hardware configuration in machine-readable form.
+Fig.~\ref{FigureHardware} shows a hardware model, and is generated by
+graphViz program --- from machine readable {\tt .dot} graph
+definition. So there's some hope. 
+
+In Fig.~\ref{FigureHardware} some ideas for the hardware model is
+presented. There are three kinds of node in the graph : processors, storages,
+and interconnects. Processors and storages can not be directly connected. You
+must interleave at least one interconnect node.
+
+Each hardware node is labeled in the triplet {\tt method : tag :
+  performance}. The {\tt method} represents the knowledge upon how to use the
+hardware: for processors, how to perform calculations and access their primary
+storage; for storages, how to allocate the required amount of storage spaces;
+for interconnects, how to move data from one side to the other. The {\tt
+  method} field is actually a code generator that takes part of a Distributed
+OM instructions and generates the appropriate codes for the request. We still
+have to make surveys and experiments on how we interface these code
+generators.
+
+The {\tt performance} field shows some quantitative performance of the
+hardware: for processors, its peak performance; for storage, its capacity; for
+interconnects, its bandwidth. More performance can be added, such as latency,
+power consumption, sustained performance of some sort, etc. The {\tt
+  performance} field is used to determine the initial machine division, which
+will then slightly modified via benchmarking and dynamic load-balancing.
+
+Subgraphs with multiplier label e.g. {\tt 144x} are used to represent the
+identical component in the model.
+
 
 
 \section{API for Orthotope Machine}
@@ -616,47 +677,6 @@ s.save("new");
 
 We can be easily imagine interfaces for other languages.
 
-\section{Hardware Model}
-
-
-\begin{figure*}
-  \begin{center}
-    \includegraphics[scale=0.3]{figure/hardware_graph.eps}
-  \end{center}
-  \caption{Possible hardware model.}\label{FigureHardware}
-\end{figure*}
-
-Machine division is performed to fit a target parallel computer, so we
-need to describe the hardware configuration in machine-readable form.
-Fig.~\ref{FigureHardware} shows a hardware model, and is generated by
-graphViz program --- from machine readable {\tt .dot} graph
-definition. So there's some hope. 
-
-In Fig.~\ref{FigureHardware} some ideas for the hardware model is
-presented. There are three kinds of node in the graph : processors, storages,
-and interconnects. Processors and storages can not be directly connected. You
-must interleave at least one interconnect node.
-
-Each hardware node is labeled in the triplet {\tt method : tag :
-  performance}. The {\tt method} represents the knowledge upon how to use the
-hardware: for processors, how to perform calculations and access their primary
-storage; for storages, how to allocate the required amount of storage spaces;
-for interconnects, how to move data from one side to the other. The {\tt
-  method} field is actually a code generator that takes part of a Distributed
-OM instructions and generates the appropriate codes for the request. We still
-have to make surveys and experiments on how we interface these code
-generators.
-
-The {\tt performance} field shows some quantitative performance of the
-hardware: for processors, its peak performance; for storage, its capacity; for
-interconnects, its bandwidth. More performance can be added, such as latency,
-power consumption, sustained performance of some sort, etc. The {\tt
-  performance} field is used to determine the initial machine division, which
-will then slightly modified via benchmarking and dynamic load-balancing.
-
-Subgraphs with multiplier label e.g. {\tt 144x} are used to represent the
-identical component in the model.
-
 
 \section{Instruction Set}
 
@@ -666,7 +686,7 @@ assignment (SSA) form. For example, {\tt add} instruction in common CPUs or in
 LLVM adds two scalar value. The {\tt add} instruction in Orthotope Machine
 takes two orthotope and returns one, acting much like {\tt zipWith (+)}.
 
-\subsection{Static Addressed Single Assignment}
+\subsection{Static Addressed Single Assignment} \label{SectionSASA}
 
 We extend the static single assignment (SSA) form concept to static addressed
 single assignment(SASA) form.  Consider the following DPDEL program, where
@@ -714,7 +734,7 @@ Let us call this SASA (Static and Addressed Single Assignment)
 form. Generating programs in SASA form introduces a lot of redundant
 calculations. But it produces correct results.
 
-At any point of time of execution, we can insert a global
+At any point of execution timeline, we can insert a global
 synchronization, thus dividing the abstract syntax tree into several
 parts, like this:
 
@@ -875,22 +895,79 @@ To avoid performing the same calculation twice, by storing the intermediate
 value to the memory. 
 
 \subsection{Time-step Fusion}
-\subsection{Cache}
+
+Fuse several timestep into one kernel, and access to the storage only at the
+beginning and end of the fused kerernel. This increases the ratio of
+calculation per storage access. This is easier if the time-step is always a
+constant and we do not need a global reduce within a kernel. The simulation
+for relativistic systems meets such criteria because time-step is always bound
+by the speed of light.
+
+\subsection{Use of Scratchpad}
+
+Some processors have scratchpad regions, where programmers manually store some
+data and have fast access. GPU's scratchpad has size of tens of kilobytes. On
+the other hand, when we attempt a ultra-high-resolution simulation where we
+store the simulation state on larger but slower storage such as SSDs, the main
+memory itself can be regarded as large scratchpad. 
+
+
 \subsection{AST Manipulations by User Specification}
+One of the reason High Performance Fortran (HPF) has failed
+\cite{Kennedy:2007:RFH:1238844.1238851} is because the user of HPF did not
+have fine-grained control over the generated code.  First of all, the machine
+generated code like Fig.~\ref{FigureOMInst} is unreadable.
+
+I'm thinking of introducing an annotation operator like Parsec's {\tt <?>} to
+Paraiso. You can choose the name for the AST nodes so that the code is more
+tractable. One good idea is that every identifier that passes {\tt qb} gets
+annotated as well as antiquoted.
+
+AST is a large, directed acyclic graph and we have large degree of freedom in
+how we fold it into one timeline. Here, users can add pragmas such as {\tt <?>
+  ballon} and {\tt <?> stone} to the DPDEL code portion, so that the portion
+get executed as soon/late as possible.
+
 \subsection{Synchronization Insertion}
+
+This issue is mentioned in \S\ref{SectionSASA}.  At any point of execution
+timeline, we can insert a global synchronization, thus dividing the abstract
+syntax tree into several parts. This reduces the number of arithmetic
+operations performed per mesh, at the cost of increased number of load/store
+operations and increased storage consumption.
+
+The paragraphs of the programs, such as steps of the higer order Runge-Kutta
+method, are good candidate for synchronization insertion. Often the actual
+programs are written so. So before implementing an automated synchronization
+insertion, we can let users provide synchronization point candidates, and try
+and benchmark on them.
+
 \subsection{Trapezium Splitting}
+
+
+
 \subsection{Parallelogram Splitting}
+
+
 \subsection{Block Skew}
-Fluid consists of multiple orthotope of the same shape and extent.
-\subsection{Overlapped Communication and Calculation}
+Fluid consists of multiple orthotope of the same shape and extent. As in
+Fig.~\ref{FigureFluidScheme}, some components are half-mesh shifted. If we
+shift some fluid components by half or one mesh, it may alter the performance.
+
+
+
 \subsection{Batch Reduce/Broadcast}
 Reduce and broadcast needs global communications. To have large-grained
 communications, it will be a good idea to perform many reduce/broadcast
 instructions at once. 
 
+\subsection{Overlapped Communication and Calculation}
+
 It's good if we can detect the portions of calculations that do not depend on
 the broadcast data, and perform such calculations in parallel while the
-communications are going on.
+communications or reduces/broadcasts are going on. We may need trapezium or
+parallelogram splitting to detouch some of the computation regions from the
+rest that are waiting for incoming data.
 
 \bibliography{paraiso}
 \end{document}
