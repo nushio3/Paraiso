@@ -185,7 +185,7 @@ for (double t=0; t<t_max; t+=dt) {
 Let us take for example a hydrodynamics solver that represent the
 fluid by a mesh structure c.f. Fig. \ref{FigureFluidScheme}. Each mesh
 stores the amount of fluid that is in that mesh. The solver's
-algorithm is to calculate the flows of the fluid accross the mesh
+algorithm is to calculate the flows of the fluid across the mesh
 boundaries, and add/subtract the amount of fluid.
 
 Fig. \ref{FigureHydroPseudoCode} shows a pseudocode for a
@@ -298,7 +298,7 @@ readable, it has some shabby points.
       expr} cannot be a monad that returns {\tt expr}.  Expression must go
     through some function e.g. {\tt bind :: AST a -> DPDEL (AST a)}.
   \item You are forced to use customized operators {\tt+. *.} ... instead of
-    usual operators {\tt+ *}... . This may not happen in the arithmetric
+    usual operators {\tt+ *}... . This may not happen in the arithmetic
     operators, but at least it surely happens for comparison operators such as
     {\tt>}, because their type is {\tt a -> a -> Bool}. You cannot get it have
     the type {\tt AST a -> AST a -> AST Bool}. This barrier is also observed
@@ -405,9 +405,9 @@ proceed = do
 \subsection{Orthotope Machine}
 
 DPDEL programs are translated into programs for the Orthotope Machine,
-the main topic of this document. The OM program describes dataflow
+the main topic of this document. The OM program describes data-flow
 from one orthotope to others, in static single assignment (SSA) style
-machine-language-flavor program, forming a directed asyclic graph. The
+machine-language-flavor program, forming a directed acyclic graph. The
 DPDEL program in Fig. \ref{FigureDPDEL2} will translate to something
 like Fig. \ref{FigureOMInst} . Also look at
 \url{https://github.com/nushio3/Paraiso/blob/master/attic/paraiso-2010-lifegame/}
@@ -554,7 +554,7 @@ denotes the structure in Fig.~\ref{FigureOrthotree} Orthotree is a variation
 of data structures to represent domain decompositions, such as oct-trees.
 
 The reason why we do not introduce union between orthotopes is that we can
-always backtrace this orthotree. Unions are allowed only between orthotopes
+always back-trace this Orthotree. Unions are allowed only between orthotopes
 that are apart but used to be united. Those are only kinds of unions that we
 need, and the union results are always guaranteed to be orthotopes.
 
@@ -592,7 +592,7 @@ An API for Distributed Orthotope Machine has
   \item an interface to read/write any 0-dimensional static orthotopes
   \item interface for invoking each kernels
   \item a function that causes the entire machine state saved to a file
-  \item a function that loads from such savepoints
+  \item a function that loads from such save-points
 \end{itemize}
 
 This will do for simple simulation tasks. A c++/MPI interface will be a good
@@ -654,7 +654,7 @@ power consumption, sustained performance of some sort, etc. The {\tt
   performance} field is used to determine the initial machine division, which
 will then slightly modified via benchmarking and dynamic load-balancing.
 
-Subgraphs with multiplyer label e.g. {\tt 144x} are used to represent the
+Subgraphs with multiplier label e.g. {\tt 144x} are used to represent the
 identical component in the model.
 
 
@@ -754,16 +754,16 @@ synchronizations for each hardware to achieve maximum performance .
 
 \subsection{Instruction Set for Primordial Orthotope Machine}
 Primordial OM is an imaginary machine with infinite amount of memory and
-infinitely long vector arithmetric instructions. 
+infinitely long vector arithmetic instructions. 
 
 To begin with, let us assume that each OM has a fixed dimension $n$. An
-$n$-dimensianal OM only deals with $n$-dimensional orthotopes and
-0-dimensional orthotopes. 0-dimensional orthomopes are just variables.
+$n$-dimensional OM only deals with $n$-dimensional orthotopes and
+0-dimensional orthotopes. 0-dimensional orthotopes are just variables.
 
 See also \url{http://paraiso-lang.org/wiki/index.php/VVM} for VVM instruction
 set plan, an ancestor of OM.
 
-For this and next section, let us denote {\tt n}-dimensianal Orthotope of
+For this and next section, let us denote {\tt n}-dimensional Orthotope of
 element type {\tt a} as {\tt O n a}.
 
 \paragraph{reduce and broadcast}
@@ -813,7 +813,7 @@ to the same coordinate in an orthotope.
 
 Possibly, we can summarize the various arithmetic operations to a single
 polymorphic instruction {\tt arith}. We can think of a way to store the
-information on generating arithmetic operations for various hardwaer in
+information on generating arithmetic operations for various hardware in
 pluggable manner.
 
 The shapes of the output orthotopes of an {\tt arith} are the intersection
