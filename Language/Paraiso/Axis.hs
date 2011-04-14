@@ -35,14 +35,24 @@ instance (Vector v a) => Vector ((:.)(v a)) a where
 
 class  (Vector v a, Num a) => VectorNum v a where
     zeroVector :: v a
-    zeroVector' :: v a -> v a
-
+    unitVector :: Axis -> v a
     
 instance (Num a) => VectorNum ((:.) Vec) a where
     zeroVector = Vec :. 0  
-    zeroVector' _ = Vec :. 0
+    unitVector (Axis n)
+        | n == 0 = Vec :. 1
+        | True   = error "axis out of bound"
 
 instance (VectorNum v a) => VectorNum ((:.)(v a)) a where
-    zeroVector = (zeroVector :: v a) :. 0  
-    zeroVector' (v :. _) = zeroVector' v :. 0
-   
+    zeroVector = zeroVector :. 0  
+    unitVector axis@(Axis n) = ret
+        where
+          z = zeroVector
+          d = dimension z
+          ret 
+              | n < 0 || n >= d   = error "axis out of bound"
+              | n == d-1          = zeroVector :. 1
+              | 0 <= n && n < d-1 = unitVector axis :. 0
+              | True              = z
+
+
