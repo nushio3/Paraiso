@@ -1,13 +1,17 @@
+{-# LANGUAGE TypeOperators, MultiParamTypeClasses, FlexibleInstances #-}
 module Language.Paraiso.Axis
     (
-     (:.)(..)
+     (:.)(..), Vec(..), Vector(..)
     ) where
 
 import Data.Array.Repa ((:.)(..))
 
-data Axis = Axis Int
+data Axis = Axis Int deriving (Eq,Ord,Show,Read)
 
-class Axisee vec where
-  getComponent :: Axis -> vec a -> a
-  
+data Vec = Vec deriving (Eq,Ord,Show,Read)
 
+class Vector v a where
+  getComponent :: v a -> Axis -> a
+
+instance Vector ((:.) Vec ) a where
+  getComponent (Vec :. x) _ = x

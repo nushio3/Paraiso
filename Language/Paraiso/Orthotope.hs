@@ -26,3 +26,7 @@ instance PiSystem (Orthotope0 a) where
   intersection Z Z = Z
   intersection _ _ = Z0
   
+instance Axisee (Orthotope0 a) (Interval a) 
+
+
+
