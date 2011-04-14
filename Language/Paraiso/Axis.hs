@@ -17,10 +17,24 @@ type Vec2 a = Vec1 a :. a
 type Vec3 a = Vec2 a :. a
 
 class Vector v a where
-  getComponent :: v a -> Axis -> a
+  getComponent :: Axis -> v a -> a
+  dimension :: v a -> Int
 
 instance Vector ((:.) Vec ) a where
-  getComponent (Vec :. x) axis = x
+  getComponent (Axis n) (Vec :. x) 
+      | n == 0 = x
+      | True   = error $ "axis out of bound"
+  dimension _ = 1
   
 instance (Vector v a) => Vector ((:.)(v a)) a where
-  getComponent (_ :. x) axis = x
+  getComponent axis@(Axis n) (v :. x) 
+      | n == dimension (v :. x) - 1 = x
+      | True                        = getComponent axis v 
+  dimension (v :. _) = 1 + dimension v
+
+
+class  (Vector v a, Num a) => VectorNum v a where
+    unitVector :: Axis -> v a
+
+instance (Num a) => VectorNum ((:.) Vec ) a where
+    unitVector = undefined
