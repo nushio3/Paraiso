@@ -5,9 +5,10 @@ module Language.Paraiso.Orthotope(
   Orthotope1,Orthotope2,Orthotope3
 ) where
 
+import Language.Paraiso.Axis
 import Language.Paraiso.PiSystem as S
 import Language.Paraiso.Interval
-import Data.Array.Repa ((:.)(..))
+
 
 data Orthotope0 a = Z0 -- | an empty, zero-dimensional orthotope
                   | Z  -- | a filled, zero-dimensional orthotope

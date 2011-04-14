@@ -23,4 +23,5 @@ deriving instance (Eq a) => Eq (Interval a)
 deriving instance (Show a) => Show (Interval a)   
 deriving instance (Read a) => Read (Interval a)
 
---
+
+
