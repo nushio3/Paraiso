@@ -2,7 +2,7 @@
 module Language.Paraiso.Axis
     (
      (:.)(..), Axis(..),
-     Vec(..), Vector(..),
+     Vec(..), Vector(..), VectorNum(..),
      Vec1, Vec2, Vec3
     ) where
 
@@ -20,10 +20,10 @@ class Vector v a where
   getComponent :: Axis -> v a -> a
   dimension :: v a -> Int
 
-instance Vector ((:.) Vec ) a where
+instance Vector ((:.) Vec) a where
   getComponent (Axis n) (Vec :. x) 
       | n == 0 = x
-      | True   = error $ "axis out of bound"
+      | True   = error "axis out of bound"
   dimension _ = 1
   
 instance (Vector v a) => Vector ((:.)(v a)) a where
@@ -34,7 +34,15 @@ instance (Vector v a) => Vector ((:.)(v a)) a where
 
 
 class  (Vector v a, Num a) => VectorNum v a where
-    unitVector :: Axis -> v a
+    zeroVector :: v a
+    zeroVector' :: v a -> v a
 
-instance (Num a) => VectorNum ((:.) Vec ) a where
-    unitVector = undefined
+    
+instance (Num a) => VectorNum ((:.) Vec) a where
+    zeroVector = Vec :. 0  
+    zeroVector' _ = Vec :. 0
+
+instance (VectorNum v a) => VectorNum ((:.)(v a)) a where
+    zeroVector = (zeroVector :: v a) :. 0  
+    zeroVector' (v :. _) = zeroVector' v :. 0
+   
