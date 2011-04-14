@@ -12,12 +12,12 @@ z = zeroVector
 main :: IO ()
 main = do
   putStrLn $ "x = " ++ show x
-  print z
+  putStrLn $ "zeroVector = " ++ show z
   forM_ (map Axis [0..dimension x - 1]) sub
   
   
 sub :: Axis -> IO ()
 sub ex = do
   putStrLn $ "x[" ++ show ex ++ "] = " ++ show (getComponent ex x)
-  print $ (unitVector ex::Vec3 Double)
+  putStrLn $ "unitVector[" ++ show ex ++ "] = " ++ show (unitVector ex::Vec3 Double)
          

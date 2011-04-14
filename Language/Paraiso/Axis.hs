@@ -53,6 +53,5 @@ instance (VectorNum v a) => VectorNum ((:.)(v a)) a where
               | n < 0 || n >= d   = error "axis out of bound"
               | n == d-1          = zeroVector :. 1
               | 0 <= n && n < d-1 = unitVector axis :. 0
-              | True              = z
-
+              | True              = z -- needed to infer type of z
 
