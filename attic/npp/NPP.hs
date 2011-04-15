@@ -65,6 +65,8 @@ optimize expr = let o = optimize in case expr of
   Nmadd a b c -> Nmadd (o a) (o b) (o c)
   Nmsub a b c -> Nmsub (o a) (o b) (o c)
 
+class InstructionSet a where
+  
             
 gen :: Expr -> String
 gen expr = 
