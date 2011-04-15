@@ -1,5 +1,10 @@
 {-# OPTIONS -Wall #-}
 
+module NPP
+    (
+     Expr(..), gen
+    ) where
+
 data Expr = 
     Term String
   | Add Expr Expr
@@ -15,6 +20,11 @@ data Expr =
     
     deriving (Eq,Ord,Read,Show)
 
+
+s2v :: (Show a) => a -> Expr
+s2v n = let sn = show n in Term $ "vec_set(" ++ sn ++ "," ++ sn ++ ")"
+ 
+
 instance Num Expr where
   a + b = Add a b
   a - b = Sub a b
@@ -22,8 +32,12 @@ instance Num Expr where
   negate = Neg
   abs = undefined
   signum = undefined
-  fromInteger n = let sn = show n 
-                  in Term $ "vec_set(" ++ sn ++ "," ++ sn ++ ")"
+  fromInteger = s2v 
+  
+instance Fractional Expr where
+  a / b = Div a b
+  recip = Inv
+  fromRational = s2v 
   
 
 gen :: Expr -> String
@@ -45,13 +59,4 @@ gen expr =
       f2 tag a b = tag ++ "(" ++ gen a ++ "," ++ gen b ++ ")"
       f3 tag a b c = tag ++ "(" ++ gen a ++ "," ++ gen b ++ "," ++ gen c ++ ")"
 
-expr :: Expr
-expr = a + b * c + 4 * a
-    where  
-      [a,b,c] = map Term $ words "a b c"
       
-main :: IO ()
-main = do
-  print expr
-  putStrLn $ gen expr
-  
