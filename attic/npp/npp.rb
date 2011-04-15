@@ -23,7 +23,7 @@ input = #{str}
 
 main :: IO ()
 main = do
-  putStrLn $ gen input
+  putStrLn $ gen $ optimize input
 HASKELL
   }
   `runhaskell #{TmpFn}`

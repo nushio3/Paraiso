@@ -2,7 +2,7 @@
 
 module NPP
     (
-     Expr(..), gen
+     Expr(..), optimize, gen
     ) where
 
 data Expr = 
@@ -42,7 +42,23 @@ instance Fractional Expr where
         dx = fromRational x
    in s2v dx
   
+optimize :: Expr -> Expr
+optimize expr = let o = optimize in case expr of
+  Add (Mul a b) c -> Madd (o a) (o b) (o c)
+  -- recursive optimization --
+  t@(Term _)  -> t
+  Add a b     -> Add (o a) (o b)        
+  Mul a b     -> Mul (o a) (o b)        
+  Sub a b     -> Sub (o a) (o b)        
+  Div a b     -> Div (o a) (o b)        
+  Inv a       -> Inv (o a)              
+  Neg a       -> Neg (o a)              
+  Madd  a b c -> Madd  (o a) (o b) (o c)
+  Msub  a b c -> Msub  (o a) (o b) (o c)
+  Nmadd a b c -> Nmadd (o a) (o b) (o c)
+  Nmsub a b c -> Nmsub (o a) (o b) (o c)
 
+            
 gen :: Expr -> String
 gen expr = 
   case expr of
