@@ -2,7 +2,8 @@
 
 module NPP
     (
-     Expr(..), optimize, gen
+     Expr(..), optimize, gen,
+     SSE2v2r8(..)
     ) where
 
 data Expr = 
@@ -35,7 +36,7 @@ instance Num Expr where
   fromInteger = s2v 
   
 instance Fractional Expr where
-  a / b = Div a b
+  a / b = Mul a (Inv b) -- Div a b
   recip = Inv
   fromRational x = let 
         dx :: Double
@@ -66,25 +67,41 @@ optimize expr = let o = optimize in case expr of
   Nmsub a b c -> Nmsub (o a) (o b) (o c)
 
 class InstructionSet a where
-  
+  mnemonic :: a -> Expr -> String
             
-gen :: Expr -> String
-gen expr = 
+gen :: (InstructionSet is) => is -> Expr -> String
+gen is expr = 
   case expr of
     Term s -> s
-    Add a b -> f2 "add" a b
-    Mul a b -> f2 "mul" a b
-    Sub a b -> f2 "sub" a b
-    Div a b -> f2 "div" a b
-    Inv a -> f1 "inv" a
-    Neg a -> f1 "neg" a
-    Madd  a b c -> f3 "madd"  a b c
-    Msub  a b c -> f3 "msub"  a b c
-    Nmadd a b c -> f3 "nmadd" a b c
-    Nmsub a b c -> f3 "nmsub" a b c
+    Add a b -> f2 a b
+    Mul a b -> f2 a b
+    Sub a b -> f2 a b
+    Div a b -> f2 a b
+    Inv a -> f1 a
+    Neg a -> f1 a
+    Madd  a b c -> f3 a b c
+    Msub  a b c -> f3 a b c
+    Nmadd a b c -> f3 a b c
+    Nmsub a b c -> f3 a b c
     where
-      f1 tag a = tag ++ "(" ++ gen a ++ ")"
-      f2 tag a b = tag ++ "(" ++ gen a ++ "," ++ gen b ++ ")"
-      f3 tag a b c = tag ++ "(" ++ gen a ++ "," ++ gen b ++ "," ++ gen c ++ ")"
+      g = gen is
+      f1 a = (mnemonic is expr) ++ "(" ++ g a ++ ")"
+      f2 a b = (mnemonic is expr) ++ "(" ++ g a ++ "," ++ g b ++ ")"
+      f3 a b c = (mnemonic is expr) ++ "(" ++ g a ++ "," ++ g b ++ "," ++ g c ++ ")"
+
+data SSE2v2r8 = SSE2v2r8
+instance InstructionSet SSE2v2r8 where
+    mnemonic _ expr = case expr of
+      Term _ -> error "term has no mnemonic"
+      Add _ _ -> "v2r8_add"
+      Mul _ _ -> "v2r8_mul"
+      Sub _ _ -> "v2r8_sub"
+      Div _ _ -> error "division undefined for SSE2v2r8"
+      Inv _ -> "v2r8_inv"
+      Neg _ -> "v2r8_neg"
+      Madd _ _ _ -> "v2r8_madd"
+      Msub _ _ _ -> "v2r8_msub"
+      Nmadd _ _ _ -> "v2r8_nmadd"
+      Nmsub _ _ _ -> "v2r8_nmsub"
 
       
