@@ -37,7 +37,10 @@ instance Num Expr where
 instance Fractional Expr where
   a / b = Div a b
   recip = Inv
-  fromRational = s2v 
+  fromRational x = let 
+        dx :: Double
+        dx = fromRational x
+   in s2v dx
   
 
 gen :: Expr -> String
