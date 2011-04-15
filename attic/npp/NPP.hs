@@ -44,6 +44,10 @@ instance Fractional Expr where
   
 optimize :: Expr -> Expr
 optimize expr = let o = optimize in case expr of
+  Add (Div a b) c -> Madd (o a) (Inv $ o b) (o c)
+  Add c (Div a b) -> Madd (o a) (Inv $ o b) (o c)
+  Sub (Div a b) c -> Msub (o a) (Inv $ o b) (o c)
+  Sub c (Div a b) -> Nmsub (o a) (Inv $ o b) (o c)
   Add (Mul a b) c -> Madd (o a) (o b) (o c)
   Add c (Mul a b) -> Madd (o a) (o b) (o c)
   Sub (Mul a b) c -> Msub (o a) (o b) (o c)
