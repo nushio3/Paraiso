@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
   MultiParamTypeClasses, StandaloneDeriving, TypeOperators #-} 
-{-OPTIONS -Wall #-}
+{-# OPTIONS -Wall #-}
 
 import Control.Applicative
 import Control.Monad.Failure
@@ -11,7 +11,6 @@ import Prelude hiding(mapM)
 
 
 import Control.Monad
-import Control.Exception
 unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
@@ -109,4 +108,6 @@ main = do
   print $ v4
   _ <- Data.Traversable.mapM print v4
   Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
+  bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
+  print $ v4:zeroVector:bases
   return ()
