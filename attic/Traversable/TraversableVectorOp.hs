@@ -43,8 +43,8 @@ data Axis = Axis Int deriving (Eq,Ord,Show,Read)
 
 class Vector v where
   getComponent :: (Failure StringException f) => Axis -> v a -> f a
-  unsafeGetComponent :: Axis -> v a -> a
-  unsafeGetComponent axis vec = unsafePerformFailure $ getComponent axis vec
+  unsafeComponent :: Axis -> v a -> a
+  unsafeComponent axis vec = unsafePerformFailure $ getComponent axis vec
   dimension :: v a -> Int
 
 
@@ -61,6 +61,36 @@ instance (Vector v) => Vector ((:~) v) where
     dimension (v :~ _) = 1 + dimension v
 
 
+-- | 'VectorNum' is a 'Vector' whose components are of instance 'Num'.
+class  (Vector v, Num a) => VectorNum v a where
+  -- | A vector whose components are all zero.
+  zeroVector :: v a 
+
+  -- | A vector where 'Axis'th component is unity but others are zero.
+  getUnitVector :: (Failure StringException f) => Axis -> f (v a)
+  
+  unsafeUnitVector :: Axis -> v a
+  unsafeUnitVector = unsafePerformFailure . getUnitVector
+    
+instance (Num a) => VectorNum Vec a where
+  zeroVector = Vec 0
+  getUnitVector axis@(Axis i) 
+      | i == 0 = return $ Vec 1
+      | True   = failureString $ "axis out of bound: " ++ show axis
+
+instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
+  zeroVector = zeroVector :~ 0  
+
+  getUnitVector axis@(Axis i) = ret
+    where
+      z = zeroVector
+      d = dimension z
+      ret
+        | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
+        | i == d-1          = return $ zeroVector :~ 1
+        | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector axis
+        | True              = return z
+
 v1 :: Vec Int
 v1 = Vec 0
 
@@ -71,11 +101,12 @@ v4 :: (:~) ((:~) Vec) :~ Int
 v4 = Vec 1 :~ 3 :~ 4 :~ 1
 
 
+
 main :: IO ()
 main = do
   print $ v1
   print $ v2
   print $ v4
   _ <- Data.Traversable.mapM print v4
-  Control.Monad.forM_  [0..4] (\i-> getComponent (Axis i) v4 >>= print)
+  Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
   return ()
