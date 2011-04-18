@@ -83,21 +83,3 @@ instance Functor ((:.) Vec) where
   fmap = fmapDefault
 instance Traversable ((:.) Vec) where
   traverse f (Vec :. x) = (Vec:.) <$> f x
-
--- if n-dimensional 'Vec' is an instance of 'Traversable', (n+1)-dimensional 'Vec' is also 'Traversable'.
-{-
-instance (Traversable v, Vector v a) => Foldable ((:.) (v a)) where
-  foldMap = foldMapDefault
-instance (Traversable v, Vector v a) => Functor ((:.) (v a)) where
-  fmap = fmapDefault
-instance (Traversable v, Vector v a) => Traversable (\a -> (:.) (v a) a) where
-  traverse f (v :. x) = (:.) <$> traverse f v <*> f x
--}
-
-instance Foldable Vec3 where
-  foldMap = foldMapDefault
-instance Functor Vec3 where
-  fmap = fmapDefault
-instance Traversable Vec3 where
-  traverse f (Vec :. x :. y :. z) = (\fx fy fz -> Vec:.fx:.fy:fz) <$> f x <*> f y <*> f z
-
