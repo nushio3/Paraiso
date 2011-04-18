@@ -16,6 +16,7 @@ instance Traversable Triplet where
   traverse f (Triplet (a1,a2,a3)) = fmap Triplet $
     (,,) <$> f a1 <*> f a2 <*> f a3
 
+
 main :: IO ()
 main = do
   _ <- Data.Traversable.mapM putStrLn $ t3
@@ -27,3 +28,4 @@ main = do
       b  = fmap (++"ga") t3
       c  = fmap (++"zaga") t3
       t9 = Triplet (a,b,c)
+      

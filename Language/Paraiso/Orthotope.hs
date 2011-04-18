@@ -9,9 +9,10 @@ import Language.Paraiso.Axis
 import Language.Paraiso.PiSystem as S
 import Language.Paraiso.Interval
 
-
-data Orthotope0 a = Z0 -- | an empty, zero-dimensional orthotope
-                  | Z  -- | a filled, zero-dimensional orthotope
+-- | an empty, zero-dimensional orthotope
+-- | a filled, zero-dimensional orthotope
+data Orthotope0 a = Z0 
+                  | Z  
                     deriving (Eq,Ord,Show,Read)
 
 -- | higher dimensional orthotopes 
@@ -26,7 +27,7 @@ instance PiSystem (Orthotope0 a) where
   intersection Z Z = Z
   intersection _ _ = Z0
   
-instance Axisee (Orthotope0 a) (Interval a) 
+
 
 
 

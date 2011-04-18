@@ -65,7 +65,11 @@ Cabal-version:       >=1.6
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
-  
+                       Language.Paraiso.Axis
+                       Language.Paraiso.Interval
+                       Language.Paraiso.Orthotope
+                       Language.Paraiso.PiSystem
+                          
   -- Packages needed in order to build this package.
   Build-depends:       base   == 4.*,
                        repa   == 2.*

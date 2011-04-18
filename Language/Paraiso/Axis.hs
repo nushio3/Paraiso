@@ -1,4 +1,11 @@
 {-# LANGUAGE TypeOperators, MultiParamTypeClasses, FlexibleInstances #-}
+
+{- | This module defines 'Vector' class, whose components can be specified by
+   'Axis'. a multi-dimensional vector constructor ':.' is shared with
+   Data.Array.Repa .  -}
+
+
+
 module Language.Paraiso.Axis
     (
      (:.)(..), Axis(..),
@@ -6,8 +13,15 @@ module Language.Paraiso.Axis
      Vec1, Vec2, Vec3
     ) where
 
+
+
+
 import Data.Array.Repa ((:.)(..))
 
+
+
+
+-- | Axis dayo
 data Axis = Axis Int deriving (Eq,Ord,Show,Read)
 
 data Vec = Vec deriving (Eq,Ord,Show,Read)
