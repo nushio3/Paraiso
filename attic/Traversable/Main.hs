@@ -7,10 +7,10 @@ import Data.Traversable
 newtype Triplet a = Triplet (a,a,a)
 
 instance Foldable Triplet where
-  foldr f b (Triplet (a1,a2,a3)) = Prelude.foldr f b [a1,a2,a3]
+  foldMap = foldMapDefault
 
 instance Functor Triplet where
-  fmap f (Triplet (a1,a2,a3)) = Triplet (f a1, f a2, f a3)
+  fmap = fmapDefault
 
 instance Traversable Triplet where
   traverse f (Triplet (a1,a2,a3)) = fmap Triplet $
@@ -18,6 +18,12 @@ instance Traversable Triplet where
 
 main :: IO ()
 main = do
-  _ <- Data.Traversable.mapM putStrLn $ Triplet ("hoge","huga","piyo")
+  _ <- Data.Traversable.mapM putStrLn $ t3
+  _ <- Data.Traversable.mapM (Data.Traversable.mapM putStrLn) $ t9
   return ()
-
+    where
+      t3 = Triplet ("hoge","huga","piyo")
+      a  = fmap (++"ra") t3
+      b  = fmap (++"ga") t3
+      c  = fmap (++"zaga") t3
+      t9 = Triplet (a,b,c)
