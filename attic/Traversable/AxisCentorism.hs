@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
-  MultiParamTypeClasses, StandaloneDeriving, TypeOperators #-} 
+  MultiParamTypeClasses, StandaloneDeriving, TypeFamilies,
+  TypeOperators #-} 
 {-OPTIONS -Wall #-}
 
 import Control.Applicative
@@ -39,7 +40,9 @@ instance (Traversable n) => Traversable ((:~) n) where
 
 
 -- | An coordinate 'Axis' , labeled by an integer. 
-data Axis = Axis Int deriving (Eq,Ord,Show,Read)
+class Axis ax where
+  data Vector :: * -> *
+  getComponent :: ax -> Vector a -> a
 
 v1 :: Vec Int
 v1 = Vec 0
