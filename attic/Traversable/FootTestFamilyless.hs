@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeFamilies #-} 
-{-OPTIONS -Wall #-}
+{-# OPTIONS -Wall #-}
 
 
 data Duo a = Duo a a deriving(Eq,Ord,Read,Show)
@@ -36,8 +36,10 @@ ni = Duo 4 2
 san :: Trio Int
 san = Trio 3 9 8
 
-ssan = compose (\i -> compose (\j ->  getComponent i san*  getComponent j san))
+ssan = compose (\i -> compose (\j ->  getComponent i san * getComponent j san))
 
+roku = compose (\i -> compose (\j -> 
+  concat $ replicate (getComponent i ni) $ show $ getComponent j san))
 
 main :: IO ()
 main = do
@@ -45,3 +47,4 @@ main = do
   print ni
   print san
   print ssan
+  print roku
