@@ -72,7 +72,8 @@ Library
                           
   -- Packages needed in order to build this package.
   Build-depends:       base   == 4.*,
-                       repa   == 2.*
+                       repa   == 2.*,
+                       control-monad-failure == 0.*
   -- Modules not exported by this package.
   -- Other-modules:       
   
