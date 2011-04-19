@@ -42,23 +42,26 @@ data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
 class Vector v where
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
-  unsafeComponent :: Axis v -> v a -> a
-  unsafeComponent axis vec = unsafePerformFailure $ getComponent axis vec
+  component :: Axis v -> v a -> a
+  component axis vec = unsafePerformFailure $ getComponent axis vec
   dimension :: v a -> Int
-
+  compose :: (Axis v -> a) -> v a
+  
 
 instance Vector Vec where
     getComponent axis@(Axis i) (Vec x) 
         | i==0 = return x
         | True = failureString $ "axis out of bound: " ++ show axis
     dimension _ = 1
+    compose f = Vec (f (Axis 0))
 
 instance (Vector v) => Vector ((:~) v) where
     getComponent (Axis i) vx@(v :~ x) 
         | i==dimension vx - 1 = return x
         | True                = getComponent (Axis i) v
     dimension (v :~ _) = 1 + dimension v
-
+    compose f = let
+        xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
 -- | 'VectorNum' is a 'Vector' whose components are of instance 'Num'.
 class  (Vector v, Num a) => VectorNum v a where
@@ -110,4 +113,5 @@ main = do
   Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
   bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
   print $ v4:zeroVector:bases
+  print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
   return ()
