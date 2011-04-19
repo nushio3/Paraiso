@@ -71,8 +71,8 @@ class  (Vector v, Num a) => VectorNum v a where
   -- | A vector where 'Axis'th component is unity but others are zero.
   getUnitVector :: (Failure StringException f) => Axis v -> f (v a)
   
-  unsafeUnitVector :: Axis v -> v a
-  unsafeUnitVector = unsafePerformFailure . getUnitVector
+  unitVector :: Axis v -> v a
+  unitVector = unsafePerformFailure . getUnitVector
     
 instance (Num a) => VectorNum Vec a where
   zeroVector = Vec 0
@@ -93,16 +93,22 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
         | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
         | True              = return z
 
-v1 :: Vec Int
+type Vec1 = Vec
+type Vec2 = (:~) Vec1
+type Vec3 = (:~) Vec2
+type Vec4 = (:~) Vec3
+
+v1 :: Vec1 Int
 v1 = Vec 0
 
-v2 :: Vec :~ Int
+v2 :: Vec2  Int
 v2 =  Vec 4 :~ 2
 
-v4 :: (:~) ((:~) Vec) :~ Int
+v4 :: Vec4 Int
 v4 = Vec 1 :~ 3 :~ 4 :~ 1
 
-
+t4 :: Vec4 (Vec4 Int)
+t4 = compose (\i -> compose (\j -> if i==j then 1 else 0))
 
 main :: IO ()
 main = do
@@ -114,4 +120,5 @@ main = do
   bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
   print $ v4:zeroVector:bases
   print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
+  print $ t4
   return ()
