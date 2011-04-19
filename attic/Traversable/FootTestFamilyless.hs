@@ -36,7 +36,9 @@ ni = Duo 4 2
 san :: Trio Int
 san = Trio 3 9 8
 
-ssan = compose (\i -> compose (\j ->  getComponent i san * getComponent j san))
+san' = compose (\i -> getComponent i san)
+
+kyu = compose (\i -> compose (\j ->  getComponent i san * getComponent j san))
 
 roku = compose (\i -> compose (\j -> 
   concat $ replicate (getComponent i ni) $ show $ getComponent j san))
@@ -46,5 +48,7 @@ main = do
   putStrLn "hawawa"
   print ni
   print san
-  print ssan
+  print san'
+  print kyu
   print roku
+  

@@ -8,10 +8,7 @@ data Trio a = Trio a a a deriving(Eq,Ord,Read,Show)
 data Index2 = Index2 Int deriving(Eq,Ord,Read,Show)
 data Index3 = Index3 Int deriving(Eq,Ord,Read,Show)
 
-data Washoi v = Washoi Double deriving(Eq,Ord,Read,Show)
 
-type W2 = Washoi Duo
-type W3 = Washoi Trio
 
 class Axis ax where
   type Vector ax :: * -> *
@@ -44,15 +41,9 @@ san = compose (\ (Index3 i) -> show i)
 
 -- san' = compose (\i -> getComponent i san)
 
-w2 :: W2
-w2 = Washoi 2.3
-
-w3 :: W3
-w3 = Washoi 2.3
 
 main :: IO ()
 main = do
   putStrLn "hawawa"
   print ni
   print san
-  print (w2 == w3)
