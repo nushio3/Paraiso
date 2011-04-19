@@ -48,7 +48,14 @@ class Vector v  where
   type Axis v 
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
   getComponent':: (Failure StringException f) => Int -> v a -> f a
+
+  unsafeComponent :: Axis v -> v a -> a
+  unsafeComponent axis vec = unsafePerformFailure $ getComponent axis vec
+
   dimension :: v a -> Int
+
+  compose :: (Axis v -> a) -> v a
+  compose = undefined
 
 instance Vector Vec where
   type Dimension Vec = Succ Zero
@@ -82,6 +89,8 @@ v1 = Vec 0
 v4 :: (:~) ((:~) Vec) :~ Int
 v4 = Vec 1 :~ 3 :~ 4 :~ 1
 
+
+v4a = compose (\i -> unsafeComponent i v4)
 
 main :: IO ()
 main = do
