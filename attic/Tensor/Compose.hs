@@ -38,6 +38,9 @@ instance (Traversable n) => Traversable ((:~) n) where
 
 
 -- | An coordinate 'Axis' , labeled by an integer. 
+-- | Axis also carries v, the container type for its corresponding
+-- | vector. Therefore, An axis of one type can access only vectors
+-- | of a fixed dimension.
 data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
 class Vector v where

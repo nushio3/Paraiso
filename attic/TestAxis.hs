@@ -2,32 +2,30 @@
 {-# OPTIONS -Wall #-}
 
 import Control.Monad
-import Language.Paraiso.Axis
+import Language.Paraiso.Tensor
 
-type Vec6 a = Vec3 a :. a :. a :. a
 
-x :: Vec3 Int
-x = Vec :. 3 :. 9 :. 8
+v1 :: Vec1 Int
+v1 = Vec 0
 
-z :: Vec3 Double
-z = zeroVector
+v2 :: Vec2  Int
+v2 =  Vec 4 :~ 2
 
-ten :: Vec2 (Vec2 Int)
-ten = Vec :. (Vec :. 1 :. 0) :. (Vec :. 0 :. 1)
+v4 :: Vec4 Int
+v4 = Vec 1 :~ 3 :~ 4 :~ 1
 
-z6 :: Vec6 Double
-z6 = zeroVector
+t4 :: Vec4 (Vec4 Int)
+t4 = compose (\i -> compose (\j -> if i==j then 1 else 0))
 
 main :: IO ()
 main = do
-  putStrLn $ "x = " ++ show x
-  putStrLn $ "zeroVector = " ++ show z
-  putStrLn $ "zeroVector = " ++ show z6
-  forM_ (map Axis [0..dimension x - 1]) sub
-  putStrLn $ "a tensor = " ++ show ten
-        
-sub :: Axis -> IO ()
-sub ex = do
-  putStrLn $ "x[" ++ show ex ++ "] = " ++ show (getComponent ex x)
-  putStrLn $ "unitVector[" ++ show ex ++ "] = " ++ show (unitVector ex::Vec3 Double)
-         
+  print $ v1
+  print $ v2
+  print $ v4
+  _ <- Data.Traversable.mapM print v4
+  Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
+  bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
+  print $ v4:zeroVector:bases
+  print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
+  print $ t4
+  return ()
