@@ -2,6 +2,7 @@
 {-# OPTIONS -Wall #-}
 
 import Control.Monad
+import Data.Traversable
 import Language.Paraiso.Tensor
 
 
