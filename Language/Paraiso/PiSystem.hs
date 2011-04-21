@@ -16,5 +16,5 @@ class PiSystem a where
 instance (PiSystem a, Vector v) => PiSystem (v a) where
   empty = compose $ const empty
   null = F.any null
-  intersection = undefined
+  intersection a b = compose (\i -> component i a `intersection` component i b)
                                     
