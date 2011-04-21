@@ -49,7 +49,7 @@ instance (Traversable n) => Traversable ((:~) n) where
 -- | of a fixed dimension.
 data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
-class Vector v where
+class (Traversable v) => Vector v where
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
   component :: Axis v -> v a -> a
   component axis vec = unsafePerformFailure $ getComponent axis vec
