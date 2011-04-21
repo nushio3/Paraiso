@@ -15,7 +15,7 @@ unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
 
-data Vec a = Vec a 
+data Vec a = Vec 
 infixl 3 :~
 data n :~ a = (n a) :~ a
 
@@ -27,7 +27,7 @@ instance Foldable Vec where
 instance Functor Vec where
   fmap = fmapDefault
 instance Traversable Vec where
-  traverse f (Vec x) = Vec <$> f x
+  traverse f Vec = pure Vec 
 
 instance (Traversable n) => Foldable ((:~) n) where
   foldMap = foldMapDefault
@@ -52,11 +52,10 @@ class Vector v where
   
 
 instance Vector Vec where
-    getComponent axis@(Axis i) (Vec x) 
-        | i==0 = return x
-        | True = failureString $ "axis out of bound: " ++ show axis
-    dimension _ = 1
-    compose f = Vec (f (Axis 0))
+    getComponent axis Vec 
+        = failureString $ "axis out of bound: " ++ show axis
+    dimension _ = 0
+    compose f = Vec 
 
 instance (Vector v) => Vector ((:~) v) where
     getComponent (Axis i) vx@(v :~ x) 
@@ -78,10 +77,9 @@ class  (Vector v, Num a) => VectorNum v a where
   unitVector = unsafePerformFailure . getUnitVector
     
 instance (Num a) => VectorNum Vec a where
-  zeroVector = Vec 0
-  getUnitVector axis@(Axis i) 
-      | i == 0 = return $ Vec 1
-      | True   = failureString $ "axis out of bound: " ++ show axis
+  zeroVector = Vec 
+  getUnitVector axis
+      = failureString $ "axis out of bound: " ++ show axis
 
 instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
   zeroVector = zeroVector :~ 0  
@@ -96,19 +94,20 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
         | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
         | True              = return z
 
-type Vec1 = Vec
+type Vec0 = Vec
+type Vec1 = (:~) Vec0
 type Vec2 = (:~) Vec1
 type Vec3 = (:~) Vec2
 type Vec4 = (:~) Vec3
 
 v1 :: Vec1 Int
-v1 = Vec 0
+v1 = Vec :~ 0
 
 v2 :: Vec2  Int
-v2 =  Vec 4 :~ 2
+v2 =  Vec :~ 4 :~ 2
 
 v4 :: Vec4 Int
-v4 = Vec 1 :~ 3 :~ 4 :~ 1
+v4 = Vec :~ 1 :~ 3 :~ 4 :~ 1
 
 t4 :: Vec4 (Vec4 Int)
 t4 = compose (\i -> compose (\j -> if i==j then 1 else 0))
