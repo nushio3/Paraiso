@@ -7,13 +7,13 @@ import Language.Paraiso.Tensor
 
 
 v1 :: Vec1 Int
-v1 = Vec 0
+v1 = Vec :~ 0
 
 v2 :: Vec2  Int
-v2 =  Vec 4 :~ 2
+v2 =  Vec :~ 4 :~ 2
 
 v4 :: Vec4 Int
-v4 = Vec 1 :~ 3 :~ 4 :~ 1
+v4 = Vec :~ 1 :~ 3 :~ 4 :~ 1
 
 t4 :: Vec4 (Vec4 Int)
 t4 = compose (\i -> compose (\j -> if i==j then 1 else 0))

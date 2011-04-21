@@ -21,7 +21,7 @@ unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
 
-data Vec a = Vec a 
+data Vec a = Vec 
 infixl 3 :~
 data n :~ a = (n a) :~ a
 
@@ -33,7 +33,7 @@ instance Foldable Vec where
 instance Functor Vec where
   fmap = fmapDefault
 instance Traversable Vec where
-  traverse f (Vec x) = Vec <$> f x
+  traverse _ Vec = pure Vec 
 
 instance (Traversable n) => Foldable ((:~) n) where
   foldMap = foldMapDefault
@@ -49,7 +49,7 @@ instance (Traversable n) => Traversable ((:~) n) where
 -- | of a fixed dimension.
 data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
-class (Traversable v) => Vector v where
+class Vector v where
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
   component :: Axis v -> v a -> a
   component axis vec = unsafePerformFailure $ getComponent axis vec
@@ -58,11 +58,10 @@ class (Traversable v) => Vector v where
   
 
 instance Vector Vec where
-    getComponent axis@(Axis i) (Vec x) 
-        | i==0 = return x
-        | True = failureString $ "axis out of bound: " ++ show axis
-    dimension _ = 1
-    compose f = Vec (f (Axis 0))
+    getComponent axis Vec 
+        = failureString $ "axis out of bound: " ++ show axis
+    dimension _ = 0
+    compose _ = Vec 
 
 instance (Vector v) => Vector ((:~) v) where
     getComponent (Axis i) vx@(v :~ x) 
@@ -84,10 +83,9 @@ class  (Vector v, Num a) => VectorNum v a where
   unitVector = unsafePerformFailure . getUnitVector
     
 instance (Num a) => VectorNum Vec a where
-  zeroVector = Vec 0
-  getUnitVector axis@(Axis i) 
-      | i == 0 = return $ Vec 1
-      | True   = failureString $ "axis out of bound: " ++ show axis
+  zeroVector = Vec 
+  getUnitVector axis
+      = failureString $ "axis out of bound: " ++ show axis
 
 instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
   zeroVector = zeroVector :~ 0  
@@ -102,7 +100,8 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
         | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
         | True              = return z
 
-type Vec1 = Vec
+type Vec0 = Vec
+type Vec1 = (:~) Vec0
 type Vec2 = (:~) Vec1
 type Vec3 = (:~) Vec2
 type Vec4 = (:~) Vec3
