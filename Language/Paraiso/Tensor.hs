@@ -1,6 +1,20 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
   MultiParamTypeClasses, StandaloneDeriving, TypeOperators #-} 
 {-# OPTIONS -Wall #-}
+-- | A tensor algebra library. Main ingredients are :
+-- 
+-- 'Vec' and ':~' are data constructors for rank-1 tensor.
+-- This is essentially a touple of objects of the same type.
+-- 
+-- 'Vector' is a class for rank-1 tensor.
+--
+-- 'Axis' is an object for accessing the tensor components.
+
+module Language.Paraiso.Tensor
+    (
+     (:~)(..), Vec(..), Axis(..), Vector(..), VectorNum(..),
+     Vec0, Vec1, Vec2, Vec3, Vec4
+    ) where
 
 import Control.Applicative
 import Control.Monad.Failure
@@ -14,9 +28,11 @@ import Control.Monad
 unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
-
+-- | data constructor for 0-dimensional tensor.
 data Vec a = Vec 
 infixl 3 :~
+-- | data constructor for constructing n+1-dimensional tensor
+-- from n-dimensional tensor.
 data n :~ a = (n a) :~ a
 
 deriving instance (Show a) => Show (Vec a)
@@ -27,7 +43,7 @@ instance Foldable Vec where
 instance Functor Vec where
   fmap = fmapDefault
 instance Traversable Vec where
-  traverse f Vec = pure Vec 
+  traverse _ Vec = pure Vec 
 
 instance (Traversable n) => Foldable ((:~) n) where
   foldMap = foldMapDefault
@@ -38,16 +54,24 @@ instance (Traversable n) => Traversable ((:~) n) where
 
 
 -- | An coordinate 'Axis' , labeled by an integer. 
--- | Axis also carries v, the container type for its corresponding
--- | vector. Therefore, An axis of one type can access only vectors
--- | of a fixed dimension.
+-- Axis also carries v, the container type for its corresponding
+-- vector. Therefore, An axis of one type can access only vectors
+-- of a fixed dimension, but of arbitrary type.
 data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
-class Vector v where
+-- | An object that allows component-wise access.
+class (Traversable v) => Vector v where
+  -- | Get a component within f, a context which allows 'Failure'.
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
+  -- | Get a component. This computation may result in a runtime error,
+  -- though, as long as the 'Axis' is generated from library functions
+  -- such as 'compose', there will be no error.
   component :: Axis v -> v a -> a
   component axis vec = unsafePerformFailure $ getComponent axis vec
+  -- | The dimension of the vector.
   dimension :: v a -> Int
+  -- | Create a 'Vector' from a function that maps 
+  -- axis to component.
   compose :: (Axis v -> a) -> v a
   
 
@@ -55,15 +79,15 @@ instance Vector Vec where
     getComponent axis Vec 
         = failureString $ "axis out of bound: " ++ show axis
     dimension _ = 0
-    compose f = Vec 
+    compose _ = Vec 
 
 instance (Vector v) => Vector ((:~) v) where
     getComponent (Axis i) vx@(v :~ x) 
         | i==dimension vx - 1 = return x
         | True                = getComponent (Axis i) v
     dimension (v :~ _) = 1 + dimension v
-    compose f = let xs = compose (\(Axis i)->f (Axis i))
-                in xs :~ f (Axis (dimension xs))
+    compose f = let
+        xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
 -- | 'VectorNum' is a 'Vector' whose components are of instance 'Num'.
 class  (Vector v, Num a) => VectorNum v a where
@@ -92,35 +116,12 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
         | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
         | i == d-1          = return $ zeroVector :~ 1
         | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
-        | True              = return z
+        | True              = return z 
+        -- this last guard never matches, but needed to infer the type of z.
 
+-- | Type synonyms
 type Vec0 = Vec
 type Vec1 = (:~) Vec0
 type Vec2 = (:~) Vec1
 type Vec3 = (:~) Vec2
 type Vec4 = (:~) Vec3
-
-v1 :: Vec1 Int
-v1 = Vec :~ 0
-
-v2 :: Vec2  Int
-v2 =  Vec :~ 4 :~ 2
-
-v4 :: Vec4 Int
-v4 = Vec :~ 1 :~ 3 :~ 4 :~ 1
-
-t4 :: Vec4 (Vec4 Int)
-t4 = compose (\i -> compose (\j -> if i==j then 1 else 0))
-
-main :: IO ()
-main = do
-  print $ v1
-  print $ v2
-  print $ v4
-  _ <- Data.Traversable.mapM print v4
-  Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
-  bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
-  print $ v4:zeroVector:bases
-  print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
-  print $ t4
-  return ()
