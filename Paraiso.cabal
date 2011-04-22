@@ -3,9 +3,10 @@
 -- http://www.haskell.org/cabal/release/cabal-latest/doc/users-guide/authors.html#pkg-descr.
 
 -- cabal cheatsheet
---   cabal init  : initialize .cabal
---   cabal check : detect format error 
---   cabal sdist : create tarball
+--   cabal init    : initialize .cabal
+--   cabal check   : detect format error 
+--   cabal haddock : create haddock documentation
+--   cabal sdist   : create tarball
 --   cabal upload dist/Paraiso-....tar.gz : hackage debut!
 
 -- The name of the package.
