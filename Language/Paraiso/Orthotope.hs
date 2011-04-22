@@ -1,5 +1,11 @@
 {-# LANGUAGE TypeOperators #-}
 
+{- |  In geometry, an 'Orthotope' (also called a hyperrectangle or a box) is
+  the generalization of a rectangle for higher dimensions, formally
+  defined as the Cartesian product of 'Interval's.
+
+-}
+
 module Language.Paraiso.Orthotope(
   Orthotope0,
   Orthotope1,Orthotope2,Orthotope3
@@ -9,7 +15,6 @@ import Language.Paraiso.Tensor
 import Language.Paraiso.Interval
 
 
--- | higher dimensional orthotopes 
 
 type Orthotope0 a = Vec0 (Interval a)
 type Orthotope1 a = Vec1 (Interval a)

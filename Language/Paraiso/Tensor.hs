@@ -1,6 +1,14 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
   MultiParamTypeClasses, StandaloneDeriving, TypeOperators #-} 
 {-# OPTIONS -Wall #-}
+-- | A tensor algebra library. Main ingredients are :
+-- 
+-- 'Vec' and ':~' : data constructors for rank-1 tensor.
+-- This is essentially a touple of objects of the same type.
+-- 
+-- 'Vector' : a class for rank-1 tensor.
+--
+-- 'Axis' : an object for accessing the tensor components.
 
 module Language.Paraiso.Tensor
     (
@@ -20,9 +28,11 @@ import Control.Monad
 unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
-
+-- | data constructor for 0-dimensional tensor.
 data Vec a = Vec 
 infixl 3 :~
+-- | data constructor for constructing n+1-dimensional tensor
+-- from n-dimensional tensor.
 data n :~ a = (n a) :~ a
 
 deriving instance (Show a) => Show (Vec a)
@@ -44,16 +54,24 @@ instance (Traversable n) => Traversable ((:~) n) where
 
 
 -- | An coordinate 'Axis' , labeled by an integer. 
--- | Axis also carries v, the container type for its corresponding
--- | vector. Therefore, An axis of one type can access only vectors
--- | of a fixed dimension.
+-- Axis also carries v, the container type for its corresponding
+-- vector. Therefore, An axis of one type can access only vectors
+-- of a fixed dimension, but of arbitrary type.
 data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
 
+-- | An object that allows component-wise access.
 class (Traversable v) => Vector v where
+  -- | Get a component within f, a context which allows 'Failure'.
   getComponent :: (Failure StringException f) => Axis v -> v a -> f a
+  -- | Get a component. This computation may result in a runtime error,
+  -- though, as long as the 'Axis' is generated from library functions
+  -- such as 'compose', there will be no error.
   component :: Axis v -> v a -> a
   component axis vec = unsafePerformFailure $ getComponent axis vec
+  -- | The dimension of the vector.
   dimension :: v a -> Int
+  -- | Create a 'Vector' from a function that maps 
+  -- axis to component.
   compose :: (Axis v -> a) -> v a
   
 
@@ -98,8 +116,10 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
         | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
         | i == d-1          = return $ zeroVector :~ 1
         | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
-        | True              = return z
+        | True              = return z 
+        -- this last guard never matches, but needed to infer the type of z.
 
+-- | Type synonyms
 type Vec0 = Vec
 type Vec1 = (:~) Vec0
 type Vec2 = (:~) Vec1

@@ -1,4 +1,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
+{- | an 'Interval' is a pair of 'lower' and 'upper', 
+   representing some interval in ordered system.
+   The lower bound is inclusive and the upper bound is exclusive:
+   ('lower' <= x <  'upper') .
+   The intersection of two intervals are also interval 
+   but the union of two intervals are not, 
+   so 'Interval' constitute a 'PiSystem'.
+ -}
 
 module Language.Paraiso.Interval (
                                   Interval(..)) where
@@ -7,7 +15,11 @@ module Language.Paraiso.Interval (
 import Language.Paraiso.PiSystem as S
 import Prelude hiding (null)
 
-data Interval a = Empty | Interval{lower::a, upper::a}
+data Interval a = 
+    -- | an empty interval.
+    Empty | 
+    -- | a non-empty interval.
+    Interval{lower::a, upper::a}
 
 instance (Ord a) => PiSystem (Interval a) where
   empty = Empty
