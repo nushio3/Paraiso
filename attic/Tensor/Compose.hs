@@ -60,8 +60,8 @@ instance (Vector v) => Vector ((:~) v) where
         | i==dimension vx - 1 = return x
         | True                = getComponent (Axis i) v
     dimension (v :~ _) = 1 + dimension v
-    compose f = let
-        xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
+    compose f = let xs = compose (\(Axis i)->f (Axis i))
+                in xs :~ f (Axis (dimension xs))
 
 -- | 'VectorNum' is a 'Vector' whose components are of instance 'Num'.
 class  (Vector v, Num a) => VectorNum v a where
