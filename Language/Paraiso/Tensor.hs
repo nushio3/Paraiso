@@ -3,12 +3,12 @@
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
 -- 
--- 'Vec' and ':~' : data constructors for rank-1 tensor.
+-- 'Vec' and ':~' are data constructors for rank-1 tensor.
 -- This is essentially a touple of objects of the same type.
 -- 
--- 'Vector' : a class for rank-1 tensor.
+-- 'Vector' is a class for rank-1 tensor.
 --
--- 'Axis' : an object for accessing the tensor components.
+-- 'Axis' is an object for accessing the tensor components.
 
 module Language.Paraiso.Tensor
     (
