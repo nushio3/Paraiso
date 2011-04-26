@@ -13,7 +13,8 @@
 
 module Language.Paraiso.Tensor
     (
-     (:~)(..), Vec(..), Axis(..), Vector(..), VectorRing(..),
+     (:~)(..), Vec(..), Axis(..), 
+     Vector(..), VectorAdditive(..), VectorRing(..),
      Vec0, Vec1, Vec2, Vec3, Vec4
     ) where
 
@@ -92,12 +93,24 @@ instance (Vector v) => Vector ((:~) v) where
     compose f = let
         xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
--- | 'VectorRing' is a 'Vector' whose components belongs to 'Ring.C', 
--- thus providing a unit and zero vector.
-class  (Vector v, Ring.C a) => VectorRing v a where
+-- | 'VectorAdditive' is a 'Vector' whose components belongs to 'Additive.C', 
+-- thus providing zero vectors as well as addition between vectors.
+
+class (Vector v, Additive.C a) => VectorAdditive v a where
   -- | A vector whose components are all zero.
   zeroVector :: v a 
 
+instance (Additive.C a) => VectorAdditive Vec a where
+  zeroVector = Vec 
+
+instance (Additive.C a, VectorAdditive v a) => VectorAdditive ((:~) v) a where
+  zeroVector = zeroVector :~ Additive.zero
+
+
+
+-- | 'VectorRing' is a 'Vector' whose components belongs to 'Ring.C', 
+-- thus providing unit vectors.
+class  (Vector v, Ring.C a, VectorAdditive v a) => VectorRing v a where
   -- | A vector where 'Axis'th component is unity but others are zero.
   getUnitVector :: (Failure StringException f) => Axis v -> f (v a)
   
@@ -105,13 +118,11 @@ class  (Vector v, Ring.C a) => VectorRing v a where
   unitVector = unsafePerformFailure . getUnitVector
     
 instance (Ring.C a) => VectorRing Vec a where
-  zeroVector = Vec 
   getUnitVector axis
       = failureString $ "axis out of bound: " ++ show axis
 
-instance (Ring.C a, VectorRing v a) => VectorRing ((:~) v) a where
-  zeroVector = zeroVector :~ Additive.zero
-
+instance (Ring.C a, VectorRing v a, VectorAdditive v a) 
+    => VectorRing ((:~) v) a where
   getUnitVector axis@(Axis i) = ret
     where
       z = zeroVector
