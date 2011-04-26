@@ -61,7 +61,7 @@ instance (Traversable n) => Traversable ((:~) n) where
 -- Axis also carries v, the container type for its corresponding
 -- vector. Therefore, An axis of one type can access only vectors
 -- of a fixed dimension, but of arbitrary type.
-data Axis v = Axis Int deriving (Eq,Ord,Show,Read)
+newtype Axis v = Axis{getInt::Int} deriving (Eq,Ord,Show,Read)
 
 -- | An object that allows component-wise access.
 class (Traversable v) => Vector v where
