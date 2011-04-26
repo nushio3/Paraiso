@@ -39,8 +39,12 @@ infixl 3 :~
 -- from n-dimensional tensor.
 data n :~ a = (n a) :~ a
 
+deriving instance (Eq a) => Eq (Vec a)
+deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
 deriving instance (Show a) => Show (Vec a)
 deriving instance (Show a, Show (n a)) => Show (n :~ a)
+deriving instance (Read a) => Read (Vec a)
+deriving instance (Read a, Read (n a)) => Read (n :~ a)
 
 instance Foldable Vec where
   foldMap = foldMapDefault
