@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
   MultiParamTypeClasses, NoImplicitPrelude, StandaloneDeriving, 
-  TypeOperators #-} 
+  TypeOperators, UndecidableInstances  #-} 
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
 -- 
@@ -99,7 +99,16 @@ instance (Vector v) => Vector ((:~) v) where
 class (Vector v, Additive.C a) => VectorAdditive v a where
   -- | A vector whose components are all zero.
   zeroVector :: v a 
+  -- | Tensor contraction
+  contract :: (Axis v -> a) -> a
+  contract f = let t = compose f in Data.Foldable.foldl (+) Additive.zero t
 
+instance VectorAdditive v a => Additive.C (v a) where
+    zero = zeroVector
+    x+y  = compose (\i -> component i x + component i y)
+    x-y  = compose (\i -> component i x - component i y)
+    negate x = compose (\i -> negate $ component i x)
+    
 instance (Additive.C a) => VectorAdditive Vec a where
   zeroVector = Vec 
 
