@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
-  MultiParamTypeClasses, StandaloneDeriving, TypeOperators #-} 
+  MultiParamTypeClasses, NoImplicitPrelude, StandaloneDeriving, 
+  TypeOperators #-} 
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
 -- 
@@ -12,16 +13,18 @@
 
 module Language.Paraiso.Tensor
     (
-     (:~)(..), Vec(..), Axis(..), Vector(..), VectorNum(..),
+     (:~)(..), Vec(..), Axis(..), Vector(..), VectorRing(..),
      Vec0, Vec1, Vec2, Vec3, Vec4
     ) where
 
+import qualified Algebra.Additive as Additive
+import qualified Algebra.Ring as Ring
 import Control.Applicative
 import Control.Monad.Failure
 import Data.Foldable
 import Data.Traversable
+import NumericPrelude
 import System.IO.Unsafe
-import Prelude hiding(mapM)
 
 
 import Control.Monad
@@ -89,8 +92,9 @@ instance (Vector v) => Vector ((:~) v) where
     compose f = let
         xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
--- | 'VectorNum' is a 'Vector' whose components are of instance 'Num'.
-class  (Vector v, Num a) => VectorNum v a where
+-- | 'VectorRing' is a 'Vector' whose components belongs to 'Ring.C', 
+-- thus providing a unit and zero vector.
+class  (Vector v, Ring.C a) => VectorRing v a where
   -- | A vector whose components are all zero.
   zeroVector :: v a 
 
@@ -100,13 +104,13 @@ class  (Vector v, Num a) => VectorNum v a where
   unitVector :: Axis v -> v a
   unitVector = unsafePerformFailure . getUnitVector
     
-instance (Num a) => VectorNum Vec a where
+instance (Ring.C a) => VectorRing Vec a where
   zeroVector = Vec 
   getUnitVector axis
       = failureString $ "axis out of bound: " ++ show axis
 
-instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
-  zeroVector = zeroVector :~ 0  
+instance (Ring.C a, VectorRing v a) => VectorRing ((:~) v) a where
+  zeroVector = zeroVector :~ Additive.zero
 
   getUnitVector axis@(Axis i) = ret
     where
@@ -114,8 +118,8 @@ instance (Num a, VectorNum v a) => VectorNum ((:~) v) a where
       d = dimension z
       ret
         | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
-        | i == d-1          = return $ zeroVector :~ 1
-        | 0 <= i && i < d-1 = liftM (:~0) $ getUnitVector (Axis i)
+        | i == d-1          = return $ zeroVector :~ Ring.one
+        | 0 <= i && i < d-1 = liftM (:~ Additive.zero) $ getUnitVector (Axis i)
         | True              = return z 
         -- this last guard never matches, but needed to infer the type of z.
 
