@@ -14,7 +14,8 @@
 module Language.Paraiso.Tensor
     (
      (:~)(..), Vec(..), Axis(..), 
-     Vector(..), VectorAdditive(..), VectorRing(..),
+     Vector(..), VectorRing(..),
+     contract,
      Vec0, Vec1, Vec2, Vec3, Vec4
     ) where
 
@@ -79,10 +80,9 @@ class (Traversable v) => Vector v where
   -- | The dimension of the vector.
   dimension :: v a -> Int
   -- | Create a 'Vector' from a function that maps 
-  -- axis to component.
+  -- axis to components.
   compose :: (Axis v -> a) -> v a
   
-
 instance Vector Vec where
     getComponent axis Vec 
         = failureString $ "axis out of bound: " ++ show axis
@@ -97,36 +97,27 @@ instance (Vector v) => Vector ((:~) v) where
     compose f = let
         xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
--- | 'VectorAdditive' is a 'Vector' whose components belongs to 'Additive.C', 
--- thus providing zero vectors as well as addition between vectors.
-
-class (Vector v, Additive.C a) => VectorAdditive v a where
-  -- | A vector whose components are all zero.
-  zeroVector :: v a 
-  -- | Tensor contraction
-  contract :: (Axis v -> a) -> a
-  contract f = let t = compose f in Data.Foldable.foldl (+) Additive.zero t
-
-instance VectorAdditive v a => Additive.C (v a) where
-    zero = zeroVector
+-- | Vector whose components are additive is also additive.
+-- This needs to be an orphan instance. Too bad. 
+instance (Vector v, Additive.C a) => Additive.C (v a) where
+    zero = compose $ const Additive.zero
     x+y  = compose (\i -> component i x + component i y)
     x-y  = compose (\i -> component i x - component i y)
     negate x = compose (\i -> negate $ component i x)
-    
-instance (Additive.C a) => VectorAdditive Vec a where
-  zeroVector = Vec 
 
-instance (Additive.C a, VectorAdditive v a) => VectorAdditive ((:~) v) a where
-  zeroVector = zeroVector :~ Additive.zero
+-- | Tensor contraction. Create a 'Vector' from a function that maps 
+-- axis to component, then sums over the axis and returns a
+contract :: (Vector v, Additive.C a) => (Axis v -> a) -> a
+contract f = Data.Foldable.foldl (+) Additive.zero (compose f)
 
 
 
 -- | 'VectorRing' is a 'Vector' whose components belongs to 'Ring.C', 
 -- thus providing unit vectors.
-class  (Vector v, Ring.C a, VectorAdditive v a) => VectorRing v a where
+class  (Vector v, Ring.C a) => VectorRing v a where
   -- | A vector where 'Axis'th component is unity but others are zero.
   getUnitVector :: (Failure StringException f) => Axis v -> f (v a)
-  
+  -- | pure but unsafe version means of obtaining a 'unitVector'
   unitVector :: Axis v -> v a
   unitVector = unsafePerformFailure . getUnitVector
     
@@ -134,15 +125,15 @@ instance (Ring.C a) => VectorRing Vec a where
   getUnitVector axis
       = failureString $ "axis out of bound: " ++ show axis
 
-instance (Ring.C a, VectorRing v a, VectorAdditive v a) 
+instance (Ring.C a, VectorRing v a) 
     => VectorRing ((:~) v) a where
   getUnitVector axis@(Axis i) = ret
     where
-      z = zeroVector
+      z = Additive.zero
       d = dimension z
       ret
         | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
-        | i == d-1          = return $ zeroVector :~ Ring.one
+        | i == d-1          = return $ Additive.zero :~ Ring.one
         | 0 <= i && i < d-1 = liftM (:~ Additive.zero) $ getUnitVector (Axis i)
         | True              = return z 
         -- this last guard never matches, but needed to infer the type of z.

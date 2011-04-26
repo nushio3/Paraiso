@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeOperators, NoImplicitPrelude  #-}
 {-# OPTIONS -Wall #-}
 
+import qualified Algebra.Additive as Additive
 import Language.Paraiso.Tensor
 import NumericPrelude
 
@@ -13,7 +14,7 @@ v ! i  = component i v
 c_ :: Vector v => (Axis v -> a) -> v a
 c_ = compose
 
-s_ :: VectorAdditive v a => (Axis v -> a) -> a
+s_ :: (Vector v, Additive.C a) => (Axis v -> a) -> a
 s_ = contract
 
 
