@@ -1,18 +1,20 @@
+{-# LANGUAGE ExistentialQuantification #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.OM.Graph() where
 
 import Language.Paraiso.Interval
+import Language.Paraiso.Tensor
 import qualified Data.Graph.Inductive as G
 
 
-data NLabel v s = Operand {opID::Int, extent::v (Interval s), homogeneous::Bool, 
-                           anots::[Annotation]} |
-                  Operator {inst::Inst v, anots::[Annotation]}
-                
+class OperandC opd where                
+    typeStr :: opd -> String
 
+
+data (Vector v, Ord s) => Operand v s c = Operand (v (Interval s))
+instance  (Vector v, Ord s) => OperandC (Operand v s c) where
+  typeStr (Operand a) = "toge"
                 
--- | Graph that represents calculations on v-dimensional orthotope
-type Gr v s = G.Gr (NLabel v s) ()
 
 newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
 
