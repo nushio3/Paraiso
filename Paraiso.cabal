@@ -75,7 +75,8 @@ Library
   Build-depends:       base   == 4.*,
                        repa   == 2.*,
                        control-monad-failure == 0.*,
-                       numeric-prelude == 0.*
+                       numeric-prelude == 0.*,
+                       fgl == 5.*
   -- Modules not exported by this package.
   -- Other-modules:       
   
