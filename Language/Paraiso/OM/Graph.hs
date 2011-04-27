@@ -1,35 +1,58 @@
 {-# OPTIONS -Wall #-}
+module Language.Paraiso.OM.Graph() where
+
 
 import qualified Data.Graph.Inductive as G
 
 
-data NodeL = NodeL {inst::Inst, anot::Annotation}
-data EdgeL = EdgeL
+data NLabel v = NOperand {operandID::Int, anots::[Annotation]} |
+               NOperator {inst::Inst v, anots::[Annotation]}
+data ELabel v = ELabel
 
-type Gr = G.Gr NodeL EdgeL
+-- | Graph that represents calculations on v-dimensional orthotope
+type Gr v = G.Gr (NLabel v) (ELabel v)
 
-data Operator = 
+data Inst v = 
+  Reduce |
+  Broadcast |
+  Shift (v Int) |
+  Arith Arithmetic
+
+
+data Annotation = Comment String | Balloon
+
+data Arithmetic = 
     Add |
-    Mul | 
     Sub |
+    Neg |
+    Mul | 
     Div |
     Inv |
-    Neg |
     Madd |
     Msub |
     Nmadd |
-    Nmsub 
+    Nmsub |
+    Sincos 
+    deriving (Eq, Ord, Show, Read)
 
 
 
-arity :: Operator -> (Int, Int) 
+arity :: Arithmetic -> (Int, Int) 
 
-arity Add = 2
-arity Mul = 2
+arity a = case a of
+            Add -> (2,1)
+            Sub -> (2,1)
+            Neg -> (1,1)
+            Mul -> (2,1)
+            Div -> (2,1)
+            Inv -> (1,1)
+            Madd -> (3,1)
+            Msub -> (3,1)
+            Nmadd -> (3,1)
+            Nmsub -> (3,1)
+            Sincos -> (1,2)
 
-
-
-arityI, arityO :: Operator -> Int
+arityI, arityO :: Arithmetic -> Int
 arityI = fst.arity
 arityO = snd.arity
   
