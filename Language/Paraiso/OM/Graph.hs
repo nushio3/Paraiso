@@ -24,6 +24,9 @@ data Operator =
 
 arity :: Operator -> (Int, Int) 
 
+arity Add = 2
+arity Mul = 2
+
 
 
 arityI, arityO :: Operator -> Int
