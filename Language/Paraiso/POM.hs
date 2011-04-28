@@ -76,24 +76,26 @@ data Annotation = Comment String | Balloon
 
 
 data Arithmetic = 
-    Add |
-    Sub |
-    Neg |
-    Mul | 
-    Div |
-    Inv |
-    Madd |
-    Msub |
-    Nmadd |
-    Nmsub |
-    Sincos 
-    deriving (Eq, Ord, Show, Read)
+  Imm |
+  Add |
+  Sub |
+  Neg |
+  Mul | 
+  Div |
+  Inv |
+  Madd |
+  Msub |
+  Nmadd |
+  Nmsub |
+  Sincos 
+  deriving (Eq, Ord, Show, Read)
 
 
 data ReduceOperation = ReduceMax | ReduceMin | ReduceSum 
 
 instance Arity Arithmetic where
   arity a = case a of
+    Imm -> (0,1)
     Add -> (2,1)
     Sub -> (2,1)
     Neg -> (1,1)
