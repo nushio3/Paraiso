@@ -1,6 +1,9 @@
 {-# OPTIONS -Wall #-}
 
-import Language.Paraiso.OM.Graph
+import Language.Paraiso.POM
+
+p :: POM
+p = POM
 
 main = do
   putStrLn "hi"

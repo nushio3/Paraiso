@@ -1,20 +1,42 @@
-{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
-module Language.Paraiso.OM.Graph() where
+module Language.Paraiso.POM(POM(..)) where
 
+import qualified Algebra.Ring as Ring
+import qualified Data.Graph.Inductive as G
+import Data.Typeable
 import Language.Paraiso.Interval
 import Language.Paraiso.Tensor
-import qualified Data.Graph.Inductive as G
+import NumericPrelude
+
+data POM = POM
 
 
-class OperandC opd where                
-    typeStr :: opd -> String
+
+data Homogeneous 
+data Inhomogeneous
+class Homogeneity a where
+  homogeneity :: a -> Bool
+  
+instance Homogeneity Homogeneous where
+  homogeneity _ = True
+instance Homogeneity Inhomogeneous where
+  homogeneity _ = False
+
+data (Vector vector, Ring.C size, Homogeneity hom, Typeable content) => 
+  Operand vector size hom content = Operand Int
+
+data (Vector vector, Ring.C size) => OMNode vector size = 
+  NOperand {
+    opType :: TypeRep,
+    extent :: vector (Interval size),
+    homo   :: Bool
+  } |
+  NOperator {
+    inst :: Inst vector size
+  }
 
 
-data (Vector v, Ord s) => Operand v s c = Operand (v (Interval s))
-instance  (Vector v, Ord s) => OperandC (Operand v s c) where
-  typeStr (Operand a) = "toge"
-                
 
 newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
 
@@ -27,20 +49,18 @@ arityI = fst.arity
 arityO = snd.arity
   
 
-data Inst v = 
+data Inst vector size = 
   Load StaticID |
   Store StaticID |
   Reduce ReduceOperation |
-  Broadcast |
-  Shift (v Int) |
+  Shift (vector size) |
   Arith Arithmetic
 
-instance Arity (Inst v) where
+instance Arity (Inst vector size) where
   arity a = case a of
     Load _    -> (0,1)
     Store _   -> (1,0)
     Reduce _  -> (1,1)
-    Broadcast -> (1,1)
     Shift _   -> (1,1)
     Arith a   -> arity a
                    
