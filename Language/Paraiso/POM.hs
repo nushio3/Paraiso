@@ -9,9 +9,15 @@ import Language.Paraiso.Interval
 import Language.Paraiso.Tensor
 import NumericPrelude
 
-data POM = POM
+data (Vector vector, Ring.C size) => POM vector size = 
+  POM {kernels :: [Kernel vector size]}
 
-
+data (Vector vector, Ring.C size) => Kernel vector size = 
+  Kernel {
+    input    :: [(StaticID, OMNode vector size)],
+    output   :: [(StaticID, OMNode vector size)],
+    dataflow :: G.Gr (OMNode vector size) ()
+  }
 
 data Homogeneous 
 data Inhomogeneous
