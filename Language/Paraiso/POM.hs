@@ -1,6 +1,9 @@
 {-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
-module Language.Paraiso.POM(POM(..)) where
+module Language.Paraiso.POM
+  (
+   POM(..), StaticID(..)
+  ) where
 
 import qualified Algebra.Ring as Ring
 import qualified Data.Graph.Inductive as G
@@ -13,7 +16,7 @@ import NumericPrelude
 data (Vector vector, Ring.C gauge) => POM vector gauge = 
   POM {
     staticIDs :: [StaticID]
-  }
+  } deriving (Show)
 
 -- | A Kernel for POM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
@@ -44,7 +47,7 @@ data (Vector vector, Ring.C gauge) => OMNode vector gauge =
   }
 
 
-newtype StaticID = StaticID String Int deriving (Eq, Ord, Show, Read)
+newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
 
 class Arity a where
   arity :: a -> (Int, Int)
