@@ -8,16 +8,23 @@ import Language.Paraiso.Tensor
 type Vec5 = (:~) Vec4
 
 v5 :: Vec5 String
-v5 = Vec :~ "funf" :~ "vier" :~ "drei" :~ "zwei" :~ "funf"
+v5 = Vec :~ "funf" :~ "vier" :~ "drei" :~ "zwei" :~ "ein"
 
-t :: Vec3 (Vec3 Int)
+japa :: [String]
+japa = words "ichi ni san shi"
 
-numberer :: Int -> String -> (Int, (Int,String))
-numberer i str = (i+1, (i,str))
+
+t42 :: Vec4 (Vec2 String)
+t42 = compose (\(Axis i)-> compose (\(Axis j) -> japa!!i ++ "_" ++ japa!!j))
+
+f :: Int -> String -> (Int, (Int,String))
+f i str = (i+1, (i,str))
 
 main :: IO ()
 main = do
   print $ v5
-  print $ snd $ mapAccumL numberer 1 v5
-  print $ snd $ mapAccumR numberer 1 v5
+  print $ snd $ mapAccumL f 1 v5
+  print $ snd $ mapAccumR f 1 v5
+  print t42
+  print $ snd $ mapAccumL (mapAccumL f) 1 t42
   return ()
