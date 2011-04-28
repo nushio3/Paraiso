@@ -9,14 +9,14 @@ import Language.Paraiso.Interval
 import Language.Paraiso.Tensor
 import NumericPrelude
 
-data (Vector vector, Ring.C size) => POM vector size = 
-  POM {kernels :: [Kernel vector size]}
+data (Vector vector, Ring.C gauge) => POM vector gauge = 
+  POM {kernels :: [Kernel vector gauge]}
 
-data (Vector vector, Ring.C size) => Kernel vector size = 
+data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
   Kernel {
-    input    :: [(StaticID, OMNode vector size)],
-    output   :: [(StaticID, OMNode vector size)],
-    dataflow :: G.Gr (OMNode vector size) ()
+    input    :: [(StaticID, OMNode vector gauge)],
+    output   :: [(StaticID, OMNode vector gauge)],
+    dataflow :: G.Gr (OMNode vector gauge) ()
   }
 
 data Homogeneous 
@@ -29,17 +29,17 @@ instance Homogeneity Homogeneous where
 instance Homogeneity Inhomogeneous where
   homogeneity _ = False
 
-data (Vector vector, Ring.C size, Homogeneity hom, Typeable content) => 
-  Operand vector size hom content = Operand Int
+data (Vector vector, Ring.C gauge, Homogeneity hom, Typeable content) => 
+  Operand vector gauge hom content = Operand Int
 
-data (Vector vector, Ring.C size) => OMNode vector size = 
+data (Vector vector, Ring.C gauge) => OMNode vector gauge = 
   NOperand {
     opType :: TypeRep,
-    extent :: vector (Interval size),
+    extent :: vector (Interval gauge),
     homo   :: Bool
   } |
   NOperator {
-    inst :: Inst vector size
+    inst :: Inst vector gauge
   }
 
 
@@ -55,14 +55,14 @@ arityI = fst.arity
 arityO = snd.arity
   
 
-data Inst vector size = 
+data Inst vector gauge = 
   Load StaticID |
   Store StaticID |
   Reduce ReduceOperation |
-  Shift (vector size) |
+  Shift (vector gauge) |
   Arith Arithmetic
 
-instance Arity (Inst vector size) where
+instance Arity (Inst vector gauge) where
   arity a = case a of
     Load _    -> (0,1)
     Store _   -> (1,0)
