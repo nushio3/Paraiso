@@ -27,8 +27,8 @@ main = do
   print $ v2
   print $ v4
   _ <- Data.Traversable.mapM print v4
-  Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
-  bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
+  Control.Monad.forM_  [0..3] (\i-> componentF (Axis i) v4 >>= print)
+  bases <- Control.Monad.forM [0..3] (\i-> unitVectorF (Axis i))
   print $ v4:zero:bases
   print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
   print $ t4

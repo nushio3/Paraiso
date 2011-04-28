@@ -71,12 +71,12 @@ newtype Axis v = Axis {axisIndex::Int} deriving (Eq,Ord,Show,Read)
 -- | An object that allows component-wise access.
 class (Traversable v) => Vector v where
   -- | Get a component within f, a context which allows 'Failure'.
-  getComponent :: (Failure StringException f) => Axis v -> v a -> f a
+  componentF :: (Failure StringException f) => Axis v -> v a -> f a
   -- | Get a component. This computation may result in a runtime error,
   -- though, as long as the 'Axis' is generated from library functions
   -- such as 'compose', there will be no error.
   component :: Axis v -> v a -> a
-  component axis vec = unsafePerformFailure $ getComponent axis vec
+  component axis vec = unsafePerformFailure $ componentF axis vec
   -- | The dimension of the vector.
   dimension :: v a -> Int
   -- | Create a 'Vector' from a function that maps 
@@ -84,26 +84,26 @@ class (Traversable v) => Vector v where
   compose :: (Axis v -> a) -> v a
   
 instance Vector Vec where
-    getComponent axis Vec 
-        = failureString $ "axis out of bound: " ++ show axis
-    dimension _ = 0
-    compose _ = Vec 
+  componentF axis Vec 
+    = failureString $ "axis out of bound: " ++ show axis
+  dimension _ = 0
+  compose _ = Vec 
 
 instance (Vector v) => Vector ((:~) v) where
-    getComponent (Axis i) vx@(v :~ x) 
-        | i==dimension vx - 1 = return x
-        | True                = getComponent (Axis i) v
-    dimension (v :~ _) = 1 + dimension v
-    compose f = let
-        xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
+  componentF (Axis i) vx@(v :~ x) 
+    | i==dimension vx - 1 = return x
+    | True                = componentF (Axis i) v
+  dimension (v :~ _) = 1 + dimension v
+  compose f = let
+    xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
 -- | Vector whose components are additive is also additive.
 -- This needs to be an orphan instance. Too bad. 
 instance (Vector v, Additive.C a) => Additive.C (v a) where
-    zero = compose $ const Additive.zero
-    x+y  = compose (\i -> component i x + component i y)
-    x-y  = compose (\i -> component i x - component i y)
-    negate x = compose (\i -> negate $ component i x)
+  zero = compose $ const Additive.zero
+  x+y  = compose (\i -> component i x + component i y)
+  x-y  = compose (\i -> component i x - component i y)
+  negate x = compose (\i -> negate $ component i x)
 
 -- | Tensor contraction. Create a 'Vector' from a function that maps 
 -- axis to component, then sums over the axis and returns a
@@ -116,25 +116,25 @@ contract f = Data.Foldable.foldl (+) Additive.zero (compose f)
 -- thus providing unit vectors.
 class  (Vector v, Ring.C a) => VectorRing v a where
   -- | A vector where 'Axis'th component is unity but others are zero.
-  getUnitVector :: (Failure StringException f) => Axis v -> f (v a)
+  unitVectorF :: (Failure StringException f) => Axis v -> f (v a)
   -- | pure but unsafe version means of obtaining a 'unitVector'
   unitVector :: Axis v -> v a
-  unitVector = unsafePerformFailure . getUnitVector
+  unitVector = unsafePerformFailure . unitVectorF
     
 instance (Ring.C a) => VectorRing Vec a where
-  getUnitVector axis
+  unitVectorF axis
       = failureString $ "axis out of bound: " ++ show axis
 
 instance (Ring.C a, VectorRing v a) 
     => VectorRing ((:~) v) a where
-  getUnitVector axis@(Axis i) = ret
+  unitVectorF axis@(Axis i) = ret
     where
       z = Additive.zero
       d = dimension z
       ret
         | i < 0 || i >= d   = failureString $ "axis out of bound: " ++ show axis
         | i == d-1          = return $ Additive.zero :~ Ring.one
-        | 0 <= i && i < d-1 = liftM (:~ Additive.zero) $ getUnitVector (Axis i)
+        | 0 <= i && i < d-1 = liftM (:~ Additive.zero) $ unitVectorF (Axis i)
         | True              = return z 
         -- this last guard never matches, but needed to infer the type of z.
 
