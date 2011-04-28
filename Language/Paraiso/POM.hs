@@ -10,12 +10,12 @@ import Language.Paraiso.Tensor
 import NumericPrelude
 
 data (Vector vector, Ring.C gauge) => POM vector gauge = 
-  POM {kernels :: [Kernel vector gauge]}
+  POM {
+    staticIDs :: [StaticID]
+  }
 
 data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
   Kernel {
-    input    :: [(StaticID, OMNode vector gauge)],
-    output   :: [(StaticID, OMNode vector gauge)],
     dataflow :: G.Gr (OMNode vector gauge) ()
   }
 
@@ -30,12 +30,11 @@ instance Homogeneity Inhomogeneous where
   homogeneity _ = False
 
 data (Vector vector, Ring.C gauge, Homogeneity hom, Typeable content) => 
-  Operand vector gauge hom content = Operand Int
+  Operand vector gauge hom content = Operand hom Int
 
 data (Vector vector, Ring.C gauge) => OMNode vector gauge = 
   NOperand {
     opType :: TypeRep,
-    extent :: vector (Interval gauge),
     homo   :: Bool
   } |
   NOperator {
@@ -43,9 +42,7 @@ data (Vector vector, Ring.C gauge) => OMNode vector gauge =
   }
 
 
-
-newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
-
+newtype StaticID = StaticID String Int deriving (Eq, Ord, Show, Read)
 
 class Arity a where
   arity :: a -> (Int, Int)
