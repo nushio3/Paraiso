@@ -18,6 +18,12 @@ japa = words "ichi ni san shi"
 t42 :: Vec4 (Vec2 String)
 t42 = compose (\(Axis i)-> compose (\(Axis j) -> japa!!i ++ "_" ++ japa!!j))
 
+
+
+t222 :: Vec2 (Vec2 (Vec2 String))
+t222 = compose (\(Axis i)-> compose (\(Axis j) -> compose (\(Axis k) -> [c!!i, c!!j, c!!k]) ))
+       where c = "BW"
+
 f :: Int -> String -> (Int, (Int,String))
 f i str = (i+1, (i,str))
 
@@ -31,10 +37,12 @@ main = do
         
         
   let 
-    v5i  = snd $ mapAccumL f 1 v5
-    t42i = snd $ mapAccumL (mapAccumL f) 1 t42
+    v5i   = snd $ mapAccumL f 1 v5
+    t42i  = snd $ mapAccumL (mapAccumL f) 1 t42
+    t222i = snd $ mapAccumL (mapAccumL (mapAccumL f)) 1 t222
   print t42i
 
   print $ F.foldMap (:[]) v5i
   print $ F.foldMap (F.foldMap(:[])) t42i
+  print $ F.foldMap (F.foldMap (F.foldMap(:[]))) t222i
   return ()
