@@ -66,10 +66,15 @@ Cabal-version:       >=1.6
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
-                       Language.Paraiso.Tensor
-                       Language.Paraiso.PiSystem
                        Language.Paraiso.Interval
                        Language.Paraiso.Orthotope
+                       Language.Paraiso.PiSystem
+                       Language.Paraiso.POM
+                       Language.Paraiso.POM.Arithmetic
+                       Language.Paraiso.POM.Expr
+                       Language.Paraiso.POM.Graph
+                       Language.Paraiso.POM.Reduce
+                       Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
   Build-depends:       base   == 4.*,

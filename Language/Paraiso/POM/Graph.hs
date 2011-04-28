@@ -1,5 +1,7 @@
 {-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
+
+-- | all the components for constructing POM data flow draph.
 module Language.Paraiso.POM.Graph
     (
      Homogeneous, Inhomogeneous, Homogeneity,
@@ -20,9 +22,6 @@ newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
 data Annotation = Comment String | Balloon
 
 
-data (Vector vector, Ring.C gauge, Homogeneity hom, Typeable content) => 
-  Operand vector gauge hom content = Operand hom Int
-
 data (Vector vector, Ring.C gauge) => POMNode vector gauge = 
   NOperand {
     typeRep :: TypeRep,
@@ -32,6 +31,8 @@ data (Vector vector, Ring.C gauge) => POMNode vector gauge =
       inst :: Inst vector gauge
   }
 
+data (Homogeneity hom, Typeable content) => 
+  Operand hom content = Operand hom Int
 
 data Inst vector gauge = 
   Load StaticID |
