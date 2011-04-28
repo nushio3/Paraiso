@@ -1,9 +1,12 @@
 {-# LANGUAGE TypeOperators #-}
 {-# OPTIONS -Wall #-}
 
+import Algebra.Additive (zero)
 import Control.Monad
 import Data.Traversable
 import Language.Paraiso.Tensor
+
+
 
 
 v1 :: Vec1 Int
@@ -26,7 +29,7 @@ main = do
   _ <- Data.Traversable.mapM print v4
   Control.Monad.forM_  [0..3] (\i-> getComponent (Axis i) v4 >>= print)
   bases <- Control.Monad.forM [0..3] (\i-> getUnitVector (Axis i))
-  print $ v4:zeroVector:bases
+  print $ v4:zero:bases
   print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
   print $ t4
   return ()
