@@ -9,6 +9,7 @@ import Language.Paraiso.Interval
 import Language.Paraiso.Tensor
 import NumericPrelude
 
+-- | POM is Primordial Orthotope Machine.
 data (Vector vector, Ring.C gauge) => POM vector gauge = 
   POM {
     staticIDs :: [StaticID]
