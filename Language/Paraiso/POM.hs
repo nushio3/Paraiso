@@ -15,6 +15,7 @@ data (Vector vector, Ring.C gauge) => POM vector gauge =
     staticIDs :: [StaticID]
   }
 
+-- | A Kernel for POM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
   Kernel {
     dataflow :: G.Gr (OMNode vector gauge) ()
