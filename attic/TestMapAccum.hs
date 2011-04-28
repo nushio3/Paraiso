@@ -42,7 +42,7 @@ main = do
     t222i = snd $ mapAccumL (mapAccumL (mapAccumL f)) 1 t222
   print t42i
 
-  print $ F.foldMap (:[]) v5i
-  print $ F.foldMap (F.foldMap(:[])) t42i
-  print $ F.foldMap (F.foldMap (F.foldMap(:[]))) t222i
+  print $ foldMap (:[]) v5i
+  print $ foldMap (foldMap (:[])) t42i
+  print $ foldMap (foldMap (foldMap (:[]))) t222i
   return ()
