@@ -12,7 +12,7 @@ pom = POM $ [StaticID "density"] ++ replicateID "velocity" 3 ++ [StaticID "press
     
 
 
-
+main :: IO ()
 main = do
   putStrLn "hi"
   print pom
