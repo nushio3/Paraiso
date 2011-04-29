@@ -1,11 +1,10 @@
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE NoImplicitPrelude, TypeOperators #-}
 {-# OPTIONS -Wall #-}
 
-import Algebra.Additive (zero)
 import Control.Monad
 import Data.Traversable
 import Language.Paraiso.Tensor
-
+import NumericPrelude
 
 
 
@@ -32,4 +31,5 @@ main = do
   print $ v4:zero:bases
   print $ compose (\i -> compose (\j -> component i v4 * component j v4 ))
   print $ t4
+  print $ t4+t4
   return ()
