@@ -1,6 +1,9 @@
 {-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
-module Language.Paraiso.POM(POM(..)) where
+module Language.Paraiso.POM
+  (
+   POM(..), StaticID(..)
+  ) where
 
 import qualified Algebra.Ring as Ring
 import qualified Data.Graph.Inductive as G
@@ -9,11 +12,13 @@ import Language.Paraiso.Interval
 import Language.Paraiso.Tensor
 import NumericPrelude
 
+-- | POM is Primordial Orthotope Machine.
 data (Vector vector, Ring.C gauge) => POM vector gauge = 
   POM {
     staticIDs :: [StaticID]
-  }
+  } deriving (Show)
 
+-- | A Kernel for POM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
   Kernel {
     dataflow :: G.Gr (OMNode vector gauge) ()
@@ -42,7 +47,7 @@ data (Vector vector, Ring.C gauge) => OMNode vector gauge =
   }
 
 
-newtype StaticID = StaticID String Int deriving (Eq, Ord, Show, Read)
+newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
 
 class Arity a where
   arity :: a -> (Int, Int)
@@ -71,24 +76,26 @@ data Annotation = Comment String | Balloon
 
 
 data Arithmetic = 
-    Add |
-    Sub |
-    Neg |
-    Mul | 
-    Div |
-    Inv |
-    Madd |
-    Msub |
-    Nmadd |
-    Nmsub |
-    Sincos 
-    deriving (Eq, Ord, Show, Read)
+  Imm |
+  Add |
+  Sub |
+  Neg |
+  Mul | 
+  Div |
+  Inv |
+  Madd |
+  Msub |
+  Nmadd |
+  Nmsub |
+  Sincos 
+  deriving (Eq, Ord, Show, Read)
 
 
 data ReduceOperation = ReduceMax | ReduceMin | ReduceSum 
 
 instance Arity Arithmetic where
   arity a = case a of
+    Imm -> (0,1)
     Add -> (2,1)
     Sub -> (2,1)
     Neg -> (1,1)
