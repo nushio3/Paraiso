@@ -1,5 +1,6 @@
 {-# OPTIONS -Wall #-}
 
+import Data.Dynamic
 import Data.Typeable
 
 three :: Integer
@@ -16,3 +17,5 @@ main = do
   putStrLn "hom mud"
   print $ typeOf (True,three,("Hogeee",answer))
   print $ typeOf f
+  print $ [toDyn three, toDyn answer]
+  
