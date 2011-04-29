@@ -6,7 +6,6 @@ module Language.Paraiso.POM
   ) where
 
 import qualified Algebra.Ring as Ring
-import qualified Data.Graph.Inductive as G
 import Language.Paraiso.POM.Graph
 import Language.Paraiso.Tensor
 import NumericPrelude
@@ -20,7 +19,7 @@ data (Vector vector, Ring.C gauge) => POM vector gauge =
 -- | A Kernel for POM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge = 
   Kernel {
-    dataflow :: G.Gr (POMNode vector gauge) ()
+    dataflow :: POMGraph vector gauge
   }
 
 
