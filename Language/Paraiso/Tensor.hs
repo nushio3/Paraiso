@@ -71,7 +71,11 @@ newtype Axis v = Axis {axisIndex::Int} deriving (Eq,Ord,Show,Read)
 -- | An object that allows component-wise access.
 class (Traversable v) => Vector v where
   -- | Get a component within f, a context which allows 'Failure'.
-  componentF :: (Failure StringException f) => Axis v -> v a -> f a
+  componentF :: (Failure StringException f) => 
+                Axis v -- ^the axis of the component you want
+                -> v a -- ^the target vector 
+                -> f a -- ^the component, obtained within a 'Failure' monad
+                
   -- | Get a component. This computation may result in a runtime error,
   -- though, as long as the 'Axis' is generated from library functions
   -- such as 'compose', there will be no error.
