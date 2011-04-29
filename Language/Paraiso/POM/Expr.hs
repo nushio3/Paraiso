@@ -5,7 +5,6 @@ module Language.Paraiso.POM.Expr (Expr(..)) where
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import qualified Algebra.Transcendental as Tr
 import Language.Paraiso.POM.Arithmetic as A
 import NumericPrelude
 

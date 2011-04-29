@@ -4,7 +4,7 @@
 -- | all the components for constructing POM data flow draph.
 module Language.Paraiso.POM.Graph
     (
-     StaticID(..), Annotation(..),
+     StaticID, StaticValue(..), Annotation(..),
      POMNode(..), POMGraph
     )where
 
@@ -14,23 +14,23 @@ import qualified Data.Graph.Inductive as G
 import Language.Paraiso.POM.Arithmetic as A
 import Language.Paraiso.POM.Expr as E
 import Language.Paraiso.POM.Reduce as R
+import Language.Paraiso.POM.Value hiding (Imm)
 import Language.Paraiso.Tensor
 import NumericPrelude
 
-type POMGraph vector gauge = G.Gr (POMNode vector gauge) ()
+-- | The dataflow graph for POM. a is an additional annotation.
+type POMGraph vector gauge a = G.Gr (POMNode vector gauge a) ()
 
-newtype StaticID = StaticID String deriving (Eq, Ord, Show, Read)
+type StaticID = String
+data StaticValue = StaticValue StaticID DynValue deriving (Eq, Show)
+
 data Annotation = Comment String | Balloon
 
 
-data (Vector vector, Ring.C gauge) => POMNode vector gauge = 
-  NOperand {
-    typeRep :: TypeRep,
-    homo    :: Bool
-  } |
-  NInst {
-    inst :: Inst vector gauge
-  }
+data (Vector vector, Ring.C gauge) => POMNode vector gauge a = 
+  NValue DynValue a |
+  NInst (Inst vector gauge)
+ 
 
 data Inst vector gauge = 
   Imm TypeRep Dynamic |
