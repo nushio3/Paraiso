@@ -15,13 +15,13 @@ tp = typeOf (0::Double)
 dv :: DynValue
 dv = DynValue{realm = Rlm.Local, typeRep = tp}
 
-replicateID :: String -> Int -> [StaticValue]
-replicateID tag n = [StaticValue (tag ++ show i) dv | i<-[0..n-1]]
+replicateV :: String -> Int -> [StaticValue]
+replicateV tag n = [StaticValue (StaticID $ tag ++ show i) dv | i<-[0..n-1]]
 
 pom :: POM Vec3 Int
-pom = POM $ [StaticValue "density" dv] ++ 
-      replicateID "velocity" 3 ++ 
-      [StaticValue "pressure" dv]
+pom = POM $ [StaticValue (StaticID "density") dv] ++ 
+      replicateV "velocity" 3 ++ 
+      [StaticValue (StaticID "pressure") dv]
     
     
 

@@ -1,10 +1,10 @@
 {-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
--- | all the components for constructing POM data flow draph.
+-- | all the components for constructing Orthotope Machine data flow draph.
 module Language.Paraiso.OM.Graph
     (
-     StaticID, StaticValue(..), Annotation(..),
+     StaticID(..), StaticValue(..), Annotation(..),
      POMNode(..), POMGraph
     )where
 
@@ -17,10 +17,10 @@ import Language.Paraiso.OM.DynValue
 import Language.Paraiso.Tensor
 import NumericPrelude
 
--- | The dataflow graph for POM. a is an additional annotation.
+-- | The dataflow graph for Orthotope Machine. a is an additional annotation.
 type POMGraph vector gauge a = G.Gr (POMNode vector gauge a) ()
 
-type StaticID = String
+newtype StaticID = StaticID String deriving (Eq, Show)
 data StaticValue = StaticValue StaticID DynValue deriving (Eq, Show)
 
 data Annotation = Comment String | Balloon
