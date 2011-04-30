@@ -16,5 +16,8 @@ import Language.Paraiso.OM.Value as DVal
 import Language.Paraiso.OM.Expr as E
 import Language.Paraiso.Tensor
 
+data BuilderState = BuilderState ()
+
 type Builder vector gauge a val = 
-  State (OMGraph vector gauge a) val
+  State (Graph vector gauge a) val
+  
