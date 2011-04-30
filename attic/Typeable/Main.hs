@@ -2,7 +2,6 @@
 
 import Data.Dynamic
 import Data.Maybe
-import Data.Typeable
 
 three :: Integer
 three = 3
@@ -26,11 +25,11 @@ ex = fromJust.fromDynamic
 
 materialize :: (TypeRep, Dynamic) -> String
 materialize (typeRep, dyn) = 
-  if typeRep == typeOf three 
+  if typeRep == typeOf (undefined :: Int) 
   then show $ (ex::Ex Integer) dyn
-  else if typeRep == typeOf answer
+  else if typeRep == typeOf (undefined :: Double)
   then show $ (ex::Ex Double) dyn
-  else if typeRep == typeOf "str"
+  else if typeRep == typeOf (undefined :: String)
   then (ex::Ex String) dyn
   else "?"
 
