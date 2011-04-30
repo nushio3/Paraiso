@@ -45,7 +45,7 @@ getG = fmap target State.get
 
 newNode :: B FGL.Node
 newNode = do
-  n <- fmap (head . FGL.newNodes 1) getG
+  n <- fmap (FGL.noNodes) getG
   return n
   
 load :: r -> c -> Name -> B (Value r c)
