@@ -12,9 +12,8 @@ import qualified Algebra.Ring as Ring
 import Data.Dynamic
 import qualified Data.Graph.Inductive as G
 import Language.Paraiso.POM.Arithmetic as A
-import Language.Paraiso.POM.Expr as E
 import Language.Paraiso.POM.Reduce as R
-import Language.Paraiso.POM.Value hiding (Imm)
+import Language.Paraiso.POM.DynValue
 import Language.Paraiso.Tensor
 import NumericPrelude
 

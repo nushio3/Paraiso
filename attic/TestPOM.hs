@@ -4,14 +4,15 @@ import Data.Typeable
 import Language.Paraiso.Tensor
 import Language.Paraiso.POM
 import Language.Paraiso.POM.Graph
-import Language.Paraiso.POM.Value as V
+import Language.Paraiso.POM.DynValue 
+import qualified Language.Paraiso.POM.Realm as Rlm
 import Language.Paraiso.POM.Builder
 
 tp :: TypeRep
 tp = typeOf (0::Double)
 
 dv :: DynValue
-dv = DynValue{rea = Local, typeRep = tp}
+dv = DynValue{realm = Rlm.Local, typeRep = tp}
 
 replicateID :: String -> Int -> [StaticValue]
 replicateID tag n = [StaticValue (tag ++ show i) dv | i<-[0..n-1]]
