@@ -1,6 +1,8 @@
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
+-- Builder is only for Graph vector gauge () . 
+-- Graphs with other annotation types can be created by fmap.
 module Language.Paraiso.OM.Builder
     (
      Builder(..)
@@ -16,8 +18,10 @@ import Language.Paraiso.OM.Value as DVal
 import Language.Paraiso.OM.Expr as E
 import Language.Paraiso.Tensor
 
-data BuilderState = BuilderState ()
+data BuilderState vector gauge = BuilderState 
+    { setup :: Setup, 
+      target :: Graph vector gauge ()} 
 
-type Builder vector gauge a val = 
-  State (Graph vector gauge a) val
+type Builder vector gauge val = 
+  State (BuilderState vector gauge) val
   
