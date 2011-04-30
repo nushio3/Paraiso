@@ -1,5 +1,6 @@
 {-# OPTIONS -Wall #-}
 
+import Control.Monad.State
 import Data.Typeable
 import Language.Paraiso.Tensor
 import Language.Paraiso.OM.Builder
@@ -25,8 +26,18 @@ hydroSetup = Setup $
         [NamedValue (Name "pressure") dv]
 
     
+hydroKernelBuilder :: Builder Vec3 Int ()
+hydroKernelBuilder = do
+  a <- load Rlm.TLocal (0::Double) $ Name "density"
+  return ()
+
 main :: IO ()
 main = do
   putStrLn "hi"
   print $ initState hydroSetup
-
+  let 
+      (_, s) = runState hydroKernelBuilder $ initState hydroSetup
+      g :: Graph Vec3 Int ()
+      g = target s
+  print g
+  
