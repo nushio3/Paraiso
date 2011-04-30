@@ -11,6 +11,7 @@ module Language.Paraiso.OM.Builder
      load
     ) where
 import qualified Algebra.Ring as Ring
+import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import Data.Typeable
@@ -55,9 +56,20 @@ addNode froms new = do
   return n
 
 load :: (TRealm r, Typeable c) => r -> c -> Name -> B (Value r c)
-load r0 c0 name = do
-  n0 <- addNode [] (NInst (Load name))
-  n1 <- addNode [n0] (NValue (DVal.toDyn r0 c0) ())
+load r0 c0 name0 = do
+  st <- State.get 
+  let
+      type1 = DVal.toDyn r0 c0
+      vs :: [NamedValue]
+      vs = staticValues $ setup st
+      matches = filter ((==name0).name) vs
+      (NamedValue _ type0) = head matches
+  when (length matches == 0) $ fail "no name found"
+  when (length matches > 1) $ fail "multiple match found"
+  when (type0 /= type1) $ fail "type mismatch"
+
+  n0 <- addNode [] (NInst (Load name0))
+  n1 <- addNode [n0] (NValue type1 ())
   return (FromNode r0 c0 n1)
   
 {-

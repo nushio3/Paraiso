@@ -6,7 +6,6 @@ import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.DynValue 
 import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
-import Language.Paraiso.POM
 
 
 tp :: TypeRep

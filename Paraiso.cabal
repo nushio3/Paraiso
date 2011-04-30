@@ -73,7 +73,6 @@ Library
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
                        Language.Paraiso.OM.DynValue
-                       Language.Paraiso.OM.Expr
                        Language.Paraiso.OM.Graph
                        Language.Paraiso.OM.Realm
                        Language.Paraiso.OM.Reduce

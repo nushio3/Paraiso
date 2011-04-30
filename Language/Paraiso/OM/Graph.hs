@@ -5,7 +5,7 @@
 module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph,
-     Name(..), NamedValue(..), Annotation(..),
+     Name(..), Named(..), NamedValue(..), Annotation(..),
      Node(..), 
      Inst(..)
     )where
@@ -38,7 +38,12 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
 type Graph vector gauge a = G.Gr (Node vector gauge a) ()
 
 newtype Name = Name String deriving (Eq, Show)
+class Named a where
+  name :: a -> Name
+
 data NamedValue = NamedValue Name DynValue deriving (Eq, Show)
+instance Named NamedValue where
+  name (NamedValue n _) = n
 
 data Annotation = Comment String | Balloon
                 deriving (Eq, Ord, Read, Show)
