@@ -20,7 +20,7 @@ import NumericPrelude
 
 
 -- | OM setup.
-data Setup  = 
+data  (Vector vector, Ring.C gauge) => Setup vector gauge  = 
   Setup {
     staticValues :: [NamedValue]
   } deriving (Eq, Show)

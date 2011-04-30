@@ -18,15 +18,16 @@ dv = DynValue{realm = Rlm.Local, typeRep = tp}
 replicateV :: String -> Int -> [NamedValue]
 replicateV tag n = [NamedValue (Name $ tag ++ show i) dv | i<-[0..n-1]]
 
-pom :: POM Vec3 Int ()
-pom = POM { setup = Setup $ 
-                [NamedValue (Name "density") dv] ++ 
-                replicateV "velocity" 3 ++ 
-                [NamedValue (Name "pressure") dv],
-            kernels = [] }
+
+hydroSetup :: Setup Vec3 Int
+hydroSetup = Setup $ 
+        [NamedValue (Name "density") dv] ++ 
+        replicateV "velocity" 3 ++ 
+        [NamedValue (Name "pressure") dv]
+
     
 main :: IO ()
 main = do
   putStrLn "hi"
-  print pom
+  print $ initState hydroSetup
 

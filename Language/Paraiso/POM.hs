@@ -13,7 +13,7 @@ import NumericPrelude
 -- | POM is Primordial Orthotope Machine.
 data (Vector vector, Ring.C gauge) => POM vector gauge a = 
   POM {
-    setup :: Setup,
+    setup :: Setup vector gauge,
     kernels :: [Kernel vector gauge a]
   } 
     deriving (Show)
