@@ -2,11 +2,12 @@
 
 import Data.Typeable
 import Language.Paraiso.Tensor
+import Language.Paraiso.OM.Builder
+import Language.Paraiso.OM.DynValue 
+import Language.Paraiso.OM.Graph
+import qualified Language.Paraiso.OM.Realm as Rlm
 import Language.Paraiso.POM
-import Language.Paraiso.POM.Graph
-import Language.Paraiso.POM.DynValue 
-import qualified Language.Paraiso.POM.Realm as Rlm
-import Language.Paraiso.POM.Builder
+
 
 tp :: TypeRep
 tp = typeOf (0::Double)

@@ -5,7 +5,7 @@
 -- 'Local' data are n-dimensional array that is distributed among nodes.
 -- 'Global' data are single-point value, possibly reside in the master node.
 
-module Language.Paraiso.POM.Realm
+module Language.Paraiso.OM.Realm
   (
    TGlobal(..), TLocal(..), TRealm,
    Realm(..),   Realmable(..),

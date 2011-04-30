@@ -3,14 +3,14 @@
 -- | The 'Value' is flowing through the POM dataflow graph.
 -- 'Value' carries the type and homogeneity information about the dataflow.
 
-module Language.Paraiso.POM.Value
+module Language.Paraiso.OM.Value
   (
    Value(..)
   ) where
 
 import Data.Typeable
 import qualified Data.Graph.Inductive as G
-import qualified Language.Paraiso.POM.Realm as R
+import qualified Language.Paraiso.OM.Realm as R
 
 
 -- | value type, with its realm and content type discriminated in type level

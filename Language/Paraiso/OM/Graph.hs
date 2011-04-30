@@ -2,7 +2,7 @@
 {-# OPTIONS -Wall #-}
 
 -- | all the components for constructing POM data flow draph.
-module Language.Paraiso.POM.Graph
+module Language.Paraiso.OM.Graph
     (
      StaticID, StaticValue(..), Annotation(..),
      POMNode(..), POMGraph
@@ -11,9 +11,9 @@ module Language.Paraiso.POM.Graph
 import qualified Algebra.Ring as Ring
 import Data.Dynamic
 import qualified Data.Graph.Inductive as G
-import Language.Paraiso.POM.Arithmetic as A
-import Language.Paraiso.POM.Reduce as R
-import Language.Paraiso.POM.DynValue
+import Language.Paraiso.OM.Arithmetic as A
+import Language.Paraiso.OM.Reduce as R
+import Language.Paraiso.OM.DynValue
 import Language.Paraiso.Tensor
 import NumericPrelude
 

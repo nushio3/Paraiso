@@ -6,7 +6,7 @@ module Language.Paraiso.POM
   ) where
 
 import qualified Algebra.Ring as Ring
-import Language.Paraiso.POM.Graph
+import Language.Paraiso.OM.Graph
 import Language.Paraiso.Tensor
 import NumericPrelude
 
