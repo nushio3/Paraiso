@@ -5,7 +5,7 @@
 
 module Language.Paraiso.OM.DynValue
   (
-   DynValue(..)
+   DynValue(..), toDyn
   ) where
 
 import Data.Typeable
@@ -13,6 +13,9 @@ import qualified Language.Paraiso.OM.Realm as R
 
 -- | dynamic value type, with its realm and content type informed as values
 data DynValue = DynValue {realm :: R.Realm, typeRep :: TypeRep} deriving (Eq, Show)
+
+toDyn :: (R.TRealm r, Typeable c) => r -> c -> DynValue
+toDyn r0 c0 = DynValue (R.tRealm r0) (typeOf c0)
 
 instance R.Realmable DynValue where
   realm = realm

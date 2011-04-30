@@ -4,9 +4,10 @@
 -- | all the components for constructing Orthotope Machine data flow draph.
 module Language.Paraiso.OM.Graph
     (
-     Setup(..), Kernel(..),
+     Setup(..), Kernel(..), Graph,
      Name(..), NamedValue(..), Annotation(..),
-     Node(..), Graph
+     Node(..), 
+     Inst(..)
     )where
 
 import qualified Algebra.Ring as Ring

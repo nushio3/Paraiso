@@ -7,7 +7,7 @@
 
 module Language.Paraiso.OM.Realm
   (
-   TGlobal(..), TLocal(..), TRealm,
+   TGlobal(..), TLocal(..), TRealm(..),
    Realm(..),   Realmable(..),
   ) where
 

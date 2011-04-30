@@ -17,13 +17,13 @@ import qualified Language.Paraiso.OM.Realm as R
 data (R.TRealm rea, Typeable con) => 
   Value rea con = 
   -- | data obtained from the dataflow graph
-  FromNode rea G.Node | 
+  FromNode rea con G.Node | 
   -- | data obtained as an immediate value
   Imm rea con deriving (Eq, Show)
                        
 
 instance  (R.TRealm rea, Typeable con) => R.Realmable (Value rea con) where
-  realm (FromNode r _) = R.realm r
+  realm (FromNode r _ _) = R.realm r
   realm (Imm r _) = R.realm r
   
 
