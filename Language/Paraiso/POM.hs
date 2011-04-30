@@ -16,10 +16,10 @@ data (Vector vector, Ring.C gauge) => POM vector gauge =
     staticIDs :: [StaticValue]
   } deriving (Show)
 
--- | A Kernel for POM.
+-- | A Kernel for OM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge a = 
   Kernel {
-    dataflow :: POMGraph vector gauge a
+    dataflow :: OMGraph vector gauge a
   }
 
 

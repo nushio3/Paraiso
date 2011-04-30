@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall #-}
 
--- | A monadic library to build dataflow graphs for POM. 
+-- | A monadic library to build dataflow graphs for OM. 
 module Language.Paraiso.OM.Builder
     (
      Builder(..)
@@ -17,4 +17,4 @@ import Language.Paraiso.OM.Expr as E
 import Language.Paraiso.Tensor
 
 type Builder vector gauge a val = 
-  State (POMGraph vector gauge a) val
+  State (OMGraph vector gauge a) val

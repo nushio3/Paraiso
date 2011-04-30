@@ -1,6 +1,6 @@
 {-# OPTIONS -Wall #-}
 
--- | The 'Value' is flowing through the POM dataflow graph.
+-- | The 'Value' is flowing through the OM dataflow graph.
 -- 'Value' carries the type and homogeneity information about the dataflow.
 
 module Language.Paraiso.OM.DynValue

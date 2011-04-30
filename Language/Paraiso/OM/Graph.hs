@@ -5,7 +5,7 @@
 module Language.Paraiso.OM.Graph
     (
      StaticID(..), StaticValue(..), Annotation(..),
-     POMNode(..), POMGraph
+     OMNode(..), OMGraph
     )where
 
 import qualified Algebra.Ring as Ring
@@ -18,7 +18,7 @@ import Language.Paraiso.Tensor
 import NumericPrelude
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.
-type POMGraph vector gauge a = G.Gr (POMNode vector gauge a) ()
+type OMGraph vector gauge a = G.Gr (OMNode vector gauge a) ()
 
 newtype StaticID = StaticID String deriving (Eq, Show)
 data StaticValue = StaticValue StaticID DynValue deriving (Eq, Show)
@@ -26,7 +26,7 @@ data StaticValue = StaticValue StaticID DynValue deriving (Eq, Show)
 data Annotation = Comment String | Balloon
 
 
-data (Vector vector, Ring.C gauge) => POMNode vector gauge a = 
+data (Vector vector, Ring.C gauge) => OMNode vector gauge a = 
   NValue DynValue a |
   NInst (Inst vector gauge)
  
