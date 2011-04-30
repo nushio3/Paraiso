@@ -1,12 +1,11 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 -- | Expression Tree for type a
-module Language.Paraiso.POM.Expr (Expr(..)) where
+module Language.Paraiso.OM.Expr (Expr(..)) where
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import qualified Algebra.Transcendental as Tr
-import Language.Paraiso.POM.Arithmetic as A
+import Language.Paraiso.OM.Arithmetic as A
 import NumericPrelude
 
 data Expr a = Term a | Expr A.Operator [Expr a]

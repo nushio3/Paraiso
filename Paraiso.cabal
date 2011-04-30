@@ -70,18 +70,23 @@ Library
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.POM
-                       Language.Paraiso.POM.Arithmetic
-                       Language.Paraiso.POM.Expr
-                       Language.Paraiso.POM.Graph
-                       Language.Paraiso.POM.Reduce
+                       Language.Paraiso.OM.Arithmetic
+                       Language.Paraiso.OM.Builder
+                       Language.Paraiso.OM.DynValue
+                       Language.Paraiso.OM.Expr
+                       Language.Paraiso.OM.Graph
+                       Language.Paraiso.OM.Realm
+                       Language.Paraiso.OM.Reduce
+                       Language.Paraiso.OM.Value
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
-  Build-depends:       base   == 4.*,
-                       repa   == 2.*,
+  Build-depends:       base                  == 4.*,
                        control-monad-failure == 0.*,
-                       numeric-prelude == 0.*,
-                       fgl == 5.*
+                       fgl                   == 5.*,
+                       mtl                   == 2.*,
+                       numeric-prelude       == 0.*,
+                       repa                  == 2.*
   -- Modules not exported by this package.
   -- Other-modules:       
   

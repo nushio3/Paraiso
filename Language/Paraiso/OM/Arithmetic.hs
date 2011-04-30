@@ -1,5 +1,5 @@
 {-# OPTIONS -Wall #-}
-module Language.Paraiso.POM.Arithmetic 
+module Language.Paraiso.OM.Arithmetic 
     (
      Arity(..), arityI, arityO,
      Operator(..)
