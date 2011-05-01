@@ -21,13 +21,14 @@ import NumericPrelude
 
 
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
--- It's basically a list of static orthotopes (its Realm and Type.)
+-- It's basically a list of static orthotopes 
+-- (its identifier, Realm and Type carried in the form of 'NamedValue')
 data  (Vector vector, Ring.C gauge) => Setup vector gauge  = 
   Setup {
     staticValues :: [NamedValue]
   } deriving (Eq, Show)
 
--- | A Kernel for OM.
+-- | A 'Kernel' for OM does a bunch of calculations on OM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge a = 
   Kernel {
     dataflow :: Graph vector gauge a

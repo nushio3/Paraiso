@@ -28,34 +28,42 @@ data BuilderState vector gauge = BuilderState
     { setup :: Setup vector gauge, 
       target :: Graph vector gauge ()} deriving (Show)
 
--- | Create an initial state for 'Builder' monad from a OM Setup.
+-- | Create an initial state for 'Builder' monad from a OM 'Setup'.
 initState :: Setup v g -> BuilderState v g
 initState s = BuilderState {
                 setup = s,
                 target = FGL.empty
               }
 
-
-
+-- | The 'Builder' monad is used to build 'Kernel's.
 type Builder vector gauge val = 
   State.State (BuilderState vector gauge) val
   
 type B a = (Vector v, Ring.C g) => Builder v g a
 
-modifyG :: (Vector v, Ring.C g) => (Graph v g () -> Graph v g ()) -> Builder v g ()
+-- | Modify the dataflow graph stored in the 'Builder'.
+modifyG :: (Vector v, Ring.C g) => 
+           (Graph v g () -> Graph v g ()) -- ^The graph modifying function.
+               -> Builder v g ()          -- ^The state gets silently modified.
 modifyG f = State.modify (\bs -> bs{target = f.target $ bs})
 
+-- | Get the graph stored in the 'Builder'.
 getG :: (Vector v, Ring.C g) => Builder v g (Graph v g ())
 getG = fmap target State.get
 
-newNode :: B FGL.Node
-newNode = do
+-- | get the number of the next unoccupied 'FGL.Node' in the graph.
+freeNode :: B FGL.Node
+freeNode = do
   n <- fmap (FGL.noNodes) getG
   return n
   
-addNode :: (Vector v, Ring.C g) => [FGL.Node] -> Node v g () -> Builder v g FGL.Node
+-- | add a node to the graph.
+addNode :: (Vector v, Ring.C g) => 
+           [FGL.Node]     -- ^The list of node indicies that the new nodes depend upon.
+           -> Node v g () -- ^The new node to be added
+           -> Builder v g FGL.Node
 addNode froms new = do
-  n <- newNode
+  n <- freeNode
   modifyG (([], n, new, [((), nn) | nn <-froms]) FGL.&)
   return n
 
