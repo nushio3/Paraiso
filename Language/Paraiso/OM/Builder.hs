@@ -113,8 +113,9 @@ load r0 c0 name0 = do
   n1 <- addNode [n0] (NValue type0 ())
   return (FromNode r0 c0 n1)
 
-store :: (TRealm r, Typeable c) => Name -> Value r c -> B ()
-store name0 val0 = do
+store :: (Vector v, Ring.C g, TRealm r, Typeable c) =>  Name -> Builder v g (Value r c) -> Builder v g ()
+store name0 builder0 = do
+  val0 <- builder0
   let 
       type0 = toDyn val0
       nv = NamedValue name0 type0
@@ -122,6 +123,8 @@ store name0 val0 = do
   n0 <- valueToNode val0
   _ <- addNode [n0] (NInst (Store name0))
   return ()
+
+
 
 
 imm :: (TRealm r, Typeable c) => c -> B (Value r c)
@@ -184,14 +187,3 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractiona
   recip = Field.recip
   fromRational = imm . Prelude.fromRational
   
-{-
-
-  
-instance Ring.C a => Ring.C (Expr a) where
-  one         = Term one
-  x * y       = Expr A.Mul [x, y]
-  fromInteger = Term . fromInteger
-  x ^ y       = Expr Ipow [x, fromInteger y]
-  
-
--}

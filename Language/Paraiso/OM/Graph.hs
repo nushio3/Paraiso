@@ -73,6 +73,7 @@ data Inst vector gauge =
   Load Name |
   Store Name |
   Reduce R.Operator |
+  Broadcast |
   Shift (vector gauge) |
   Arith A.Operator 
         deriving (Show)
@@ -83,6 +84,7 @@ instance Arity (Inst vector gauge) where
     Load _    -> (0,1)
     Store _   -> (1,0)
     Reduce _  -> (1,1)
+    Broadcast -> (1,1)
     Shift _   -> (1,1)
     Arith op  -> arity op
 
