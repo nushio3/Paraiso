@@ -136,7 +136,8 @@ mkOp1 op builder1 = do
       c1 = Val.content v1
   n1 <- valueToNode v1
   n0 <- addNode [n1] (NInst (Arith op))
-  return $ FromNode r1 c1 n0
+  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  return $ FromNode r1 c1 n01
 
 mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
          A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
@@ -149,7 +150,8 @@ mkOp2 op builder1 builder2 = do
   n1 <- valueToNode v1
   n2 <- valueToNode v2
   n0 <- addNode [n1, n2] (NInst (Arith op))
-  return $ FromNode r1 c1 n0
+  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  return $ FromNode r1 c1 n01
 
 
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
