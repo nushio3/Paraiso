@@ -29,7 +29,8 @@ hydroSetup = Setup $
     
 hydroKernelBuilder :: Builder Vec3 Int ()
 hydroKernelBuilder = do
-  a <- load Rlm.TLocal (undefined::Double) $ Name "density"
+  dens <- load Rlm.TLocal (undefined::Double) $ Name "density"
+  store (Name "density") dens
   return ()
 
 main :: IO ()

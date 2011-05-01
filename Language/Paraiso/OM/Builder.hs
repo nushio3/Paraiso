@@ -8,17 +8,18 @@ module Language.Paraiso.OM.Builder
     (
      Builder, BuilderState(..),
      initState,
-     load
+     load, store
     ) where
 import qualified Algebra.Ring as Ring
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
-import Data.Typeable
+import Data.Dynamic (Typeable, typeOf)
+import qualified Data.Dynamic as Dynamic
+import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
-import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.Tensor
 
 data BuilderState vector gauge = BuilderState 
@@ -52,25 +53,58 @@ newNode = do
 addNode :: (Vector v, Ring.C g) => [FGL.Node] -> Node v g () -> Builder v g FGL.Node
 addNode froms new = do
   n <- newNode
-  modifyG (([((), nn) | nn <-froms], n, new, []) FGL.&)
+  modifyG (([], n, new, [((), nn) | nn <-froms]) FGL.&)
   return n
 
-load :: (TRealm r, Typeable c) => r -> c -> Name -> B (Value r c)
-load r0 c0 name0 = do
+valueToNode :: (TRealm r, Typeable c) => Value r c -> B FGL.Node
+valueToNode val = do
+  let 
+      con = Val.content val
+      type0 = toDyn val
+  case val of
+    FromNode _ _ n -> return n
+    FromImm _ _ -> do
+             n0 <- addNode [] (NInst $ Imm (typeOf con) (Dynamic.toDyn con))
+             n1 <- addNode [n0] (NValue type0 ())
+             return n1
+
+lookUpStatic :: NamedValue -> B ()
+lookUpStatic (NamedValue name0 type0)= do
   st <- State.get 
   let
-      type1 = DVal.toDyn r0 c0
       vs :: [NamedValue]
       vs = staticValues $ setup st
       matches = filter ((==name0).name) vs
-      (NamedValue _ type0) = head matches
-  when (length matches == 0) $ fail "no name found"
-  when (length matches > 1) $ fail "multiple match found"
-  when (type0 /= type1) $ fail "type mismatch"
+      (NamedValue _ type1) = head matches
+  when (length matches == 0) $ fail ("no name found: " ++ nameStr name0)
+  when (length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
+  when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
+                                " actual: " ++ nameStr name0 ++ "::" ++ show type0)
 
+load :: (TRealm r, Typeable c) => r -> c -> Name -> B (Value r c)
+load r0 c0 name0 = do
+  let 
+      type0 = mkDyn r0 c0
+      nv = NamedValue name0 type0
+  lookUpStatic nv
   n0 <- addNode [] (NInst (Load name0))
-  n1 <- addNode [n0] (NValue type1 ())
+  n1 <- addNode [n0] (NValue type0 ())
   return (FromNode r0 c0 n1)
+
+store :: (TRealm r, Typeable c) => Name -> Value r c -> B ()
+store name0 val0 = do
+  let 
+      type0 = toDyn val0
+      nv = NamedValue name0 type0
+  lookUpStatic nv
+  n0 <- valueToNode val0
+  _ <- addNode [n0] (NInst (Store name0))
+  return ()
+
+
+
+
+
   
 {-
 
