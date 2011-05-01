@@ -67,6 +67,7 @@ addNode froms new = do
   modifyG (([], n, new, [((), nn) | nn <-froms]) FGL.&)
   return n
 
+
 valueToNode :: (TRealm r, Typeable c) => Value r c -> B FGL.Node
 valueToNode val = do
   let 
