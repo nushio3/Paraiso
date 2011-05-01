@@ -28,6 +28,7 @@ data BuilderState vector gauge = BuilderState
     { setup :: Setup vector gauge, 
       target :: Graph vector gauge ()} deriving (Show)
 
+-- | Create an initial state for 'Builder' monad from a OM Setup.
 initState :: Setup v g -> BuilderState v g
 initState s = BuilderState {
                 setup = s,
@@ -104,15 +105,18 @@ store name0 val0 = do
   return ()
 
 
+mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+         A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
+mkOp2 op builder1 builder2 = do
+  (FromNode r1 c1 n1)  <- builder1
+  (FromNode _  _  n2)  <- builder2
+  n3 <- addNode [n1, n2] (NInst (Arith op))
+  return $ FromNode r1 c1 n3
+
 
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
   zero = return $ FromImm undefined Additive.zero
-  builder1 + builder2 = do
-    (FromNode r1 c1 n1)  <- builder1
-    (FromNode _  _  n2)  <- builder2
-    n3 <- addNode [n1, n2] (NInst (Arith A.Add))
-    return $ FromNode r1 c1 n3
-    
+  (+) = mkOp2 A.Add
     
 
 

@@ -20,7 +20,8 @@ import Language.Paraiso.Tensor
 import NumericPrelude
 
 
--- | OM setup.
+-- | An OM Setup, a set of information needed before you start building a 'Kernel'.
+-- It's basically a list of static orthotopes (its Realm and Type.)
 data  (Vector vector, Ring.C gauge) => Setup vector gauge  = 
   Setup {
     staticValues :: [NamedValue]
@@ -33,10 +34,7 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
   }         
     deriving (Show)
 
-
--- | The dataflow graph for Orthotope Machine. a is an additional annotation.
-type Graph vector gauge a = G.Gr (Node vector gauge a) ()
-
+-- | name identifier.
 newtype Name = Name String deriving (Eq, Show)
 class Named a where
   name :: a -> Name
@@ -45,18 +43,29 @@ class Named a where
 instance Named Name where
   name = id
 
-
+-- | a 'DynValue' with a specific name.
 data NamedValue = NamedValue Name DynValue deriving (Eq, Show)
 instance Named NamedValue where
   name (NamedValue n _) = n
 
-data Annotation = Comment String | Balloon
-                deriving (Eq, Ord, Read, Show)
 
+-- | The dataflow graph for Orthotope Machine. a is an additional annotation.
+
+type Graph vector gauge a = G.Gr (Node vector gauge a) ()
+
+-- | The node for the dataflow 'Graph' of the Orthotope machine.
+-- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
 data (Vector vector, Ring.C gauge) => Node vector gauge a = 
+  -- | A value node. An 'NValue' node only connects to 'NInst' nodes.
+  -- An 'NValue' node has one and only one input edge, and has arbitrary number of output edges.
   NValue DynValue a |
+  -- | An instruction node. An 'NInst' node only connects to 'NValue' nodes.
+  -- The number of input and output edges an 'NValue' node has is specified by its 'Arity'.
   NInst (Inst vector gauge)
         deriving (Show)
+
+
+
 
 data Inst vector gauge = 
   Imm TypeRep Dynamic |
@@ -77,4 +86,7 @@ instance Arity (Inst vector gauge) where
     Arith op  -> arity op
 
 
+-- | you can insert 'Annotation's to control the code generation processes.
+data Annotation = Comment String | Balloon
+                deriving (Eq, Ord, Read, Show)
 
