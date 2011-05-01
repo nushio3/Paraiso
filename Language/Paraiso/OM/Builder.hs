@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, RankNTypes, TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
@@ -23,6 +23,7 @@ import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
 import Language.Paraiso.Tensor
+import NumericPrelude
 
 data BuilderState vector gauge = BuilderState 
     { setup :: Setup vector gauge, 
@@ -114,18 +115,44 @@ store name0 val0 = do
   return ()
 
 
+imm :: (TRealm r, Typeable c) => c -> B (Value r c)
+imm c0 = return (FromImm unitTRealm c0)
+
+mkOp1 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+         A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
+mkOp1 op builder1 = do
+  v1 <- builder1
+  let 
+      r1 = Val.realm v1
+      c1 = Val.content v1
+  n1 <- valueToNode v1
+  n0 <- addNode [n1] (NInst (Arith op))
+  return $ FromNode r1 c1 n0
+
 mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
          A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
 mkOp2 op builder1 builder2 = do
-  (FromNode r1 c1 n1)  <- builder1
-  (FromNode _  _  n2)  <- builder2
-  n3 <- addNode [n1, n2] (NInst (Arith op))
-  return $ FromNode r1 c1 n3
+  v1 <- builder1
+  v2 <- builder2
+  let 
+      r1 = Val.realm v1
+      c1 = Val.content v1
+  n1 <- valueToNode v1
+  n2 <- valueToNode v2
+  n0 <- addNode [n1, n2] (NInst (Arith op))
+  return $ FromNode r1 c1 n0
 
 
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
   zero = return $ FromImm unitTRealm Additive.zero
   (+) = mkOp2 A.Add
+  (-) = mkOp2 A.Sub
+  negate = mkOp1 A.Neg
+    
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g (Value r c)) where
+  one = return $ FromImm unitTRealm Ring.one
+  (*) = mkOp2 A.Mul
+  fromInteger = imm.fromInteger
     
 
 
@@ -133,21 +160,6 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C 
   
 {-
 
--- | expression Tree for type a
-module Language.Paraiso.OM.Expr (Expr(..)) where
-
-import qualified Algebra.Additive as Additive
-import qualified Algebra.Ring as Ring
-import Language.Paraiso.OM.Arithmetic as A
-import NumericPrelude
-
-data Expr a = Term a | Expr A.Operator [Expr a]
-
-instance Additive.C a => Additive.C (Expr a) where
-  zero     = Term zero
-  x + y    = Expr A.Add [x, y]
-  x - y    = Expr A.Sub [x, y]
-  negate x = Expr A.Neg [x]
   
 instance Ring.C a => Ring.C (Expr a) where
   one         = Term one
