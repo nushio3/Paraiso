@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
 import Control.Monad.State
@@ -8,6 +9,7 @@ import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.DynValue 
 import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
+import NumericPrelude
 
 
 tp :: TypeRep
@@ -30,6 +32,7 @@ hydroSetup = Setup $
 hydroKernelBuilder :: Builder Vec3 Int ()
 hydroKernelBuilder = do
   dens <- load Rlm.TLocal (undefined::Double) $ Name "density"
+  dens2 <- return dens + return dens
   store (Name "density") dens
   return ()
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleInstances, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
@@ -11,11 +11,13 @@ module Language.Paraiso.OM.Builder
      load, store
     ) where
 import qualified Algebra.Ring as Ring
+import qualified Algebra.Additive as Additive
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import Data.Dynamic (Typeable, typeOf)
 import qualified Data.Dynamic as Dynamic
+import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
@@ -103,12 +105,22 @@ store name0 val0 = do
 
 
 
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
+  zero = return $ FromImm undefined Additive.zero
+  builder1 + builder2 = do
+    (FromNode r1 c1 n1)  <- builder1
+    (FromNode _  _  n2)  <- builder2
+    n3 <- addNode [n1, n2] (NInst (Arith A.Add))
+    return $ FromNode r1 c1 n3
+    
+    
+
 
 
   
 {-
 
--- | Expression Tree for type a
+-- | expression Tree for type a
 module Language.Paraiso.OM.Expr (Expr(..)) where
 
 import qualified Algebra.Additive as Additive
