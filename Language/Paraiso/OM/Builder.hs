@@ -8,7 +8,8 @@ module Language.Paraiso.OM.Builder
     (
      Builder, BuilderState(..),
      initState,
-     load, store
+     load, store,
+     reduce, broadcast
     ) where
 import qualified Algebra.Ring as Ring
 import qualified Algebra.Additive as Additive
@@ -22,6 +23,7 @@ import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
+import Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.OM.Value as Val
 import Language.Paraiso.Tensor
 import NumericPrelude
@@ -123,6 +125,29 @@ store name0 builder0 = do
   n0 <- valueToNode val0
   _ <- addNode [n0] (NInst (Store name0))
   return ()
+
+reduce :: (Vector v, Ring.C g, Typeable c) => Reduce.Operator -> Builder v g (Value TLocal c) -> Builder v g (Value TGlobal c)
+reduce op builder1 = do 
+  val1 <- builder1
+  let 
+      c1 = Val.content val1
+      type2 = mkDyn TGlobal c1
+  n1 <- valueToNode val1
+  n2 <- addNode [n1] (NInst (Reduce op))
+  n3 <- addNode [n2] (NValue type2 ())
+  return (FromNode TGlobal c1 n3)
+  
+broadcast :: (Vector v, Ring.C g, Typeable c) => Builder v g (Value TGlobal c) -> Builder v g (Value TLocal c)
+broadcast builder1 = do 
+  val1 <- builder1
+  let 
+      c1 = Val.content val1
+      type2 = mkDyn TLocal c1
+  n1 <- valueToNode val1
+  n2 <- addNode [n1] (NInst Broadcast)
+  n3 <- addNode [n2] (NValue type2 ())
+  return (FromNode TLocal c1 n3)
+  
 
 
 
