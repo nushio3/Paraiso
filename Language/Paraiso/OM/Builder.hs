@@ -12,6 +12,7 @@ module Language.Paraiso.OM.Builder
     ) where
 import qualified Algebra.Ring as Ring
 import qualified Algebra.Additive as Additive
+import qualified Algebra.Field as Field
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
@@ -24,6 +25,7 @@ import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
 import Language.Paraiso.Tensor
 import NumericPrelude
+import qualified Prelude (Num(..), Fractional(..))
 
 data BuilderState vector gauge = BuilderState 
     { setup :: Setup vector gauge, 
@@ -40,6 +42,13 @@ initState s = BuilderState {
 type Builder vector gauge val = 
   State.State (BuilderState vector gauge) val
   
+-- | 'Builder' needs to be an instance of 'Eq' to become an instance of  'Prelude.Num'  
+instance Eq (Builder v g v2) where
+  _ == _ = undefined
+-- | 'Builder' needs to be an instance of 'Show' to become an instance of  'Prelude.Num'  
+instance Show (Builder v g v2) where
+  show _ = "<<REDACTED>>"
+
 type B a = (Vector v, Ring.C g) => Builder v g a
 
 -- | Modify the dataflow graph stored in the 'Builder'.
@@ -152,11 +161,26 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C 
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g (Value r c)) where
   one = return $ FromImm unitTRealm Ring.one
   (*) = mkOp2 A.Mul
-  fromInteger = imm.fromInteger
-    
+  fromInteger = imm . fromInteger
+  
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
+  (+) = (Additive.+)
+  (*) = (Ring.*)
+  (-) = (Additive.-)
+  negate = Additive.negate
+  abs = undefined
+  signum = undefined
+  fromInteger = Ring.fromInteger
+  
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c) => Field.C (Builder v g (Value r c)) where
+  (/) = mkOp2 A.Div
+  recip = mkOp1 A.Inv
+  fromRational' = imm . fromRational'
 
-
-
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractional c) => Prelude.Fractional (Builder v g (Value r c)) where  
+  (/) = (Field./)
+  recip = Field.recip
+  fromRational = imm . Prelude.fromRational
   
 {-
 
