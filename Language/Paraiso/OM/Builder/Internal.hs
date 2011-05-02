@@ -85,6 +85,7 @@ addNode froms new = do
   return n
 
 
+-- | convert a 'Value' to a 
 valueToNode :: (TRealm r, Typeable c) => Value r c -> B FGL.Node
 valueToNode val = do
   let 
