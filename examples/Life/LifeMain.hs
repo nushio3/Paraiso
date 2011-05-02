@@ -15,6 +15,7 @@ import Language.Paraiso.OM.DynValue
 import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
+import Language.Paraiso.POM
 import Language.Paraiso.Prelude hiding (foldl1)
 
 
@@ -72,12 +73,13 @@ buildInit = do
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
+pom :: POM Vec2 Int ()
+pom = makePOM lifeSetup
+      [(Name "init"   , buildInit),
+       (Name "proceed", buildProceed)]
+              
 main :: IO ()
-main = do
-  putStrLn "hi"
-  writeFile "output/Init.hs" $ show $ 
-    makeKernel lifeSetup (Name "init") buildInit 
-  writeFile "output/Proceed.hs" $ show $ 
-    makeKernel lifeSetup (Name "proceed") buildProceed
+main = writeFile "output/POM.hs" $ show pom
+
   
   
