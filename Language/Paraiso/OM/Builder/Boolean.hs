@@ -32,7 +32,7 @@ mkOp2B op builder1 builder2 = do
       r1 = Val.realm v1
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [n1, n2] (NInst (Arith op))
+  n0 <- addNode [n1, n2] (NInst (Arith op) ())
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   return $ FromNode r1 True n01
 
@@ -66,7 +66,7 @@ select builderB builder1 builder2 = do
   nb <- valueToNode vb
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [nb, n1, n2] (NInst (Arith A.Select))
+  n0 <- addNode [nb, n1, n2] (NInst (Arith A.Select) ())
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   let 
       r1 = Val.realm v1

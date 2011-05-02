@@ -96,7 +96,7 @@ valueToNode val = do
   case val of
     FromNode _ _ n -> return n
     FromImm _ _ -> do
-             n0 <- addNode [] (NInst $ Imm (typeOf con) (Dynamic.toDyn con))
+             n0 <- addNode [] (NInst (Imm (typeOf con) (Dynamic.toDyn con)) ())
              n1 <- addNode [n0] (NValue type0 ())
              return n1
 
@@ -126,7 +126,7 @@ load r0 c0 name0 = do
       type0 = mkDyn r0 c0
       nv = NamedValue name0 type0
   lookUpStatic nv
-  n0 <- addNode [] (NInst (Load name0))
+  n0 <- addNode [] (NInst (Load name0) ())
   n1 <- addNode [n0] (NValue type0 ())
   return (FromNode r0 c0 n1)
 
@@ -142,7 +142,7 @@ store name0 builder0 = do
       nv = NamedValue name0 type0
   lookUpStatic nv
   n0 <- valueToNode val0
-  _ <- addNode [n0] (NInst (Store name0))
+  _ <- addNode [n0] (NInst (Store name0) ())
   return ()
 
 
@@ -159,7 +159,7 @@ reduce op builder1 = do
       c1 = Val.content val1
       type2 = mkDyn TGlobal c1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst (Reduce op))
+  n2 <- addNode [n1] (NInst (Reduce op) ())
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TGlobal c1 n3)
 
@@ -174,7 +174,7 @@ broadcast builder1 = do
       c1 = Val.content val1
       type2 = mkDyn TLocal c1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst Broadcast)
+  n2 <- addNode [n1] (NInst Broadcast ())
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TLocal c1 n3)
   
@@ -189,7 +189,7 @@ shift vec builder1 = do
     type1 = toDyn val1
     c1 = Val.content val1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst (Shift vec))
+  n2 <- addNode [n1] (NInst (Shift vec) ())
   n3 <- addNode [n2] (NValue type1 ())
   return (FromNode TLocal c1 n3)
 
@@ -200,7 +200,7 @@ loadIndex :: (Vector v, Ring.C g, Typeable c) =>
           -> Builder v g (Value TLocal c) -- ^ The result
 loadIndex c0 axis = do
   let type0 = mkDyn TLocal c0
-  n0 <- addNode [] (NInst (LoadIndex axis))
+  n0 <- addNode [] (NInst (LoadIndex axis) ())
   n1 <- addNode [n0] (NValue type0 ())
   return (FromNode TLocal c0 n1)
 
@@ -220,7 +220,7 @@ mkOp1 op builder1 = do
       r1 = Val.realm v1
       c1 = Val.content v1
   n1 <- valueToNode v1
-  n0 <- addNode [n1] (NInst (Arith op))
+  n0 <- addNode [n1] (NInst (Arith op) ())
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   return $ FromNode r1 c1 n01
 
@@ -238,7 +238,7 @@ mkOp2 op builder1 builder2 = do
       c1 = Val.content v1
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [n1, n2] (NInst (Arith op))
+  n0 <- addNode [n1, n2] (NInst (Arith op) ())
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   return $ FromNode r1 c1 n01
 

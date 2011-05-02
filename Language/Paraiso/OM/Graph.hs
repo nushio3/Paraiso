@@ -62,7 +62,7 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
   NValue DynValue a |
   -- | An instruction node. An 'NInst' node only connects to 'NValue' nodes.
   -- The number of input and output edges an 'NValue' node has is specified by its 'Arity'.
-  NInst (Inst vector gauge)
+  NInst (Inst vector gauge) a
         deriving (Show)
 
 
