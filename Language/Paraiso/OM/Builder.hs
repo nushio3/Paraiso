@@ -8,6 +8,7 @@
 module Language.Paraiso.OM.Builder
     (
      Builder, BuilderState(..),
+     BuilderOf,
      initState,
      load, store,
      reduce, broadcast, shift

@@ -8,7 +8,8 @@
 
 module Language.Paraiso.OM.Builder.Internal
     (
-     B, Builder, BuilderState(..),
+     Builder, BuilderState(..),
+     B, BuilderOf,
      initState,
      modifyG, getG, freeNode, addNode, valueToNode, lookUpStatic,
      load, store,
@@ -57,6 +58,7 @@ instance Show (Builder v g v2) where
   show _ = "<<REDACTED>>"
 
 type B a = (Vector v, Ring.C g) => Builder v g a
+type BuilderOf a =  (Vector v, Ring.C g, TRealm r) => Builder v g (Value r a)
 
 -- | Modify the dataflow graph stored in the 'Builder'.
 modifyG :: (Vector v, Ring.C g) => 
