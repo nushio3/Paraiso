@@ -9,7 +9,7 @@ module Language.Paraiso.OM.Builder
     (
      Builder, BuilderState(..),
      BuilderOf,
-     initState,
+     makeKernel,
      load, store, imm,
      reduce, broadcast, shift, loadIndex
     ) where

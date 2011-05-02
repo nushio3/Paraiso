@@ -31,9 +31,12 @@ data  (Vector vector, Ring.C gauge) => Setup vector gauge  =
 -- | A 'Kernel' for OM does a bunch of calculations on OM.
 data (Vector vector, Ring.C gauge) => Kernel vector gauge a = 
   Kernel {
+    kernelName :: Name,
     dataflow :: Graph vector gauge a
   }         
     deriving (Show)
+instance (Vector v, Ring.C g) => Named (Kernel v g a) where
+  name = kernelName
 
 -- | name identifier.
 newtype Name = Name String deriving (Eq, Show)

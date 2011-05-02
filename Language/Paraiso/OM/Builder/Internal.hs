@@ -10,7 +10,7 @@ module Language.Paraiso.OM.Builder.Internal
     (
      Builder, BuilderState(..),
      B, BuilderOf,
-     initState,
+     makeKernel, initState,
      modifyG, getG, freeNode, addNode, valueToNode, lookUpStatic,
      load, store,
      reduce, broadcast,
@@ -38,6 +38,18 @@ import qualified Prelude (Num(..), Fractional(..))
 data BuilderState vector gauge = BuilderState 
     { setup :: Setup vector gauge, 
       target :: Graph vector gauge ()} deriving (Show)
+
+-- | Create a 'Kernel' from a 'Builder' monad.
+makeKernel :: (Vector v, Ring.C g) => 
+              Setup v g      -- ^The Orthotope machine setup.
+           -> Name           -- ^The name of the kernel.
+           -> Builder v g () -- ^The builder monad.
+           -> Kernel v g ()  -- ^The created kernel.
+makeKernel setup0 name0 builder0 = let
+    state0 = initState setup0
+    graph = target $ snd $ State.runState builder0 state0
+  in Kernel{kernelName = name0, dataflow = graph}
+      
 
 -- | Create an initial state for 'Builder' monad from a OM 'Setup'.
 initState :: Setup v g -> BuilderState v g
