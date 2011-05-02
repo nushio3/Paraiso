@@ -23,6 +23,9 @@ data Operator =
   Mul | 
   Div |
   Inv |
+  Not |
+  And |
+  Or |
   EQ |
   NE |
   LT |
@@ -49,6 +52,9 @@ instance Arity Operator where
     Mul -> (2,1)
     Div -> (2,1)
     Inv -> (1,1)
+    Not -> (1,1)
+    And -> (2,1)
+    Or -> (2,1)
     EQ -> (2,1)
     NE -> (2,1)
     LT -> (2,1)

@@ -30,8 +30,8 @@ import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.OM.Value as Val
+import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
-import NumericPrelude
 import qualified Prelude (Num(..), Fractional(..))
 
 data BuilderState vector gauge = BuilderState 
@@ -172,7 +172,7 @@ shift vec builder1 = do
 imm :: (TRealm r, Typeable c) => c -> B (Value r c)
 imm c0 = return (FromImm unitTRealm c0)
 
-mkOp1 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+mkOp1 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
          A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
 mkOp1 op builder1 = do
   v1 <- builder1
@@ -184,7 +184,7 @@ mkOp1 op builder1 = do
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   return $ FromNode r1 c1 n01
 
-mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
          A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
 mkOp2 op builder1 builder2 = do
   v1 <- builder1
@@ -229,6 +229,10 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractiona
   (/) = (Field./)
   recip = Field.recip
   fromRational = imm . Prelude.fromRational
-  
 
-
+instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) where  
+  true  = imm True
+  false = imm False
+  not   = mkOp1 A.Not
+  (&&)  = mkOp2 A.And
+  (||)  = mkOp2 A.Or
