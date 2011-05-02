@@ -77,7 +77,7 @@ main = do
   putStrLn "hi"
   let state0 = initState lifeSetup
   print $ state0
-  writeFile "Init.hs" $ show $ FGL.grev $ target $ snd $ runState buildInit state0
-  writeFile "Proceed.hs" $ show $ FGL.grev $ target $ snd $ runState buildProceed state0
+  writeFile "output/Init.hs" $ show $ FGL.grev $ target $ snd $ runState buildInit state0
+  writeFile "output/Proceed.hs" $ show $ FGL.grev $ target $ snd $ runState buildProceed state0
   
   
