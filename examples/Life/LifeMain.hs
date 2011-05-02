@@ -64,7 +64,6 @@ buildProceed = do
 buildInit :: Builder Vec2 Int ()
 buildInit = do
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
-  let point = r5mino !! 0
   alive <- bind $ foldl1 (||) [agree coord point | point <- r5mino ]
   store (Name "cell") $ select alive (1::BuilderOf Rlm.TLocal Int) 0
   
