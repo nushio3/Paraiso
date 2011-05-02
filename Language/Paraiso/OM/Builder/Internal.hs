@@ -153,10 +153,11 @@ broadcast builder1 = do
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TLocal c1 n3)
   
+-- | shift the orthotope with a constant vector
 shift :: (Vector v, Ring.C g, Typeable c) => 
-         v g ->                          -- ^The amount of shift  
-         Builder v g (Value TLocal c) -> -- ^The 'Local' Value to be shifted
-         Builder v g (Value TLocal c)    -- ^The result
+         v g                          -- ^ The amount of shift  
+      -> Builder v g (Value TLocal c) -- ^ The 'Local' Value to be shifted
+      -> Builder v g (Value TLocal c) -- ^ The result
 shift vec builder1 = do
   val1 <- builder1
   let 
