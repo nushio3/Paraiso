@@ -100,6 +100,8 @@ valueToNode val = do
              n1 <- addNode [n0] (NValue type0 ())
              return n1
 
+-- | look up the 'NamedValue' with the correct name and type 
+-- is included in the 'staticValues' of the 'BuilderState'
 lookUpStatic :: NamedValue -> B ()
 lookUpStatic (NamedValue name0 type0)= do
   st <- State.get 
@@ -113,12 +115,12 @@ lookUpStatic (NamedValue name0 type0)= do
   when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
                                 " actual: " ++ nameStr name0 ++ "::" ++ show type0)
 
--- | load a static value to a register.
+-- | Load from a static value.
 load :: (TRealm r, Typeable c) => 
         r             -- ^The 'TRealm' type.
      -> c             -- ^The 'Val.content' type.
-     -> Name          -- ^The 'Name' of the static variable to be loaded.
-     -> B (Value r c) -- ^The result
+     -> Name          -- ^The 'Name' of the static value to load.
+     -> B (Value r c) -- ^The result.
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
@@ -128,7 +130,11 @@ load r0 c0 name0 = do
   n1 <- addNode [n0] (NValue type0 ())
   return (FromNode r0 c0 n1)
 
-store :: (Vector v, Ring.C g, TRealm r, Typeable c) =>  Name -> Builder v g (Value r c) -> Builder v g ()
+-- | Store to a static value.
+store :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
+         Name                    -- ^The 'Name' of the static value to store.
+      -> Builder v g (Value r c) -- ^The 'Value' to be stored.
+      -> Builder v g ()          -- ^The result.
 store name0 builder0 = do
   val0 <- builder0
   let 
@@ -139,7 +145,14 @@ store name0 builder0 = do
   _ <- addNode [n0] (NInst (Store name0))
   return ()
 
-reduce :: (Vector v, Ring.C g, Typeable c) => Reduce.Operator -> Builder v g (Value TLocal c) -> Builder v g (Value TGlobal c)
+
+-- | Reduce over a 'TLocal' 'Value' 
+-- using the specified reduction 'Reduce.Operator'
+-- to make a 'TGlobal' 'Value'
+reduce :: (Vector v, Ring.C g, Typeable c) => 
+          Reduce.Operator               -- ^The reduction 'Reduce.Operator'.
+       -> Builder v g (Value TLocal c)  -- ^The 'Value' to be reduced.
+       -> Builder v g (Value TGlobal c) -- ^The result.
 reduce op builder1 = do 
   val1 <- builder1
   let 
@@ -149,8 +162,12 @@ reduce op builder1 = do
   n2 <- addNode [n1] (NInst (Reduce op))
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TGlobal c1 n3)
-  
-broadcast :: (Vector v, Ring.C g, Typeable c) => Builder v g (Value TGlobal c) -> Builder v g (Value TLocal c)
+
+-- | Broadcast a 'TGlobal' 'Value' 
+-- to make it a 'TLocal' 'Value'  
+broadcast :: (Vector v, Ring.C g, Typeable c) => 
+             Builder v g (Value TGlobal c) -- ^The 'Value' to be broadcasted.
+          -> Builder v g (Value TLocal c)  -- ^The result.
 broadcast builder1 = do 
   val1 <- builder1
   let 
@@ -188,12 +205,15 @@ loadIndex c0 axis = do
   return (FromNode TLocal c0 n1)
 
 
-
+-- | Create an immediate 'Value' from a concrete value. 'TRealm' is type-inferred.
 imm :: (TRealm r, Typeable c) => c -> B (Value r c)
 imm c0 = return (FromImm unitTRealm c0)
 
+-- | Make a unary operator
 mkOp1 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
-         A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
+         A.Operator                -- ^The operator symbol
+      -> (Builder v g (Value r c)) -- ^Input
+      -> (Builder v g (Value r c)) -- ^Output              
 mkOp1 op builder1 = do
   v1 <- builder1
   let 
@@ -204,8 +224,12 @@ mkOp1 op builder1 = do
   n01 <- addNode [n0] (NValue (toDyn v1) ())
   return $ FromNode r1 c1 n01
 
+-- | Make a binary operator
 mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
-         A.Operator -> (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r c))
+         A.Operator                -- ^The operator symbol 
+      -> (Builder v g (Value r c)) -- ^Input 1              
+      -> (Builder v g (Value r c)) -- ^Input 2               
+      -> (Builder v g (Value r c)) -- ^Output              
 mkOp2 op builder1 builder2 = do
   v1 <- builder1
   v2 <- builder2
