@@ -76,6 +76,7 @@ main = do
   putStrLn "hi"
   let state0 = initState lifeSetup
   print $ state0
-  print $ target $ snd $ runState buildInit state0
+  writeFile "Init.hs" $ show $ target $ snd $ runState buildInit state0
+  writeFile "Proceed.hs" $ show $ target $ snd $ runState buildProceed state0
   
   
