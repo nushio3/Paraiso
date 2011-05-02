@@ -58,7 +58,7 @@ instance Show (Builder v g v2) where
   show _ = "<<REDACTED>>"
 
 type B a = (Vector v, Ring.C g) => Builder v g a
-type BuilderOf a =  (Vector v, Ring.C g, TRealm r) => Builder v g (Value r a)
+type BuilderOf r c =  (Vector v, Ring.C g) => Builder v g (Value r c)
 
 -- | Modify the dataflow graph stored in the 'Builder'.
 modifyG :: (Vector v, Ring.C g) => 

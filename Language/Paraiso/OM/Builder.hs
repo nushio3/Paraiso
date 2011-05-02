@@ -10,7 +10,7 @@ module Language.Paraiso.OM.Builder
      Builder, BuilderState(..),
      BuilderOf,
      initState,
-     load, store,
+     load, store, imm,
      reduce, broadcast, shift, loadIndex
     ) where
 

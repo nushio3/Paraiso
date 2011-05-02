@@ -1,8 +1,12 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
+
+module Main(main) where
+
 import Control.Monad.State
-import qualified Data.List as List
 import Data.Typeable
+import Data.Traversable (sequenceA)
+import Data.Foldable (foldl1)
 import Language.Paraiso.Tensor
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
@@ -10,7 +14,7 @@ import Language.Paraiso.OM.DynValue
 import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
-import Language.Paraiso.Prelude
+import Language.Paraiso.Prelude hiding (foldl1)
 
 
 
@@ -34,6 +38,10 @@ adjVecs = zipWith (\x y -> Vec :~ x :~ y)
           [-1, 0, 1,-1, 1,-1, 0, 1]
           [-1,-1,-1, 0, 0, 1, 1, 1]
 
+r5mino :: [Vec2 Int]
+r5mino = zipWith (\x y -> Vec :~ x :~ y)
+         [ 0, 0, 1, 1, 2]
+         [ 1, 2, 0, 1, 1]
 
 bind :: (Functor f, Monad m) => f a -> f (m a)
 bind = fmap return
@@ -44,24 +52,31 @@ buildProceed = do
   gen  <- bind $ load Rlm.TGlobal (undefined::Int) $ Name "generation"
   neighbours <- fmap (map return) $
                 forM adjVecs (\v -> shift v cell)
-  num <- bind $ List.foldl1 (+) neighbours
+  num <- bind $ foldl1 (+) neighbours
   isAlive <- bind $
              (cell `eq` 0) && (num `eq` 3) ||
              (cell `eq` 1) && (num `ge` 2) && (num `le` 3) 
   store (Name "population") $ reduce Reduce.Sum cell
   store (Name "generation") $ gen + 1
-  store (Name "cell") $ select isAlive (1::BuilderOf Int) 0
+  store (Name "cell") $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
 
+
+buildInit :: Builder Vec2 Int ()
+buildInit = do
+  coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
+  let point = r5mino !! 0
+  alive <- bind $ foldl1 (||) [agree coord point | point <- r5mino ]
+  store (Name "cell") $ select alive (1::BuilderOf Rlm.TLocal Int) 0
+  
+  where
+    agree coord point = 
+      foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
 main :: IO ()
 main = do
   putStrLn "hi"
   let state0 = initState lifeSetup
   print $ state0
-  let 
-      (_, s) = runState buildProceed state0
-      g :: Graph Vec2 Int ()
-      g = target s
-  print $ g
+  print $ target $ snd $ runState buildInit state0
   
   

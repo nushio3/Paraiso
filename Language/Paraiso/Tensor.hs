@@ -13,7 +13,7 @@
 
 module Language.Paraiso.Tensor
     (
-     (:~)(..), Vec(..), Axis(..), 
+     (:~)(..), Vec(..), Axis(..), (!),
      Vector(..), VectorRing(..),
      contract,
      Vec0, Vec1, Vec2, Vec3, Vec4
@@ -22,14 +22,19 @@ module Language.Paraiso.Tensor
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import Control.Applicative
+import Control.Monad
 import Control.Monad.Failure
 import Data.Foldable
 import Data.Traversable
 import NumericPrelude
 import System.IO.Unsafe
 
+infixl 9 !
+-- | a component operator.
+(!) :: Vector v => v a -> Axis v -> a
+v ! i  = component i v   
 
-import Control.Monad
+
 unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 

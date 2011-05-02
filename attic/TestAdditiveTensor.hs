@@ -7,9 +7,6 @@ import NumericPrelude
 
 
 
-infixl 9 !
-(!) :: Vector v => v a -> Axis v -> a
-v ! i  = component i v
 
 c_ :: Vector v => (Axis v -> a) -> v a
 c_ = compose
