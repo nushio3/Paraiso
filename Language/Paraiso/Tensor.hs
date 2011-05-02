@@ -13,7 +13,7 @@
 
 module Language.Paraiso.Tensor
     (
-     (:~)(..), Vec(..), Axis(..), 
+     (:~)(..), Vec(..), Axis(..), (!),
      Vector(..), VectorRing(..),
      contract,
      Vec0, Vec1, Vec2, Vec3, Vec4
@@ -22,14 +22,19 @@ module Language.Paraiso.Tensor
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import Control.Applicative
+import Control.Monad
 import Control.Monad.Failure
 import Data.Foldable
 import Data.Traversable
 import NumericPrelude
 import System.IO.Unsafe
 
+infixl 9 !
+-- | a component operator.
+(!) :: Vector v => v a -> Axis v -> a
+v ! i  = component i v   
 
-import Control.Monad
+
 unsafePerformFailure :: IO a -> a
 unsafePerformFailure = unsafePerformIO
 
@@ -102,8 +107,13 @@ instance (Vector v) => Vector ((:~) v) where
     xs = compose (\(Axis i)->f (Axis i)) in xs :~ f (Axis (dimension xs))
 
 -- | Vector whose components are additive is also additive.
--- This needs to be an orphan instance. Too bad. 
-instance (Vector v, Additive.C a) => Additive.C (v a) where
+instance (Additive.C a) => Additive.C (Vec a) where
+  zero = compose $ const Additive.zero
+  x+y  = compose (\i -> component i x + component i y)
+  x-y  = compose (\i -> component i x - component i y)
+  negate x = compose (\i -> negate $ component i x)
+  
+instance (Vector v, Additive.C a) => Additive.C ((:~) v a) where
   zero = compose $ const Additive.zero
   x+y  = compose (\i -> component i x + component i y)
   x-y  = compose (\i -> component i x - component i y)
@@ -129,7 +139,7 @@ instance (Ring.C a) => VectorRing Vec a where
   unitVectorF axis
       = failureString $ "axis out of bound: " ++ show axis
 
-instance (Ring.C a, VectorRing v a) 
+instance (Ring.C a, VectorRing v a, Additive.C (v a)) 
     => VectorRing ((:~) v) a where
   unitVectorF axis@(Axis i) = ret
     where

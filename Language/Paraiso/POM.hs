@@ -2,7 +2,7 @@
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.POM
   (
-   POM(..), StaticID, Kernel(..)
+   POM(..)
   ) where
 
 import qualified Algebra.Ring as Ring
@@ -11,16 +11,13 @@ import Language.Paraiso.Tensor
 import NumericPrelude
 
 -- | POM is Primordial Orthotope Machine.
-data (Vector vector, Ring.C gauge) => POM vector gauge = 
+data (Vector vector, Ring.C gauge) => POM vector gauge a = 
   POM {
-    staticIDs :: [StaticValue]
-  } deriving (Show)
+    setup :: Setup vector gauge,
+    kernels :: [Kernel vector gauge a]
+  } 
+    deriving (Show)
 
--- | A Kernel for OM.
-data (Vector vector, Ring.C gauge) => Kernel vector gauge a = 
-  Kernel {
-    dataflow :: OMGraph vector gauge a
-  }
 
 
 

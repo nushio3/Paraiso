@@ -67,17 +67,19 @@ Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
                        Language.Paraiso.Interval
-                       Language.Paraiso.Orthotope
-                       Language.Paraiso.PiSystem
-                       Language.Paraiso.POM
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
+                       Language.Paraiso.OM.Builder.Boolean
+                       Language.Paraiso.OM.Builder.Internal
                        Language.Paraiso.OM.DynValue
-                       Language.Paraiso.OM.Expr
                        Language.Paraiso.OM.Graph
                        Language.Paraiso.OM.Realm
                        Language.Paraiso.OM.Reduce
                        Language.Paraiso.OM.Value
+                       Language.Paraiso.Orthotope
+                       Language.Paraiso.PiSystem
+                       Language.Paraiso.POM
+                       Language.Paraiso.Prelude
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.

@@ -7,19 +7,23 @@
 
 module Language.Paraiso.OM.Realm
   (
-   TGlobal(..), TLocal(..), TRealm,
+   TGlobal(..), TLocal(..), TRealm(..),
    Realm(..),   Realmable(..),
   ) where
 
 -- | Type-level representations
 class TRealm a where
   tRealm :: a -> Realm
+  unitTRealm :: a
+  
 data TGlobal = TGlobal
 data TLocal = TLocal
 instance TRealm TGlobal where
   tRealm _ = Global 
+  unitTRealm = TGlobal
 instance TRealm TLocal where
   tRealm _ = Local
+  unitTRealm = TLocal
 
 -- | Value-level representations
 data Realm = Global | Local  deriving (Eq, Show)

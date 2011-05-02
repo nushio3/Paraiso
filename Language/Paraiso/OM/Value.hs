@@ -16,14 +16,20 @@ import qualified Language.Paraiso.OM.Realm as R
 -- | value type, with its realm and content type discriminated in type level
 data (R.TRealm rea, Typeable con) => 
   Value rea con = 
-  -- | data obtained from the dataflow graph
-  FromNode rea G.Node | 
-  -- | data obtained as an immediate value
-  Imm rea con deriving (Eq, Show)
+  -- | data obtained from the dataflow graph.
+  -- 'realm' carries a type-level realm information, 
+  -- 'content' carries only type information and its ingredient is nonsignificant
+  -- and can be 'undefined'.
+  FromNode {realm :: rea, content :: con, node :: G.Node} | 
+  -- | data obtained as an immediate value.
+  -- 'realm' carries a type-level realm information, 
+  -- 'content' is the immediate value to be stored.
+  FromImm {realm :: rea, content :: con} deriving (Eq, Show)
                        
 
 instance  (R.TRealm rea, Typeable con) => R.Realmable (Value rea con) where
-  realm (FromNode r _) = R.realm r
-  realm (Imm r _) = R.realm r
+  realm (FromNode r _ _) = R.realm r
+  realm (FromImm r _) = R.realm r
   
+
 
