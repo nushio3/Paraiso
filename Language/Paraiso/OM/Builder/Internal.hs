@@ -186,6 +186,7 @@ mkOp2 op builder1 builder2 = do
   return $ FromNode r1 c1 n01
 
 
+
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
   zero = return $ FromImm unitTRealm Additive.zero
   (+) = mkOp2 A.Add
@@ -216,3 +217,5 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractiona
   recip = Field.recip
   fromRational = imm . Prelude.fromRational
   
+
+

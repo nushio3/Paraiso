@@ -1,9 +1,13 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.OM.Arithmetic 
     (
      Arity(..), arityI, arityO,
      Operator(..)
     ) where
+
+import NumericPrelude hiding (Ordering(..), Eq(..), Ord(..))
+import qualified NumericPrelude as P
 
 class Arity a where
   arity :: a -> (Int, Int)
@@ -19,6 +23,12 @@ data Operator =
   Mul | 
   Div |
   Inv |
+  EQ |
+  NE |
+  LT |
+  LE |
+  GT |
+  GE |
   -- | x^y where y is an integer
   Ipow |
   -- | x^y where y is real number
@@ -28,7 +38,7 @@ data Operator =
   Nmadd |
   Nmsub |
   Sincos 
-  deriving (Eq, Ord, Show, Read)
+  deriving (P.Eq, P.Ord, P.Show, P.Read)
 
 instance Arity Operator where
   arity a = case a of
@@ -38,6 +48,12 @@ instance Arity Operator where
     Mul -> (2,1)
     Div -> (2,1)
     Inv -> (1,1)
+    EQ -> (2,1)
+    NE -> (2,1)
+    LT -> (2,1)
+    LE -> (2,1)
+    GT -> (2,1)
+    GE -> (2,1)
     Ipow -> (2,1)
     Pow -> (2,1)
     Madd -> (3,1)

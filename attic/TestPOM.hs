@@ -6,6 +6,7 @@ import Control.Monad.State
 import Data.Typeable
 import Language.Paraiso.Tensor
 import Language.Paraiso.OM.Builder
+import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
 import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
