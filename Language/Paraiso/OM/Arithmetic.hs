@@ -29,6 +29,7 @@ data Operator =
   LE |
   GT |
   GE |
+  Select |
   -- | x^y where y is an integer
   Ipow |
   -- | x^y where y is real number
@@ -54,6 +55,7 @@ instance Arity Operator where
     LE -> (2,1)
     GT -> (2,1)
     GE -> (2,1)
+    Select -> (3,1)
     Ipow -> (2,1)
     Pow -> (2,1)
     Madd -> (3,1)

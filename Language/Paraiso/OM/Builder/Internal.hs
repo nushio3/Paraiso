@@ -13,6 +13,7 @@ module Language.Paraiso.OM.Builder.Internal
      modifyG, getG, freeNode, addNode, valueToNode, lookUpStatic,
      load, store,
      reduce, broadcast,
+     shift,
      imm, mkOp1, mkOp2
     ) where
 import qualified Algebra.Ring as Ring
@@ -152,7 +153,19 @@ broadcast builder1 = do
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TLocal c1 n3)
   
-
+shift :: (Vector v, Ring.C g, Typeable c) => 
+         v g ->                          -- ^The amount of shift  
+         Builder v g (Value TLocal c) -> -- ^The 'Local' Value to be shifted
+         Builder v g (Value TLocal c)    -- ^The result
+shift vec builder1 = do
+  val1 <- builder1
+  let 
+    type1 = toDyn val1
+    c1 = Val.content val1
+  n1 <- valueToNode val1
+  n2 <- addNode [n1] (NInst (Shift vec))
+  n3 <- addNode [n2] (NValue type1 ())
+  return (FromNode TLocal c1 n3)
 
 
 
