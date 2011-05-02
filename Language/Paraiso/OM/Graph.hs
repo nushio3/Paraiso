@@ -75,6 +75,7 @@ data Inst vector gauge =
   Reduce R.Operator |
   Broadcast |
   Shift (vector gauge) |
+  LoadIndex (Axis vector) |
   Arith A.Operator 
         deriving (Show)
 
@@ -86,6 +87,7 @@ instance Arity (Inst vector gauge) where
     Reduce _  -> (1,1)
     Broadcast -> (1,1)
     Shift _   -> (1,1)
+    LoadIndex _ -> (0,1)
     Arith op  -> arity op
 
 

@@ -11,7 +11,7 @@ module Language.Paraiso.OM.Builder
      BuilderOf,
      initState,
      load, store,
-     reduce, broadcast, shift
+     reduce, broadcast, shift, loadIndex
     ) where
 
 import Language.Paraiso.OM.Builder.Internal

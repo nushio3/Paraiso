@@ -14,7 +14,7 @@ module Language.Paraiso.OM.Builder.Internal
      modifyG, getG, freeNode, addNode, valueToNode, lookUpStatic,
      load, store,
      reduce, broadcast,
-     shift,
+     shift, loadIndex,
      imm, mkOp1, mkOp2
     ) where
 import qualified Algebra.Ring as Ring
@@ -113,7 +113,12 @@ lookUpStatic (NamedValue name0 type0)= do
   when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
                                 " actual: " ++ nameStr name0 ++ "::" ++ show type0)
 
-load :: (TRealm r, Typeable c) => r -> c -> Name -> B (Value r c)
+-- | load a static value to a register.
+load :: (TRealm r, Typeable c) => 
+        r             -- ^The 'TRealm' type.
+     -> c             -- ^The 'Val.content' type.
+     -> Name          -- ^The 'Name' of the static variable to be loaded.
+     -> B (Value r c) -- ^The result
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
@@ -170,6 +175,17 @@ shift vec builder1 = do
   n2 <- addNode [n1] (NInst (Shift vec))
   n3 <- addNode [n2] (NValue type1 ())
   return (FromNode TLocal c1 n3)
+
+-- | load the mesh index 
+loadIndex :: (Vector v, Ring.C g, Typeable c) => 
+             c                            -- ^The 'Val.content' type.
+          -> Axis v                       -- ^ The axis for which index is required
+          -> Builder v g (Value TLocal c) -- ^ The result
+loadIndex c0 axis = do
+  let type0 = mkDyn TLocal c0
+  n0 <- addNode [] (NInst (LoadIndex axis))
+  n1 <- addNode [n0] (NValue type0 ())
+  return (FromNode TLocal c0 n1)
 
 
 
