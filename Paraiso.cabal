@@ -66,6 +66,8 @@ Cabal-version:       >=1.6
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
+                       Language.Paraiso.Generator
+                       Language.Paraiso.Generator.Cpp
                        Language.Paraiso.Interval
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
@@ -85,6 +87,8 @@ Library
   -- Packages needed in order to build this package.
   Build-depends:       base                  >= 4.3.1 && < 4.4,
                        control-monad-failure >= 0.7.0 && < 0.8,
+                       directory             >= 1.1.0 && < 1.2,
+                       filepath              >= 1.2.0 && < 1.3,
                        fgl                   >= 5.4.2 && < 5.5,
                        mtl                   >= 2.0.1 && < 2.1,
                        numeric-prelude       >= 0.2.1 && < 0.3,

@@ -8,7 +8,7 @@ import Data.Typeable
 import Data.Traversable (sequenceA)
 import Data.Foldable (foldl1)
 --import qualified Data.Graph.Inductive as FGL
-import Language.Paraiso.Tensor
+import Language.Paraiso.Generator.Cpp
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
@@ -17,6 +17,7 @@ import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.POM
 import Language.Paraiso.Prelude hiding (foldl1)
+import Language.Paraiso.Tensor
 
 
 
@@ -79,7 +80,10 @@ pom = makePOM lifeSetup
        (Name "proceed", buildProceed)]
               
 main :: IO ()
-main = writeFile "output/POM.hs" $ show pom
+main = do
+  writeFile "output/POM.hs" $ show pom
+  generate Cpp pom "dist"
+  
 
   
   
