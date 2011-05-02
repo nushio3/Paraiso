@@ -2,7 +2,7 @@
   MultiParamTypeClasses, TypeFamilies, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
--- this works, but needs extra ::Bool type specifier
+-- how do you create extra Eq while keeping access to original Prelude.Eq
 
 import Prelude hiding (Eq(..), not, (&&), (||))
 import qualified Prelude (Eq(..), not, (&&), (||))
@@ -23,18 +23,26 @@ instance Boolean Bool where
   (&&)  = (Prelude.&&)
   (||)  = (Prelude.||)
 
-class Eq b a  where
-  (==) :: a -> a -> b
-  (/=) :: a -> a -> b
+
+
+
+class Eq a where
+  type BoolFor a :: *
+  (==) :: a -> a -> BoolFor a
+  (/=) :: a -> a -> BoolFor a
   
-  
-instance Prelude.Eq a => Eq Bool a where
+
+instance (Prelude.Eq a) => Eq a where
+  type  BoolFor a = Bool
   (==) = (Prelude.==)
   (/=) = (Prelude./=)
   
+
 newtype Hako a = Hako { unhako :: a } 
 
-instance Eq Bool a => Eq (Hako Bool) (Hako a) where
+
+instance (Eq a, BoolFor a ~ Bool) => Eq (Hako a) where
+  type BoolFor (Hako a) = Hako Bool
   (Hako a) == (Hako b) = Hako (a==b)
   (Hako a) /= (Hako b) = Hako (a==b)
                
@@ -44,8 +52,6 @@ main = do
   let 
       ans :: Double
       ans = 42
-  print $ (6*7==ans::Bool) -- Now this ::Bool is required to infer the type of 6*7==ans
-  print $ if 5*8==ans 
-     then "the world is at crysis"
-     else "the world is saved"
+  print $ 6*7==ans
+  print $ 5*8==ans
   
