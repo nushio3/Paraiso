@@ -83,12 +83,12 @@ Library
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
-  Build-depends:       base                  == 4.*,
-                       control-monad-failure == 0.*,
-                       fgl                   == 5.*,
-                       mtl                   == 2.*,
-                       numeric-prelude       == 0.*,
-                       repa                  == 2.*
+  Build-depends:       base                  >= 4.3.1 && < 4.4,
+                       control-monad-failure >= 0.7.0 && < 0.8,
+                       fgl                   >= 5.4.2 && < 5.5,
+                       mtl                   >= 2.0.1 && < 2.1,
+                       numeric-prelude       >= 0.2.1 && < 0.3,
+                       repa                  >= 2.0.0 && < 2.1
   -- Modules not exported by this package.
   -- Other-modules:       
   
