@@ -2,7 +2,7 @@
 {-# OPTIONS -Wall #-}
 
 import Control.Monad.State
--- import qualified Data.Graph.Inductive as FGL
+import qualified Data.Graph.Inductive as FGL
 import Data.Typeable
 import Language.Paraiso.Tensor
 import Language.Paraiso.OM.Builder
@@ -48,6 +48,6 @@ main = do
       (_, s) = runState hydroKernelBuilder $ initState hydroSetup
       g :: Graph Vec3 Int ()
       g = target s
-  print $ g
+  print $ FGL.grev g
   
   

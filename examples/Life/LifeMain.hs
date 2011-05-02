@@ -7,6 +7,7 @@ import Control.Monad.State
 import Data.Typeable
 import Data.Traversable (sequenceA)
 import Data.Foldable (foldl1)
+import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Tensor
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
@@ -76,7 +77,7 @@ main = do
   putStrLn "hi"
   let state0 = initState lifeSetup
   print $ state0
-  writeFile "Init.hs" $ show $ target $ snd $ runState buildInit state0
-  writeFile "Proceed.hs" $ show $ target $ snd $ runState buildProceed state0
+  writeFile "Init.hs" $ show $ FGL.grev $ target $ snd $ runState buildInit state0
+  writeFile "Proceed.hs" $ show $ FGL.grev $ target $ snd $ runState buildProceed state0
   
   

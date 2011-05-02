@@ -83,7 +83,7 @@ addNode :: (Vector v, Ring.C g) =>
            -> Builder v g FGL.Node
 addNode froms new = do
   n <- freeNode
-  modifyG (([], n, new, [((), nn) | nn <-froms]) FGL.&)
+  modifyG (([((), nn) | nn <-froms], n, new, []) FGL.&)
   return n
 
 
