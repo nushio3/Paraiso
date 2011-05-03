@@ -34,7 +34,7 @@ instance Generator Cpp where
       cppFn = nameStr pom ++ ".cpp"
     createDirectoryIfMissing True path
     writeFile (path </> headerFn) $ genHeader members pom
-    writeFile (path </> cppFn) $ genCpp members pom
+    writeFile (path </> cppFn) $ genCpp headerFn members pom
 
 instance Symbolable Cpp Dynamic where
   symbolF Cpp dyn = let
@@ -123,7 +123,7 @@ makeMembers pom =  [sizeMember] ++ sizeAMembers ++ map (CMember ReadWrite) vals
     prod :: String
     prod = concat $ List.intersperse " * " $ map (\m -> nameStr m ++ "()") sizeAMembers
 
-genHeader, genCpp :: (Vector v, Ring.C g) => [CMember] -> POM v g a -> String
+genHeader :: (Vector v, Ring.C g) => [CMember] -> POM v g a -> String
 genHeader members pom = unlines[
   commonInclude ,
   "class " ++ nameStr pom ++ "{",
@@ -189,8 +189,21 @@ genHeader members pom = unlines[
     kernelStr = unlines $ map (\kernel -> "void " ++ nameStr kernel ++ " ();") $
                 kernels pom
 
-genCpp _ _  = ""
-
+genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g a -> String
+genCpp headerFn members pom = unlines [
+  "#include \"" ++ headerFn ++ "\"",
+  "",
+  kernelsStr
+                       ]
+  where
+    classPrefix = nameStr pom ++ "::"
+    kernelsStr = unlines $ map declareKernel $
+                kernels pom
+    declareKernel kern = unlines [
+      "void " ++ classPrefix ++ nameStr kern ++ " () {",
+      "return;",
+      "}"
+                    ]
 
 commonInclude :: String
 commonInclude = unlines[
