@@ -69,8 +69,6 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
         deriving (Show)
 
 
-
-
 data Inst vector gauge = 
   Imm TypeRep Dynamic |
   Load Name |
