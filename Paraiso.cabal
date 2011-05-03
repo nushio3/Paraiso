@@ -66,6 +66,7 @@ Cabal-version:       >=1.6
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
+                       Language.Paraiso.Failure
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Cpp
                        Language.Paraiso.Interval
