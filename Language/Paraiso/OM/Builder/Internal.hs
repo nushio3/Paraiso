@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes, TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, 
+  RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
@@ -23,7 +24,7 @@ import qualified Algebra.Field as Field
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
-import Data.Dynamic (Typeable, typeOf)
+import Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
 import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.DynValue as DVal
@@ -108,7 +109,7 @@ valueToNode val = do
   case val of
     FromNode _ _ n -> return n
     FromImm _ _ -> do
-             n0 <- addNode [] (NInst (Imm (typeOf con) (Dynamic.toDyn con)) ())
+             n0 <- addNode [] (NInst (Imm (Dynamic.toDyn con)) ())
              n1 <- addNode [n0] (NValue type0 ())
              return n1
 

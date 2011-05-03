@@ -9,7 +9,6 @@ module Language.Paraiso.Generator.Cpp
 import Control.Monad
 import Control.Monad.Failure
 import Data.Dynamic
-import Data.Maybe
 import Language.Paraiso.Generator
 import System.Directory
 import System.FilePath

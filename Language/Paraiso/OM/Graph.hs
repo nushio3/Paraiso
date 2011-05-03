@@ -70,7 +70,7 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
 
 
 data Inst vector gauge = 
-  Imm TypeRep Dynamic |
+  Imm Dynamic |
   Load Name |
   Store Name |
   Reduce R.Operator |
@@ -82,7 +82,7 @@ data Inst vector gauge =
 
 instance Arity (Inst vector gauge) where
   arity a = case a of
-    Imm _ _   -> (0,1)
+    Imm _     -> (0,1)
     Load _    -> (0,1)
     Store _   -> (1,0)
     Reduce _  -> (1,1)

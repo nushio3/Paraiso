@@ -75,7 +75,7 @@ buildInit = do
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
 pom :: POM Vec2 Int ()
-pom = makePOM lifeSetup
+pom = makePOM (Name "Life")  lifeSetup
       [(Name "init"   , buildInit),
        (Name "proceed", buildProceed)]
               
