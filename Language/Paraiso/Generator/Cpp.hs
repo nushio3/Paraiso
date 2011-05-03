@@ -7,8 +7,10 @@ module Language.Paraiso.Generator.Cpp
      Cpp(..)
     ) where
 import qualified Algebra.Ring as Ring
-import Control.Monad
+import Control.Monad as Monad
 import Data.Dynamic
+import qualified Data.List as List
+import Data.Maybe
 import qualified Data.Foldable as Foldable
 import Language.Paraiso.Failure
 import Language.Paraiso.Generator
@@ -94,6 +96,10 @@ data AccessType = ReadWrite | ReadInit | ReadDepend String
 
 data CMember = CMember {accessType :: AccessType, memberDV :: (Named DynValue)}
 
+instance Nameable CMember where
+  name = name . memberDV
+
+
 sizeName :: Name
 sizeName = Name "size"
 sizeForAxis :: (Vector v) => Axis v -> Name
@@ -108,23 +114,54 @@ makeMembers pom = map (CMember ReadWrite) vals ++ [sizeMember] ++ sizeAMembers
     f _ = compose (\axis -> CMember ReadInit (Named (sizeForAxis axis) globalInt))
 
     sizeMember :: CMember
-    sizeMember = CMember (ReadDepend "return 0;") (Named sizeName globalInt)
+    sizeMember = CMember (ReadDepend $ "return " ++ prod ++ ";") (Named sizeName globalInt)
     globalInt = DynValue Global (typeOf (undefined::Int))
 
     sizeAMembers :: [CMember]
     sizeAMembers = Foldable.foldMap (:[]) $ f pom
+    
+    prod :: String
+    prod = concat $ List.intersperse " * " $ map (\m -> nameStr m ++ "()") sizeAMembers
 
 genHeader, genCpp :: (Vector v, Ring.C g) => [CMember] -> POM v g a -> String
 genHeader members pom = unlines[
   commonInclude ,
   "class " ++ nameStr pom ++ "{",
   decStr,
+  readerStr,
+  writerStr,
   "};"
                 ]
   where
     declare (Named name0 dyn0) =
-      symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ ";"
-    decStr = unlines $ "private:" : map (declare.memberDV) members
+      symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ "_;"
+    decStr = unlines $ ("private:" :) $ concat $ 
+      (flip map) members $ 
+      (\(CMember at dv) -> case at of
+                            ReadDepend _ -> []
+                            _            -> [declare dv])
+
+    reader (ref',code) (Named name0 dyn0) =
+      let name1 = symbol Cpp name0 in
+      "const " ++ symbol Cpp dyn0 ++ " " ++ ref' ++ name1 ++ "() { " ++ code name1 ++" }"
+    readerCode n = "return " ++ n ++ "_ ;"
+    readerStr = unlines $ ("public:" :) $ concat $ 
+      (flip map) members $ 
+      (\(CMember at dv) -> case at of
+                            ReadDepend s -> [reader ("" ,const s)    dv]
+                            _            -> [reader ("&",readerCode) dv])
+
+    writer (ref',code) (Named name0 dyn0) =
+      let name1 = symbol Cpp name0 in
+      symbol Cpp dyn0 ++ " " ++ ref' ++ name1 ++ "() { " ++ code name1 ++" }"
+    writerCode n = "return " ++ n ++ "_ ;"
+    writerStr = unlines $ ("public:" :) $ concat $ 
+      (flip map) members $ 
+      (\(CMember at dv) -> case at of
+                            ReadWrite -> [writer ("&" ,writerCode) dv]
+                            _         -> [])
+
+
 
 genCpp _ _  = ""
 
