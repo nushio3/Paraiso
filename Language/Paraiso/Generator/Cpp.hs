@@ -9,12 +9,13 @@ module Language.Paraiso.Generator.Cpp
 import qualified Algebra.Ring as Ring
 import Control.Monad
 import Data.Dynamic
+import qualified Data.Foldable as Foldable
 import Language.Paraiso.Failure
 import Language.Paraiso.Generator
-import qualified Language.Paraiso.OM.DynValue as DVal
+import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm (Realm(..))
-import Language.Paraiso.POM
+import Language.Paraiso.POM as POM
 import Language.Paraiso.Tensor
 import NumericPrelude
 import System.Directory
@@ -26,12 +27,12 @@ data Cpp = Cpp deriving (Eq, Show)
 instance Generator Cpp where
   generate _ pom path = do
     let 
-      apom = augument pom
-      headerFn = nameStr apom ++ ".hpp"
-      cppFn = nameStr apom ++ ".cpp"
+      members = makeMembers pom
+      headerFn = nameStr pom ++ ".hpp"
+      cppFn = nameStr pom ++ ".cpp"
     createDirectoryIfMissing True path
-    writeFile (path </> headerFn) $ genHeader apom
-    writeFile (path </> cppFn) $ genCpp apom
+    writeFile (path </> headerFn) $ genHeader members pom
+    writeFile (path </> cppFn) $ genCpp members pom
 
 instance Symbolable Cpp Dynamic where
   symbolF Cpp dyn = let
@@ -88,24 +89,44 @@ symbolDB = [
       (fmap f . fromDynamic, 
        \tr -> if tr==typeOf dummy then Just typename else Nothing)
 
-augument :: (Vector v, Ring.C g) => POM v g a -> POM v g a
-augument = id
 
-genHeader, genCpp :: (Vector v, Ring.C g) => POM v g a -> String
-genHeader pom = unlines[
+data AccessType = ReadWrite | ReadInit | ReadDepend String
+
+data CMember = CMember {accessType :: AccessType, memberDV :: (Named DynValue)}
+
+sizeName :: Name
+sizeName = Name "size"
+sizeForAxis :: (Vector v) => Axis v -> Name
+sizeForAxis axis = Name $ "size" ++ show (axisIndex axis)
+
+makeMembers :: (Vector v, Ring.C g) => POM v g a -> [CMember]
+makeMembers pom = map (CMember ReadWrite) vals ++ [sizeMember] ++ sizeAMembers
+  where
+    vals = staticValues $ POM.setup pom
+
+    f :: (Vector v, Ring.C g) => POM v g a -> v CMember
+    f _ = compose (\axis -> CMember ReadInit (Named (sizeForAxis axis) globalInt))
+
+    sizeMember :: CMember
+    sizeMember = CMember (ReadDepend "return 0;") (Named sizeName globalInt)
+    globalInt = DynValue Global (typeOf (undefined::Int))
+
+    sizeAMembers :: [CMember]
+    sizeAMembers = Foldable.foldMap (:[]) $ f pom
+
+genHeader, genCpp :: (Vector v, Ring.C g) => [CMember] -> POM v g a -> String
+genHeader members pom = unlines[
   commonInclude ,
   "class " ++ nameStr pom ++ "{",
-  "public:",
   decStr,
   "};"
                 ]
   where
-    vals = staticValues $ setup pom
     declare (Named name0 dyn0) =
       symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ ";"
-    decStr = unlines $ map declare vals
+    decStr = unlines $ "private:" : map (declare.memberDV) members
 
-genCpp    = const ""
+genCpp _ _  = ""
 
 
 commonInclude :: String

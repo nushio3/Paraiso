@@ -5,7 +5,7 @@
 module Language.Paraiso.Name 
   (
    Name(..), Named(..),
-   Nameable(..)
+   Nameable(..), namee
   ) where
 
 -- | a name.
@@ -23,10 +23,15 @@ class Nameable a where
 instance Nameable Name where
   name = id
 
--- | give something a name.
+-- | Convert some type to a named type.
 data Named a = Named Name a
+
 instance Nameable (Named a) where
   name (Named n _) = n
+
+-- | The thing the name points to.
+namee :: Named a -> a
+namee (Named _ x) = x
 
 deriving instance (Eq a) => Eq (Named a)
 deriving instance (Ord a) => Ord (Named a)
