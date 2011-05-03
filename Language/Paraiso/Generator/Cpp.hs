@@ -88,10 +88,10 @@ symbolDB = [
       (fmap f . fromDynamic, 
        \tr -> if tr==typeOf dummy then Just typename else Nothing)
 
-augument :: (Vector v, Ring.C g) => POM v g a b -> POM v g a b
+augument :: (Vector v, Ring.C g) => POM v g a -> POM v g a
 augument = id
 
-genHeader, genCpp :: (Vector v, Ring.C g) => POM v g a1 a2 -> String
+genHeader, genCpp :: (Vector v, Ring.C g) => POM v g a -> String
 genHeader pom = unlines[
   commonInclude ,
   "class " ++ nameStr pom ++ "{",
@@ -101,7 +101,7 @@ genHeader pom = unlines[
                 ]
   where
     vals = staticValues $ setup pom
-    declare (NamedValue name0 dyn0 _) =
+    declare (Named name0 dyn0) =
       symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ ";"
     decStr = unlines $ map declare vals
 

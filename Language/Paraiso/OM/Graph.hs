@@ -5,7 +5,7 @@
 module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph,
-     NamedValue(..), Annotation(..),
+     Annotation(..),
      Node(..), 
      Inst(..),
      module Language.Paraiso.Name
@@ -25,9 +25,9 @@ import NumericPrelude
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
 -- It's basically a list of static orthotopes 
 -- (its identifier, Realm and Type carried in the form of 'NamedValue')
-data  (Vector vector, Ring.C gauge) => Setup vector gauge a = 
+data  (Vector vector, Ring.C gauge) => Setup vector gauge = 
   Setup {
-    staticValues :: [NamedValue a]
+    staticValues :: [Named DynValue]
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM does a bunch of calculations on OM.
@@ -39,12 +39,6 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
     deriving (Show)
 instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
   name = kernelName
-
-
--- | a 'DynValue' with a specific name and additional annotation.
-data NamedValue a = NamedValue Name DynValue a deriving (Eq, Show)
-instance Nameable (NamedValue a) where
-  name (NamedValue n _ _) = n
 
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.

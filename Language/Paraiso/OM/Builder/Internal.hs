@@ -37,12 +37,12 @@ import Language.Paraiso.Tensor
 import qualified Prelude (Num(..), Fractional(..))
 
 data BuilderState vector gauge = BuilderState 
-    { setup :: Setup vector gauge (), 
+    { setup :: Setup vector gauge, 
       target :: Graph vector gauge ()} deriving (Show)
 
 -- | Create a 'Kernel' from a 'Builder' monad.
 makeKernel :: (Vector v, Ring.C g) => 
-              Setup v g ()   -- ^The Orthotope machine setup.
+              Setup v g      -- ^The Orthotope machine setup.
            -> Name           -- ^The name of the kernel.
            -> Builder v g () -- ^The builder monad.
            -> Kernel v g ()  -- ^The created kernel.
@@ -53,7 +53,7 @@ makeKernel setup0 name0 builder0 = let
       
 
 -- | Create an initial state for 'Builder' monad from a OM 'Setup'.
-initState :: Setup v g () -> BuilderState v g
+initState :: Setup v g -> BuilderState v g
 initState s = BuilderState {
                 setup = s,
                 target = FGL.empty
@@ -113,16 +113,16 @@ valueToNode val = do
              n1 <- addNode [n0] (NValue type0 ())
              return n1
 
--- | look up the 'NamedValue' with the correct name and type 
+-- | look up the 'Named' 'DynValue' with the correct name and type 
 -- is included in the 'staticValues' of the 'BuilderState'
-lookUpStatic :: NamedValue () -> B ()
-lookUpStatic (NamedValue name0 type0 _)= do
+lookUpStatic :: Named DynValue -> B ()
+lookUpStatic (Named name0 type0)= do
   st <- State.get 
   let
-      vs :: [NamedValue ()]
+      vs :: [Named DynValue]
       vs = staticValues $ setup st
       matches = filter ((==name0).name) vs
-      (NamedValue _ type1 _) = head matches
+      (Named _ type1) = head matches
   when (length matches == 0) $ fail ("no name found: " ++ nameStr name0)
   when (length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
   when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
@@ -137,7 +137,7 @@ load :: (TRealm r, Typeable c) =>
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
-      nv = NamedValue name0 type0 ()
+      nv = Named name0 type0
   lookUpStatic nv
   n0 <- addNode [] (NInst (Load name0) ())
   n1 <- addNode [n0] (NValue type0 ())
@@ -152,7 +152,7 @@ store name0 builder0 = do
   val0 <- builder0
   let 
       type0 = toDyn val0
-      nv = NamedValue name0 type0 ()
+      nv = Named name0 type0
   lookUpStatic nv
   n0 <- valueToNode val0
   _ <- addNode [n0] (NInst (Store name0) ())

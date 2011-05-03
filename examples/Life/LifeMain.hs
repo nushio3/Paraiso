@@ -29,11 +29,11 @@ intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 
 
 
-lifeSetup :: Setup Vec2 Int ()
+lifeSetup :: Setup Vec2 Int 
 lifeSetup = Setup $ 
-            [NamedValue (Name "population") intGDV ()] ++
-            [NamedValue (Name "generation") intGDV ()] ++
-            [NamedValue (Name "cell") intDV ()] 
+            [Named (Name "population") intGDV] ++
+            [Named (Name "generation") intGDV] ++
+            [Named (Name "cell") intDV] 
 
 
 adjVecs :: [Vec2 Int]
@@ -74,7 +74,7 @@ buildInit = do
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
-pom :: POM Vec2 Int () ()
+pom :: POM Vec2 Int ()
 pom = makePOM (Name "Life")  lifeSetup
       [(Name "init"   , buildInit),
        (Name "proceed", buildProceed)]

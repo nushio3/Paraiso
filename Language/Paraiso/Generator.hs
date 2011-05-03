@@ -15,7 +15,7 @@ import Language.Paraiso.Tensor (Vector)
 class Generator gen where
     generate :: (Vector v, Ring.C g) =>
                 gen           -- ^The code generator.
-             -> POM v g a1 a2 -- ^The 'POM' to be translated.
+             -> POM v g a     -- ^The 'POM' to be translated.
              -> FilePath      -- ^The directory name under which the files are to be generated.
              -> IO ()         -- ^The act of generation.
 
