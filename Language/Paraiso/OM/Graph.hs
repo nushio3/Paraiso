@@ -5,14 +5,16 @@
 module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph,
-     Name(..), Named(..), NamedValue(..), Annotation(..),
+     NamedValue(..), Annotation(..),
      Node(..), 
-     Inst(..)
+     Inst(..),
+     module Language.Paraiso.Name
     )where
 
 import qualified Algebra.Ring as Ring
 import Data.Dynamic
 import qualified Data.Graph.Inductive as G
+import Language.Paraiso.Name
 import Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Reduce as R
 import Language.Paraiso.OM.DynValue
@@ -38,14 +40,6 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
 instance (Vector v, Ring.C g) => Named (Kernel v g a) where
   name = kernelName
 
--- | name identifier.
-newtype Name = Name String deriving (Eq, Show)
-class Named a where
-  name :: a -> Name
-  nameStr :: a -> String
-  nameStr = (\(Name str) -> str) . name
-instance Named Name where
-  name = id
 
 -- | a 'DynValue' with a specific name and additional annotation.
 data NamedValue a = NamedValue Name DynValue a deriving (Eq, Show)
