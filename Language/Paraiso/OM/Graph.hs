@@ -23,9 +23,9 @@ import NumericPrelude
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
 -- It's basically a list of static orthotopes 
 -- (its identifier, Realm and Type carried in the form of 'NamedValue')
-data  (Vector vector, Ring.C gauge) => Setup vector gauge  = 
+data  (Vector vector, Ring.C gauge) => Setup vector gauge a = 
   Setup {
-    staticValues :: [NamedValue]
+    staticValues :: [NamedValue a]
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM does a bunch of calculations on OM.
@@ -47,10 +47,10 @@ class Named a where
 instance Named Name where
   name = id
 
--- | a 'DynValue' with a specific name.
-data NamedValue = NamedValue Name DynValue deriving (Eq, Show)
-instance Named NamedValue where
-  name (NamedValue n _) = n
+-- | a 'DynValue' with a specific name and additional annotation.
+data NamedValue a = NamedValue Name DynValue a deriving (Eq, Show)
+instance Named (NamedValue a) where
+  name (NamedValue n _ _) = n
 
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.

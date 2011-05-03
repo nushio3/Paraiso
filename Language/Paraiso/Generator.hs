@@ -14,10 +14,10 @@ import Language.Paraiso.Tensor (Vector)
 -- | The definition for code generator.
 class Generator gen where
     generate :: (Vector v, Ring.C g) =>
-                gen       -- ^The code generator.
-             -> POM v g a -- ^The 'POM' to be translated.
-             -> FilePath  -- ^The directory name under which the files are to be generated.
-             -> IO ()     -- ^The act of generation.
+                gen           -- ^The code generator.
+             -> POM v g a1 a2 -- ^The 'POM' to be translated.
+             -> FilePath      -- ^The directory name under which the files are to be generated.
+             -> IO ()         -- ^The act of generation.
 
 -- | The translation of Haskell symbols to other languages.
 class (Generator gen) => Symbolable gen a where

@@ -11,7 +11,9 @@ import Control.Monad
 import Data.Dynamic
 import Language.Paraiso.Failure
 import Language.Paraiso.Generator
+import qualified Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
+import Language.Paraiso.OM.Realm (Realm(..))
 import Language.Paraiso.POM
 import Language.Paraiso.Tensor
 import NumericPrelude
@@ -48,6 +50,16 @@ instance Symbolable Cpp TypeRep where
                  "Cpp cannot translate type: " ++ show tr
   
 
+instance Symbolable Cpp DVal.DynValue where
+  symbolF Cpp dyn0 = do
+    let
+      container :: String -> String
+      container = case DVal.realm dyn0 of
+                    Global -> id
+                    Local -> ("std::vector<"++).(++">")
+    type0 <- symbolF Cpp $ DVal.typeRep dyn0
+    return $ container type0
+
 instance Symbolable Cpp Name where
   symbolF Cpp = return . nameStr
   
@@ -76,9 +88,28 @@ symbolDB = [
       (fmap f . fromDynamic, 
        \tr -> if tr==typeOf dummy then Just typename else Nothing)
 
-augument :: (Vector v, Ring.C g) => POM v g a -> POM v g a
+augument :: (Vector v, Ring.C g) => POM v g a b -> POM v g a b
 augument = id
 
-genHeader, genCpp :: (Vector v, Ring.C g) => POM v g a -> String
-genHeader = const ""
+genHeader, genCpp :: (Vector v, Ring.C g) => POM v g a1 a2 -> String
+genHeader pom = unlines[
+  commonInclude ,
+  "class " ++ nameStr pom ++ "{",
+  "public:",
+  decStr,
+  "};"
+                ]
+  where
+    vals = staticValues $ setup pom
+    declare (NamedValue name0 dyn0 _) =
+      symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ ";"
+    decStr = unlines $ map declare vals
+
 genCpp    = const ""
+
+
+commonInclude :: String
+commonInclude = unlines[
+                 "#include <vector>",
+                 ""
+                ]
