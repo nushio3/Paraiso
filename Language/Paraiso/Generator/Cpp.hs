@@ -132,6 +132,7 @@ genHeader members pom = unlines[
   writerStr,
   "public:",
   constructorStr,
+  kernelStr,
   "};"
                 ]
   where
@@ -145,7 +146,7 @@ genHeader members pom = unlines[
 
     reader (ref',code) (Named name0 dyn0) =
       let name1 = symbol Cpp name0 in
-      "const " ++ symbol Cpp dyn0 ++ " " ++ ref' ++ name1 ++ "() { " ++ code name1 ++" }"
+      "const " ++ symbol Cpp dyn0 ++ " " ++ ref' ++ name1 ++ "() const { " ++ code name1 ++" }"
     readerCode n = "return " ++ n ++ "_ ;"
     readerStr = unlines $ ("public:" :) $ concat $ 
       (flip map) members $ 
@@ -165,13 +166,18 @@ genHeader members pom = unlines[
 
     initializer (Named name0 _) = let name1 = symbol Cpp name0 in
       name1 ++ "_(" ++ name1 ++ ")"
-    cArg (Named name0 dyn0) = let name1 = symbol Cpp name0 in
-      symbol Cpp dyn0 ++ " " ++ name1
+    initializeIfLocal (Named name0 dyn0) = let name1 = symbol Cpp name0 in
+      if DVal.realm dyn0 == Global
+      then []
+      else [name1 ++ "_(" ++ symbol Cpp sizeName ++ "())"]
     initializerStr = concat $ List.intersperse "," $ concat $
       (flip map) members $ 
       (\(CMember at dv) -> case at of
-                            ReadInit -> [initializer dv]
-                            _        -> [])
+                            ReadInit  -> [initializer dv]
+                            ReadWrite -> initializeIfLocal dv
+                            _         -> [])
+    cArg (Named name0 dyn0) = let name1 = symbol Cpp name0 in
+      symbol Cpp dyn0 ++ " " ++ name1
     cArgStr = concat $ List.intersperse "," $ concat $
       (flip map) members $ 
       (\(CMember at dv) -> case at of
@@ -180,7 +186,8 @@ genHeader members pom = unlines[
     constructorStr = nameStr pom ++ " ( " ++ cArgStr ++ " ): " 
                      ++ initializerStr ++ "{}"
     
-
+    kernelStr = unlines $ map (\kernel -> "void " ++ nameStr kernel ++ " ();") $
+                kernels pom
 
 genCpp _ _  = ""
 
