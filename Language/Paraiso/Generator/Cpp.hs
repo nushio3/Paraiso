@@ -23,29 +23,47 @@ instance Generator Cpp where
 
 instance Symbolable Cpp Dynamic where
   symbolF Cpp dyn = let
-    add' :: (Typeable a) => a -> String -> (a->String) 
-        -> (Dynamic -> Maybe String, TypeRep -> Maybe String)
-    add' dummy typename f = (fmap f . fromDynamic, undefined)
-    add ::  (Typeable a) => String -> (a->String) 
-        -> (Dynamic -> Maybe String, TypeRep -> Maybe String)
-    add = add' undefined
-    db :: [(Dynamic -> Maybe String, TypeRep -> Maybe String)]
-    db = [ 
-      add "bool" (\x->if x then "true" else "false"),
-      add "int" (show::Int->String), 
-      add "long long int" (show::Integer->String), 
-      add "float" ((++"f").show::Float->String), 
-      add "double" (show::Double->String)
-          ]  
-    dyndb = map fst db
-    ret = msum $ map ($dyn) dyndb
+    ret = msum $ map ($dyn) dynamicDB
    in case ret of
       Just str -> return str
       Nothing -> failure $ StringException $ 
-                 "Cpp cannot translate symbol of type " ++ show dyn
+                 "Cpp cannot translate symbol of type: " ++ show dyn
   
+instance Symbolable Cpp TypeRep where
+  symbolF Cpp tr = let
+    ret = msum $ map ($tr) typeRepDB
+   in case ret of
+      Just str -> return str
+      Nothing -> failure $ StringException $ 
+                 "Cpp cannot translate type: " ++ show tr
+  
+
+
 instance Symbolable Cpp Name where
   symbolF Cpp = return . nameStr
   
   
-  
+
+dynamicDB:: [Dynamic -> Maybe String]
+dynamicDB = map fst symbolDB
+
+typeRepDB:: [TypeRep -> Maybe String]
+typeRepDB = map snd symbolDB
+
+symbolDB:: [(Dynamic -> Maybe String, TypeRep -> Maybe String)]
+symbolDB = [ 
+     add "bool" (\x->if x then "true" else "false"),
+     add "int" (show::Int->String), 
+     add "long long int" (show::Integer->String), 
+     add "float" ((++"f").show::Float->String), 
+     add "double" (show::Double->String)
+          ]  
+  where
+    add ::  (Typeable a) => String -> (a->String) 
+        -> (Dynamic -> Maybe String, TypeRep -> Maybe String)
+    add = add' undefined
+    add' :: (Typeable a) => a -> String -> (a->String) 
+        -> (Dynamic -> Maybe String, TypeRep -> Maybe String)
+    add' dummy typename f = 
+      (fmap f . fromDynamic, 
+       \tr -> if tr==typeOf dummy then Just typename else Nothing)
