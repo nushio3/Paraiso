@@ -68,7 +68,10 @@ buildInit :: Builder Vec2 Int ()
 buildInit = do
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
   alive <- bind $ foldl1 (||) [agree coord point | point <- r5mino ]
-  store (Name "cell") $ select alive (1::BuilderOf Rlm.TLocal Int) 0
+  cell  <- bind $ select alive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "cell") $ cell
+  store (Name "population") $ reduce Reduce.Sum cell
+  store (Name "generation") $ (0::BuilderOf Rlm.TGlobal Int) 
   
   where
     agree coord point = 

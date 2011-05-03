@@ -9,6 +9,7 @@ module Language.Paraiso.Generator.Cpp
 import qualified Algebra.Ring as Ring
 import Control.Monad as Monad
 import Data.Dynamic
+import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
 import Data.Maybe
 import qualified Data.Foldable as Foldable
@@ -201,9 +202,17 @@ genCpp headerFn members pom = unlines [
                 kernels pom
     declareKernel kern = unlines [
       "void " ++ classPrefix ++ nameStr kern ++ " () {",
+      declareNodes (FGL.labNodes $ dataflow kern),
       "return;",
       "}"
                     ]
+    
+    nodeName n = "a" ++ show n
+    
+    declareNodes = unlines . concat . map declareNode
+    declareNode (n, node) = case node of
+      NInst _ _  -> []
+      NValue dyn0 _ -> [symbol Cpp dyn0 ++ " " ++ nodeName n ++  ";"]
 
 commonInclude :: String
 commonInclude = unlines[
