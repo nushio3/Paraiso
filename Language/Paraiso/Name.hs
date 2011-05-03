@@ -4,15 +4,15 @@
 module Language.Paraiso.Name 
   (
    Name(..),
-   Named(..)
+   Nameable(..)
   ) where
 
 newtype Name = Name String deriving (Eq, Show)
 
-class Named a where
+class Nameable a where
   name :: a -> Name
   nameStr :: a -> String
   nameStr = (\(Name str) -> str) . name
 
-instance Named Name where
+instance Nameable Name where
   name = id

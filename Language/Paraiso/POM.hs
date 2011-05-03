@@ -19,7 +19,7 @@ data (Vector vector, Ring.C gauge) => POM vector gauge a1 a2 =
     kernels :: [Kernel vector gauge a2]
   } 
     deriving (Show)
-instance (Vector v, Ring.C g) => Named (POM v g a1 a2) where
+instance (Vector v, Ring.C g) => Nameable (POM v g a1 a2) where
   name = pomName
 
 -- | create a POM easily and consistently.

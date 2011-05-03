@@ -37,13 +37,13 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
     dataflow :: Graph vector gauge a
   }         
     deriving (Show)
-instance (Vector v, Ring.C g) => Named (Kernel v g a) where
+instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
   name = kernelName
 
 
 -- | a 'DynValue' with a specific name and additional annotation.
 data NamedValue a = NamedValue Name DynValue a deriving (Eq, Show)
-instance Named (NamedValue a) where
+instance Nameable (NamedValue a) where
   name (NamedValue n _ _) = n
 
 
