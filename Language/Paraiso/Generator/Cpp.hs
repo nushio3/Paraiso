@@ -250,6 +250,7 @@ declareKernel classPrefix kern = unlines [
           Store name0 -> env pre0 (\i -> namedSinglet i name0 ++ " = " ++ nodeSinglet i pre0 ++ ";")
           Reduce op -> envR op (nodeSinglet "" suc0) (\i -> nodeSinglet i pre0)
           Broadcast -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ nodeSinglet "" pre0 ++ ";")
+          Arith op -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ genArith op pres ++ ";")
           _ -> "/* noop */"
 
     env :: FGL.Node -> (String -> String) -> String
@@ -266,6 +267,8 @@ declareKernel classPrefix kern = unlines [
                            Reduce.Max -> "max(" ++ sum ++ "," ++ x ++ ")"
                            Reduce.Min -> "min(" ++ sum ++ "," ++ x ++ ")"
                            Reduce.Sum -> "(" ++ sum ++ "+" ++ x ++ ")"
+    genArith op pres = show op ++ show pres
+
 
 commonInclude :: String
 commonInclude = unlines[
