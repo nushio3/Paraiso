@@ -212,7 +212,12 @@ genCpp headerFn members pom = unlines [
     declareNodes = unlines . concat . map declareNode
     declareNode (n, node) = case node of
       NInst _ _  -> []
-      NValue dyn0 _ -> [symbol Cpp dyn0 ++ " " ++ nodeName n ++  ";"]
+      NValue dyn0 _ -> [declareVal (nodeName n) dyn0]
+    declareVal name0 dyn0 = let
+      x = if DVal.realm dyn0 == Local 
+          then "(" ++ symbol Cpp sizeName ++ "())"
+          else ""
+     in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
 
 commonInclude :: String
 commonInclude = unlines[
