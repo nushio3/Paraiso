@@ -15,9 +15,11 @@ import Data.Maybe
 import qualified Data.Foldable as Foldable
 import Language.Paraiso.Failure
 import Language.Paraiso.Generator
+import Language.Paraiso.OM.Arithmetic (arity)
 import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm (Realm(..))
+import qualified Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.POM as POM
 import Language.Paraiso.Tensor
 import NumericPrelude
@@ -191,24 +193,37 @@ genHeader members pom = unlines[
                 kernels pom
 
 genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g a -> String
-genCpp headerFn members pom = unlines [
+genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
   "",
   kernelsStr
                        ]
   where
     classPrefix = nameStr pom ++ "::"
-    kernelsStr = unlines $ map declareKernel $
+    kernelsStr = unlines $ map (declareKernel classPrefix) $
                 kernels pom
-    declareKernel kern = unlines [
-      "void " ++ classPrefix ++ nameStr kern ++ " () {",
-      declareNodes (FGL.labNodes $ dataflow kern),
-      "return;",
-      "}"
-                    ]
-    
+
+
+declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g a -> String
+declareKernel classPrefix kern = unlines [
+  "void " ++ classPrefix ++ nameStr kern ++ " () {",
+  declareNodes labNodes,
+  genInsts labNodes,
+  "return;",
+  "}"
+                     ]
+  where
+    graph = dataflow kern
+    labNodes = FGL.labNodes graph
+
     nodeName n = "a" ++ show n
-    
+    nodeSinglet i n = nodeName n ++ i
+    namedSinglet i name0 = symbol Cpp name0 ++ "()" ++ i
+
+    nodeToRealm n = case (fromJust $ FGL.lab graph n) of
+      NValue dyn0 _ -> DVal.realm dyn0
+      _ -> error "nodeToRealm called on NInst"
+
     declareNodes = unlines . concat . map declareNode
     declareNode (n, node) = case node of
       NInst _ _  -> []
@@ -219,8 +234,42 @@ genCpp headerFn members pom = unlines [
           else ""
      in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
 
+    genInsts = unlines . concat . map genInst
+    genInst (n, node) =  case node of
+      NValue _ _ -> []
+      NInst inst _ -> [genInst' inst n (FGL.pre graph n) (FGL.suc graph n)]
+    genInst' inst n pres sucs = let
+      (np, ns) = arity inst
+      suc0 = head sucs
+      pre0 = head pres
+      correct = np == length pres && ns == length sucs 
+      comment = if correct then "" else "/* BAD ARITY */"
+     in comment ++ case inst of
+          Imm dyn0 -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ symbol Cpp dyn0 ++ ";")
+          Load name0 -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ namedSinglet i name0 ++ ";")
+          Store name0 -> env pre0 (\i -> namedSinglet i name0 ++ " = " ++ nodeSinglet i pre0 ++ ";")
+          Reduce op -> envR op (nodeSinglet "" suc0) (\i -> nodeSinglet i pre0)
+          Broadcast -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ nodeSinglet "" pre0 ++ ";")
+          _ -> "/* noop */"
+
+    env :: FGL.Node -> (String -> String) -> String
+    env n f = if nodeToRealm n == Global
+              then f ""
+              else unlines ["for (int i = 0; i < " ++ nameStr sizeName ++ "() ; ++i) {", f "[i]","}"]
+    envR op sum f =
+      unlines [
+        sum ++ " = " ++ f "[0];" ,
+        "for (int i = 1; i < " ++ nameStr sizeName ++ "() ; ++i) {", 
+        sum ++ " = " ++ genReduce op sum (f "[i]") ++ ";",
+        "}"]
+    genReduce op sum x = case op of
+                           Reduce.Max -> "max(" ++ sum ++ "," ++ x ++ ")"
+                           Reduce.Min -> "min(" ++ sum ++ "," ++ x ++ ")"
+                           Reduce.Sum -> "(" ++ sum ++ "+" ++ x ++ ")"
+
 commonInclude :: String
 commonInclude = unlines[
                  "#include <vector>",
+                 "#include <cmath>",
                  ""
                 ]
