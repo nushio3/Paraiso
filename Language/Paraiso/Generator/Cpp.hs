@@ -106,7 +106,7 @@ sizeForAxis :: (Vector v) => Axis v -> Name
 sizeForAxis axis = Name $ "size" ++ show (axisIndex axis)
 
 makeMembers :: (Vector v, Ring.C g) => POM v g a -> [CMember]
-makeMembers pom = map (CMember ReadWrite) vals ++ [sizeMember] ++ sizeAMembers
+makeMembers pom =  [sizeMember] ++ sizeAMembers ++ map (CMember ReadWrite) vals 
   where
     vals = staticValues $ POM.setup pom
 
@@ -130,6 +130,8 @@ genHeader members pom = unlines[
   decStr,
   readerStr,
   writerStr,
+  "public:",
+  constructorStr,
   "};"
                 ]
   where
@@ -161,6 +163,23 @@ genHeader members pom = unlines[
                             ReadWrite -> [writer ("&" ,writerCode) dv]
                             _         -> [])
 
+    initializer (Named name0 _) = let name1 = symbol Cpp name0 in
+      name1 ++ "_(" ++ name1 ++ ")"
+    cArg (Named name0 dyn0) = let name1 = symbol Cpp name0 in
+      symbol Cpp dyn0 ++ " " ++ name1
+    initializerStr = concat $ List.intersperse "," $ concat $
+      (flip map) members $ 
+      (\(CMember at dv) -> case at of
+                            ReadInit -> [initializer dv]
+                            _        -> [])
+    cArgStr = concat $ List.intersperse "," $ concat $
+      (flip map) members $ 
+      (\(CMember at dv) -> case at of
+                            ReadInit -> [cArg dv]
+                            _        -> [])
+    constructorStr = nameStr pom ++ " ( " ++ cArgStr ++ " ): " 
+                     ++ initializerStr ++ "{}"
+    
 
 
 genCpp _ _  = ""
