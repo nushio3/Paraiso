@@ -1,10 +1,11 @@
-{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude, StandaloneDeriving #-}
+{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude, 
+  StandaloneDeriving #-}
 {-# OPTIONS -Wall #-}
 
 -- | all the components for constructing Orthotope Machine data flow draph.
 module Language.Paraiso.OM.Graph
     (
-     Setup(..), Kernel(..), Graph,
+     Setup(..), Kernel(..), Graph, nmap,
      Annotation(..),
      Node(..), 
      Inst(..),
@@ -13,7 +14,7 @@ module Language.Paraiso.OM.Graph
 
 import qualified Algebra.Ring as Ring
 import Data.Dynamic
-import qualified Data.Graph.Inductive as G
+import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Name
 import Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Reduce as R
@@ -42,10 +43,16 @@ instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
 
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.
+type Graph vector gauge a = FGL.Gr (Node vector gauge a) ()
 
-type Graph vector gauge a = G.Gr (Node vector gauge a) ()
+nmap :: (Vector v, Ring.C g) => (a -> b) -> Graph v g a ->  Graph v g b
+nmap f = let
+    nmap' f0 (NValue x a0) = (NValue x $ f0 a0) 
+    nmap' f0 (NInst  x a0) = (NInst  x $ f0 a0) 
+  in FGL.nmap (nmap' f)
 
--- | The node for the dataflow 'Graph' of the Orthotope machine.
+
+-- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
 data (Vector vector, Ring.C gauge) => Node vector gauge a = 
   -- | A value node. An 'NValue' node only connects to 'NInst' nodes.
