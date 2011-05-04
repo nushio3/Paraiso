@@ -1,10 +1,11 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, NoImplicitPrelude #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, NoImplicitPrelude,
+  TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 -- | a generic code generator definition.
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
-     Cpp(..)
+     Cpp(..), Manifest(..), autoStrategy
     ) where
 import qualified Algebra.Ring as Ring
 import Control.Monad as Monad
@@ -29,7 +30,13 @@ import System.FilePath
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
 
+data Manifest = Manifest | MDelayed | MAuto deriving (Eq, Show)
+
+autoStrategy :: Strategy Cpp
+autoStrategy = CppStrategy MAuto
+
 instance Generator Cpp where
+  data Strategy Cpp = CppStrategy Manifest deriving (Eq, Show)
   generate _ pom path = do
     let 
       members = makeMembers pom

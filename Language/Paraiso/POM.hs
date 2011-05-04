@@ -6,6 +6,7 @@ module Language.Paraiso.POM
   ) where
 
 import qualified Algebra.Ring as Ring
+import qualified Control.Monad as Monad
 import Language.Paraiso.OM.Builder (Builder, makeKernel)
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.Tensor
@@ -19,15 +20,22 @@ data (Vector vector, Ring.C gauge) => POM vector gauge a =
     kernels :: [Kernel vector gauge a]
   } 
     deriving (Show)
+
 instance (Vector v, Ring.C g) => Nameable (POM v g a) where
   name = pomName
+
+instance (Vector v, Ring.C g) => Monad.Functor (POM v g) where
+  fmap f pom = pom
+    { kernels = map 
+       (\kern -> kern{dataflow = nmap f $ dataflow kern}) $ 
+      kernels pom}
 
 -- | create a POM easily and consistently.
 makePOM :: (Vector v, Ring.C g) => 
            Name                     -- ^The machine name.
-        -> (Setup v g)           -- ^The machine configuration.
+        -> (Setup v g)              -- ^The machine configuration.
         -> [(Name, Builder v g ())] -- ^The list of pair of the kernel name and its builder.
-        -> POM v g ()            -- ^The result.
+        -> POM v g ()               -- ^The result.
 makePOM name0 setup0 kerns = 
   POM {
     pomName = name0,

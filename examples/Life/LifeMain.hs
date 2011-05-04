@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
@@ -77,10 +77,11 @@ buildInit = do
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
-pom :: POM Vec2 Int ()
-pom = makePOM (Name "Life")  lifeSetup
-      [(Name "init"   , buildInit),
-       (Name "proceed", buildProceed)]
+pom :: POM Vec2 Int (Strategy Cpp)
+pom = fmap (\() -> autoStrategy) $ 
+  makePOM (Name "Life")  lifeSetup
+    [(Name "init"   , buildInit),
+     (Name "proceed", buildProceed)]
               
 main :: IO ()
 main = do

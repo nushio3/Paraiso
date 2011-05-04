@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 -- | a general code generator definition.
 module Language.Paraiso.Generator
@@ -13,11 +13,14 @@ import Language.Paraiso.Tensor (Vector)
 
 -- | The definition for code generator.
 class Generator gen where
-    generate :: (Vector v, Ring.C g) =>
-                gen           -- ^The code generator.
-             -> POM v g a     -- ^The 'POM' to be translated.
-             -> FilePath      -- ^The directory name under which the files are to be generated.
-             -> IO ()         -- ^The act of generation.
+  -- | The data that is daughter of gen; describes the code generation strategy.
+  data Strategy gen :: *
+  -- | Code generation.
+  generate :: (Vector v, Ring.C g) =>
+              gen                    -- ^The code generator.
+           -> POM v g (Strategy gen) -- ^The 'POM' sourcecode, annotated with 'Strategy'.
+           -> FilePath               -- ^The directory name under which the files are to be generated.
+           -> IO ()                  -- ^The act of generation.
 
 -- | The translation of Haskell symbols to other languages.
 class (Generator gen) => Symbolable gen a where
