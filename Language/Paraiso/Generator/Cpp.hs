@@ -8,24 +8,25 @@ module Language.Paraiso.Generator.Cpp
      Cpp(..), Manifest(..), autoStrategy
     ) where
 import qualified Algebra.Ring as Ring
-import Control.Monad as Monad
-import Data.Dynamic
+import           Control.Monad as Monad
+import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
-import Data.Maybe
+import           Data.Maybe
 import qualified Data.Foldable as Foldable
-import Language.Paraiso.Failure
-import Language.Paraiso.Generator
-import Language.Paraiso.OM.Arithmetic (arity)
-import Language.Paraiso.OM.DynValue as DVal
-import Language.Paraiso.OM.Graph
-import Language.Paraiso.OM.Realm (Realm(..))
+import           Language.Paraiso.Failure
+import           Language.Paraiso.Generator
+import qualified Language.Paraiso.Generator.Allocation as Alloc
+import           Language.Paraiso.OM.Arithmetic (arity)
+import           Language.Paraiso.OM.DynValue as DVal
+import           Language.Paraiso.OM.Graph
+import           Language.Paraiso.OM.Realm (Realm(..))
 import qualified Language.Paraiso.OM.Reduce as Reduce
-import Language.Paraiso.POM as POM
-import Language.Paraiso.Tensor
-import NumericPrelude
-import System.Directory
-import System.FilePath
+import           Language.Paraiso.POM as POM
+import           Language.Paraiso.Tensor
+import           NumericPrelude
+import           System.Directory
+import           System.FilePath
 
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
@@ -33,10 +34,10 @@ data Cpp = Cpp deriving (Eq, Show)
 data Manifest = Manifest | MDelayed | MAuto deriving (Eq, Show)
 
 autoStrategy :: Strategy Cpp
-autoStrategy = CppStrategy MAuto
+autoStrategy = CppStrategy Alloc.Auto
 
 instance Generator Cpp where
-  data Strategy Cpp = CppStrategy Manifest deriving (Eq, Show)
+  data Strategy Cpp = CppStrategy Alloc.Allocation deriving (Eq, Show)
   generate _ pom path = do
     let 
       members = makeMembers pom

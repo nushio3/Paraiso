@@ -38,6 +38,7 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
     dataflow :: Graph vector gauge a
   }         
     deriving (Show)
+
 instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
   name = kernelName
 
