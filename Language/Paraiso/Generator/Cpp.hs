@@ -266,7 +266,7 @@ genHeader members pom = unlines[
 {----                                                                -----}
 
 
-genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g a -> String
+genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g (Strategy Cpp) -> String
 genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
   "",
@@ -278,7 +278,7 @@ genCpp headerFn _ pom = unlines [
                 kernels pom
 
 
-declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g a -> String
+declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g (Strategy Cpp)-> String
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
   declareNodes labNodes,
@@ -301,6 +301,7 @@ declareKernel classPrefix kern = unlines [
     declareNodes = unlines . concat . map declareNode
     declareNode (n, node) = case node of
       NInst _ _  -> []
+      NValue dyn0 (CppStrategy Alloc.Delayed) -> []
       NValue dyn0 _ -> [declareVal (nodeName n) dyn0]
     declareVal name0 dyn0 = let
       x = if DVal.realm dyn0 == Local 
