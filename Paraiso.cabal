@@ -68,8 +68,10 @@ Library
   Exposed-modules:     Language.Paraiso
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
+                       Language.Paraiso.Generator.Allocation
                        Language.Paraiso.Generator.Cpp
                        Language.Paraiso.Interval
+                       Language.Paraiso.Name        
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
                        Language.Paraiso.OM.Builder.Boolean
