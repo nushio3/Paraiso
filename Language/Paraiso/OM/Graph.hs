@@ -45,6 +45,8 @@ instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.
 type Graph vector gauge a = FGL.Gr (Node vector gauge a) ()
 
+-- | Map the 'Graph' annotation from one type to another. Unfortunately we cannot make one data
+-- both the instances of 'FGL.Graph' and 'Functor', so 'nmap' is a standalone function.
 nmap :: (Vector v, Ring.C g) => (a -> b) -> Graph v g a ->  Graph v g b
 nmap f = let
     nmap' f0 (NValue x a0) = (NValue x $ f0 a0) 
