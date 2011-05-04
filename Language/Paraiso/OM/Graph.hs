@@ -66,6 +66,9 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
   NInst (Inst vector gauge) a
         deriving (Show)
 
+instance (Vector v, Ring.C g) => Functor (Node v g) where
+  fmap f (NValue x y) =  (NValue x (f y))  
+  fmap f (NInst  x y) =  (NInst  x (f y))  
 
 data Inst vector gauge = 
   Imm Dynamic |

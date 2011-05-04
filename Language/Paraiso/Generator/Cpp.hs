@@ -5,7 +5,7 @@
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
-     Cpp(..), Manifest(..), autoStrategy
+     Cpp(..), autoStrategy
     ) where
 import qualified Algebra.Ring as Ring
 import           Control.Monad as Monad
@@ -27,25 +27,31 @@ import           Language.Paraiso.Tensor
 import           NumericPrelude
 import           System.Directory
 import           System.FilePath
+import           Unsafe.Coerce
 
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
-
-data Manifest = Manifest | MDelayed | MAuto deriving (Eq, Show)
 
 autoStrategy :: Strategy Cpp
 autoStrategy = CppStrategy Alloc.Auto
 
 instance Generator Cpp where
   data Strategy Cpp = CppStrategy Alloc.Allocation deriving (Eq, Show)
-  generate _ pom path = do
+  generate _ pom0 path = do
     let 
-      members = makeMembers pom
-      headerFn = nameStr pom ++ ".hpp"
-      cppFn = nameStr pom ++ ".cpp"
+      pom1 = decideStrategy pom0
+      members = makeMembers pom1
+      headerFn = nameStr pom1 ++ ".hpp"
+      cppFn = nameStr pom1 ++ ".cpp"
     createDirectoryIfMissing True path
-    writeFile (path </> headerFn) $ genHeader members pom
-    writeFile (path </> cppFn) $ genCpp headerFn members pom
+    writeFile "output/POM1.txt" $ show $ (unsafeCoerce pom1 :: POM Vec2 Int (Strategy Cpp))
+    writeFile (path </> headerFn) $ genHeader members pom1
+    writeFile (path </> cppFn) $ genCpp headerFn members pom1
+
+
+{----                                                                -----}
+{---- Translations of names, symbols, types and values               -----}
+{----                                                                -----}
 
 instance Symbolable Cpp Dynamic where
   symbolF Cpp dyn = let
@@ -77,10 +83,11 @@ instance Symbolable Cpp DVal.DynValue where
 instance Symbolable Cpp Name where
   symbolF Cpp = return . nameStr
   
-
+-- | The databeses for Haskell -> Cpp immediate values translations.
 dynamicDB:: [Dynamic -> Maybe String]
 dynamicDB = map fst symbolDB
 
+-- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [TypeRep -> Maybe String]
 typeRepDB = map snd symbolDB
 
@@ -102,7 +109,61 @@ symbolDB = [
       (fmap f . fromDynamic, 
        \tr -> if tr==typeOf dummy then Just typename else Nothing)
 
+{----                                                                -----}
+{---- Make decisions on code generation strategies                   -----}
+{----                                                                -----}
 
+decideStrategy :: (Vector v, Ring.C g) => 
+                  POM v g (Strategy Cpp)
+               -> POM v g (Strategy Cpp)
+decideStrategy = POM.mapGraph dSGraph
+  where
+    dSGraph :: (Vector v, Ring.C g) => 
+               Graph v g (Strategy Cpp)
+            -> Graph v g (Strategy Cpp)
+    dSGraph graph = FGL.gmap 
+      (\(pre,n,lab,suc) -> (pre,n,fmap (modify graph n) lab,suc)) graph
+
+    modify :: (Vector v, Ring.C g) => 
+              Graph v g (Strategy Cpp) 
+           -> FGL.Node
+           -> Strategy Cpp
+           -> Strategy Cpp
+    modify graph n (CppStrategy alloc) = CppStrategy alloc'
+      where
+        alloc' = if alloc /= Alloc.Auto 
+                 then alloc
+                 else decideAlloc graph n
+    decideAlloc :: (Vector v, Ring.C g) => 
+                   Graph v g (Strategy Cpp) 
+                -> FGL.Node
+                -> Alloc.Allocation
+    decideAlloc graph n = 
+      if isGlobal || afterLoad || isStore || afterReduce
+      then Alloc.Manifest
+      else Alloc.Delayed
+        where
+          self0 = FGL.lab graph n
+          pre0  = (listToMaybe $ FGL.pre graph n) >>= FGL.lab graph
+          isGlobal  = case self0 of
+                        Just (NValue (DVal.DynValue Global _) _) -> True
+                        _                                        -> False
+          afterLoad = case pre0 of
+                        Just (NInst (Load _) _) -> True
+                        _                       -> False
+          isStore   = case self0 of
+                        Just (NInst (Store _) _) -> True
+                        _                        -> False
+
+          afterReduce = case pre0 of
+                        Just (NInst (Reduce _) _) -> True
+                        _                         -> False
+
+{----                                                                -----}
+{---- c++ class header generation                                    -----}
+{----                                                                -----}
+
+-- | Access type of c++ class members
 data AccessType = ReadWrite | ReadInit | ReadDepend String
 
 data CMember = CMember {accessType :: AccessType, memberDV :: (Named DynValue)}
@@ -199,6 +260,11 @@ genHeader members pom = unlines[
     
     kernelStr = unlines $ map (\kernel -> "void " ++ nameStr kernel ++ " ();") $
                 kernels pom
+
+{----                                                                -----}
+{---- c++ kernel generation                                          -----}
+{----                                                                -----}
+
 
 genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g a -> String
 genCpp headerFn _ pom = unlines [
