@@ -85,7 +85,7 @@ pom = fmap (\() -> autoStrategy) $
               
 main :: IO ()
 main = do
-  writeFile "output/POM.hs" $ show pom
+  writeFile "output/POM.txt" $ show pom ++ "\n"
   generate Cpp pom "dist"
   
 
