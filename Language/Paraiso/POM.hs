@@ -2,7 +2,7 @@
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.POM
   (
-   POM(..), makePOM
+   POM(..), makePOM, mapGraph
   ) where
 
 import qualified Algebra.Ring as Ring
@@ -25,10 +25,18 @@ instance (Vector v, Ring.C g) => Nameable (POM v g a) where
   name = pomName
 
 instance (Vector v, Ring.C g) => Monad.Functor (POM v g) where
-  fmap f pom = pom
-    { kernels = map 
-       (\kern -> kern{dataflow = nmap f $ dataflow kern}) $ 
-      kernels pom}
+  fmap = mapGraph . nmap 
+
+-- | modify each of the graphs in POM.
+mapGraph :: (Vector v, Ring.C g) => 
+            (Graph v g a -> Graph v g b)
+         -> POM v g a         
+         -> POM v g b
+mapGraph f pom = pom
+                 { kernels = map 
+                   (\kern -> kern{dataflow = f $ dataflow kern}) $ 
+                   kernels pom}
+
 
 -- | create a POM easily and consistently.
 makePOM :: (Vector v, Ring.C g) => 
