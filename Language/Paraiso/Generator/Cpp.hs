@@ -144,7 +144,7 @@ decideStrategy = POM.mapGraph dSGraph
       else Alloc.Delayed
         where
           self0 = FGL.lab graph n
-          pre0  = (listToMaybe $ FGL.pre graph n) >>= FGL.lab graph
+          pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph n) 
           isGlobal  = case self0 of
                         Just (NValue (DVal.DynValue Global _) _) -> True
                         _                                        -> False
