@@ -359,6 +359,11 @@ cursorToNode cur = do
   graph <- bindersGraph
   return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
 
+addBinding :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g ()
+addBinding cursor = do 
+  lhs <- leftHandSide cursor
+  return ()
+
 leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
 leftHandSide cur = do
   node  <- cursorToNode cur
@@ -427,9 +432,7 @@ declareKernel classPrefix kern = unlines [
                                  Alloc.Manifest -> [genSub n node]
                                  _              -> []
     genSub n node = 
-      runBinder graph n $ \cursor -> do 
-        lhs <- leftHandSide cursor
-        return ()
+      runBinder graph n addBinding
 
         
 
