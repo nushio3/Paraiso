@@ -10,7 +10,7 @@ module Language.Paraiso.Generator.Cpp
     ) where
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import           Control.Monad as Monad
+import           Control.Monad
 import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
 import           Data.Char (isAlphaNum)
@@ -26,6 +26,7 @@ import           Language.Paraiso.Failure
 import           Language.Paraiso.Generator
 import qualified Language.Paraiso.Generator.Allocation as Alloc
 import           Language.Paraiso.OM.Arithmetic (arity)
+import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm (Realm(..))
@@ -320,6 +321,39 @@ type Binder v g a = State (BinderState v g) a
  
 data HandSide = LeftHand | RightHand deriving (Eq, Show)
 
+arithRep :: A.Operator -> [String] -> String
+arithRep op = let
+    paren x =  "(" ++ x ++ ")"
+    unary symb [x] = paren $ unwords [symb,x]
+    infx symb [x,y] = paren $ unwords [x,symb,y]
+    func symb xs = symb ++ paren (List.concat $ List.intersperse "," xs)
+    err = error $ "undefined operator : " ++ show op
+  in case op of
+    A.Add -> infx "+"
+    A.Sub -> infx "-"
+    A.Neg -> unary "-"
+    A.Mul -> infx "*" 
+    A.Div -> infx "/" 
+    A.Inv -> unary "1/"
+    A.Not -> unary "!"
+    A.And -> infx "&&" 
+    A.Or -> infx "||" 
+    A.EQ -> infx "==" 
+    A.NE -> infx "!=" 
+    A.LT -> infx "<" 
+    A.LE -> infx "<=" 
+    A.GT -> infx ">" 
+    A.GE -> infx ">=" 
+    A.Select -> (\[x,y,z] -> paren $ unwords [x,"&",y,":",z])
+    A.Ipow -> func "pow"
+    A.Pow -> func "pow"
+    A.Madd -> err
+    A.Msub ->  err
+    A.Nmadd ->  err
+    A.Nmsub ->  err
+    A.Sincos ->  err
+            
+
 
 runBinder :: (Additive.C (v g)) =>
   Graph v g (Strategy Cpp) -> FGL.Node -> (Cursor v g -> Binder v g ()) -> String
@@ -459,7 +493,10 @@ rhsInst inst cursor = do
     Shift vec   -> cursorToSymbol RightHand headCursor
                    {cursorToShift = vec + cursorToShift headCursor}
     LoadIndex _ -> return "LoadIndex madados"
-    Arith op    -> return $ "nanka " ++ show op ++ " nanka"
+    Arith op    -> do
+              xs <- mapM rightHandSide preCursors
+              return $ arithRep op xs
+
 
 
 {----                                                                -----}
