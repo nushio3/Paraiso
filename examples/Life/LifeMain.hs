@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
@@ -8,7 +8,7 @@ import Data.Typeable
 import Data.Traversable (sequenceA)
 import Data.Foldable (foldl1)
 --import qualified Data.Graph.Inductive as FGL
-import Language.Paraiso.Tensor
+import Language.Paraiso.Generator.Cpp
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
@@ -17,6 +17,7 @@ import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.POM
 import Language.Paraiso.Prelude hiding (foldl1)
+import Language.Paraiso.Tensor
 
 
 
@@ -28,11 +29,11 @@ intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 
 
 
-lifeSetup :: Setup Vec2 Int
+lifeSetup :: Setup Vec2 Int 
 lifeSetup = Setup $ 
-            [NamedValue (Name "population") intGDV] ++
-            [NamedValue (Name "generation") intGDV] ++
-            [NamedValue (Name "cell") intDV] 
+            [Named (Name "population") intGDV] ++
+            [Named (Name "generation") intGDV] ++
+            [Named (Name "cell") intDV] 
 
 
 adjVecs :: [Vec2 Int]
@@ -58,28 +59,36 @@ buildProceed = do
   isAlive <- bind $
              (cell `eq` 0) && (num `eq` 3) ||
              (cell `eq` 1) && (num `ge` 2) && (num `le` 3) 
-  store (Name "population") $ reduce Reduce.Sum cell
+  newCell <- bind $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "population") $ reduce Reduce.Sum newCell
   store (Name "generation") $ gen + 1
-  store (Name "cell") $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "cell") $ newCell
 
 
 buildInit :: Builder Vec2 Int ()
 buildInit = do
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
   alive <- bind $ foldl1 (||) [agree coord point | point <- r5mino ]
-  store (Name "cell") $ select alive (1::BuilderOf Rlm.TLocal Int) 0
+  cell  <- bind $ select alive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "cell") $ cell
+  store (Name "population") $ reduce Reduce.Sum cell
+  store (Name "generation") $ (0::BuilderOf Rlm.TGlobal Int) 
   
   where
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
-pom :: POM Vec2 Int ()
-pom = makePOM lifeSetup
-      [(Name "init"   , buildInit),
-       (Name "proceed", buildProceed)]
+pom :: POM Vec2 Int (Strategy Cpp)
+pom = fmap (\() -> autoStrategy) $ 
+  makePOM (Name "Life")  lifeSetup
+    [(Name "init"   , buildInit),
+     (Name "proceed", buildProceed)]
               
 main :: IO ()
-main = writeFile "output/POM.hs" $ show pom
+main = do
+  writeFile "output/POM.txt" $ show pom ++ "\n"
+  generate Cpp pom "dist"
+ 
 
-  
+
   

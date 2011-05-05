@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes, TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, 
+  RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
@@ -23,7 +24,7 @@ import qualified Algebra.Field as Field
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
-import Data.Dynamic (Typeable, typeOf)
+import Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
 import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.DynValue as DVal
@@ -108,20 +109,20 @@ valueToNode val = do
   case val of
     FromNode _ _ n -> return n
     FromImm _ _ -> do
-             n0 <- addNode [] (NInst (Imm (typeOf con) (Dynamic.toDyn con)) ())
+             n0 <- addNode [] (NInst (Imm (Dynamic.toDyn con)) ())
              n1 <- addNode [n0] (NValue type0 ())
              return n1
 
--- | look up the 'NamedValue' with the correct name and type 
+-- | look up the 'Named' 'DynValue' with the correct name and type 
 -- is included in the 'staticValues' of the 'BuilderState'
-lookUpStatic :: NamedValue -> B ()
-lookUpStatic (NamedValue name0 type0)= do
+lookUpStatic :: Named DynValue -> B ()
+lookUpStatic (Named name0 type0)= do
   st <- State.get 
   let
-      vs :: [NamedValue]
+      vs :: [Named DynValue]
       vs = staticValues $ setup st
       matches = filter ((==name0).name) vs
-      (NamedValue _ type1) = head matches
+      (Named _ type1) = head matches
   when (length matches == 0) $ fail ("no name found: " ++ nameStr name0)
   when (length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
   when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
@@ -136,7 +137,7 @@ load :: (TRealm r, Typeable c) =>
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
-      nv = NamedValue name0 type0
+      nv = Named name0 type0
   lookUpStatic nv
   n0 <- addNode [] (NInst (Load name0) ())
   n1 <- addNode [n0] (NValue type0 ())
@@ -151,7 +152,7 @@ store name0 builder0 = do
   val0 <- builder0
   let 
       type0 = toDyn val0
-      nv = NamedValue name0 type0
+      nv = Named name0 type0
   lookUpStatic nv
   n0 <- valueToNode val0
   _ <- addNode [n0] (NInst (Store name0) ())
@@ -267,6 +268,7 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
   
+-- | 'Builder' needs to be an instance of 'Prelude.Num' to be able to read GHC numeric immediates.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
   (+) = (Additive.+)
   (*) = (Ring.*)

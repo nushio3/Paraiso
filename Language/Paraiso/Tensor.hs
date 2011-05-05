@@ -23,20 +23,15 @@ import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import Control.Applicative
 import Control.Monad
-import Control.Monad.Failure
 import Data.Foldable
 import Data.Traversable
+import Language.Paraiso.Failure
 import NumericPrelude
-import System.IO.Unsafe
 
 infixl 9 !
 -- | a component operator.
 (!) :: Vector v => v a -> Axis v -> a
 v ! i  = component i v   
-
-
-unsafePerformFailure :: IO a -> a
-unsafePerformFailure = unsafePerformIO
 
 -- | data constructor for 0-dimensional tensor.
 data Vec a = Vec 
@@ -47,6 +42,8 @@ data n :~ a = (n a) :~ a
 
 deriving instance (Eq a) => Eq (Vec a)
 deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
+deriving instance (Ord a) => Ord (Vec a)
+deriving instance (Ord a, Ord (n a)) => Ord (n :~ a)
 deriving instance (Show a) => Show (Vec a)
 deriving instance (Show a, Show (n a)) => Show (n :~ a)
 deriving instance (Read a) => Read (Vec a)

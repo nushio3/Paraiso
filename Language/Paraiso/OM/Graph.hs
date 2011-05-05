@@ -1,18 +1,21 @@
-{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude, StandaloneDeriving #-}
+{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude, 
+  StandaloneDeriving #-}
 {-# OPTIONS -Wall #-}
 
 -- | all the components for constructing Orthotope Machine data flow draph.
 module Language.Paraiso.OM.Graph
     (
-     Setup(..), Kernel(..), Graph,
-     Name(..), Named(..), NamedValue(..), Annotation(..),
+     Setup(..), Kernel(..), Graph, nmap, getA,
+     Annotation(..),
      Node(..), 
-     Inst(..)
+     Inst(..),
+     module Language.Paraiso.Name
     )where
 
 import qualified Algebra.Ring as Ring
 import Data.Dynamic
-import qualified Data.Graph.Inductive as G
+import qualified Data.Graph.Inductive as FGL
+import Language.Paraiso.Name
 import Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Reduce as R
 import Language.Paraiso.OM.DynValue
@@ -23,9 +26,9 @@ import NumericPrelude
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
 -- It's basically a list of static orthotopes 
 -- (its identifier, Realm and Type carried in the form of 'NamedValue')
-data  (Vector vector, Ring.C gauge) => Setup vector gauge  = 
+data  (Vector vector, Ring.C gauge) => Setup vector gauge = 
   Setup {
-    staticValues :: [NamedValue]
+    staticValues :: [Named DynValue]
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM does a bunch of calculations on OM.
@@ -35,31 +38,26 @@ data (Vector vector, Ring.C gauge) => Kernel vector gauge a =
     dataflow :: Graph vector gauge a
   }         
     deriving (Show)
-instance (Vector v, Ring.C g) => Named (Kernel v g a) where
+
+instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
   name = kernelName
-
--- | name identifier.
-newtype Name = Name String deriving (Eq, Show)
-class Named a where
-  name :: a -> Name
-  nameStr :: a -> String
-  nameStr = (\(Name str) -> str) . name
-instance Named Name where
-  name = id
-
--- | a 'DynValue' with a specific name.
-data NamedValue = NamedValue Name DynValue deriving (Eq, Show)
-instance Named NamedValue where
-  name (NamedValue n _) = n
 
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.
+type Graph vector gauge a = FGL.Gr (Node vector gauge a) ()
 
-type Graph vector gauge a = G.Gr (Node vector gauge a) ()
+-- | Map the 'Graph' annotation from one type to another. Unfortunately we cannot make one data
+-- both the instances of 'FGL.Graph' and 'Functor', so 'nmap' is a standalone function.
+nmap :: (Vector v, Ring.C g) => (a -> b) -> Graph v g a ->  Graph v g b
+nmap f = let
+    nmap' f0 (NValue x a0) = (NValue x $ f0 a0) 
+    nmap' f0 (NInst  x a0) = (NInst  x $ f0 a0) 
+  in FGL.nmap (nmap' f)
 
--- | The node for the dataflow 'Graph' of the Orthotope machine.
+
+-- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
-data (Vector vector, Ring.C gauge) => Node vector gauge a = 
+data Node vector gauge a = 
   -- | A value node. An 'NValue' node only connects to 'NInst' nodes.
   -- An 'NValue' node has one and only one input edge, and has arbitrary number of output edges.
   NValue DynValue a |
@@ -68,11 +66,20 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
   NInst (Inst vector gauge) a
         deriving (Show)
 
+-- | get annotation of the node.
+getA :: Node v g a -> a
+getA nd = case nd of
+  NValue _ x -> x
+  NInst  _ x -> x
+  
 
 
+instance (Vector v, Ring.C g) => Functor (Node v g) where
+  fmap f (NValue x y) =  (NValue x (f y))  
+  fmap f (NInst  x y) =  (NInst  x (f y))  
 
 data Inst vector gauge = 
-  Imm TypeRep Dynamic |
+  Imm Dynamic |
   Load Name |
   Store Name |
   Reduce R.Operator |
@@ -84,7 +91,7 @@ data Inst vector gauge =
 
 instance Arity (Inst vector gauge) where
   arity a = case a of
-    Imm _ _   -> (0,1)
+    Imm _     -> (0,1)
     Load _    -> (0,1)
     Store _   -> (1,0)
     Reduce _  -> (1,1)
