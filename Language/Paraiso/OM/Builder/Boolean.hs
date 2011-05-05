@@ -8,7 +8,7 @@ module Language.Paraiso.OM.Builder.Boolean
 
 import qualified Algebra.Ring as Ring
 import qualified Algebra.Additive as Additive
-import Data.Dynamic (Typeable)
+import Data.Dynamic (Typeable, typeOf)
 import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Builder.Internal
 import Language.Paraiso.OM.DynValue as DVal
@@ -33,7 +33,7 @@ mkOp2B op builder1 builder2 = do
   n1 <- valueToNode v1
   n2 <- valueToNode v2
   n0 <- addNode [n1, n2] (NInst (Arith op) ())
-  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  n01 <- addNode [n0] (NValue (toDyn v1){typeRep = typeOf True} ())
   return $ FromNode r1 True n01
 
 
