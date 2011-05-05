@@ -67,10 +67,10 @@ data Node vector gauge a =
         deriving (Show)
 
 -- | get annotation of the node.
-getA :: (Vector v, Ring.C g) => Node v g a -> a
+getA :: Node v g a -> a
 getA nd = case nd of
-  NValue _ s -> s
-  NInst  _ s -> s
+  NValue _ x -> x
+  NInst  _ x -> x
   
 
 

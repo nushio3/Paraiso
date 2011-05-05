@@ -184,6 +184,10 @@ sizeName :: Name
 sizeName = Name "size"
 sizeForAxis :: (Vector v) => Axis v -> Name
 sizeForAxis axis = Name $ "size" ++ show (axisIndex axis)
+               
+fglNodeName :: FGL.Node -> Name    
+fglNodeName n = Name $ "a" ++ show n
+
 
 makeMembers :: (Vector v, Ring.C g) => POM v g a -> [CMember]
 makeMembers pom =  [sizeMember] ++ sizeAMembers ++ map (CMember ReadWrite) vals 
@@ -283,10 +287,10 @@ commonInclude = unlines[
 
 -- | A representation for Addressed Single Static Assignment.
 data Cursor v g = 
-    -- | node number and shift
-    CurLocal  FGL.Node (v g) |
-    -- | node number 
-    CurGlobal FGL.Node 
+  -- | node number and shift
+  CurLocal  { cursorToFGLNode :: FGL.Node, cursorToShift :: (v g)} |
+  -- | node number 
+  CurGlobal { cursorToFGLNode :: FGL.Node }
               deriving (Eq, Ord, Show)
                        
 data Context  = 
@@ -306,7 +310,7 @@ runBinder :: (Additive.C (v g)) =>
   Graph v g (Strategy Cpp) -> FGL.Node -> (Cursor v g -> Binder v g ()) -> String
 runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
   where 
-    rlm = rhsRealm graph0 n0
+    rlm = lhsRealm graph0 n0
     bindStr = unlines $ Map.elems $ bindings state
     state = snd $ State.runState (binder iniCur) ini
     
@@ -329,25 +333,44 @@ runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
                   ++ i ++ " < " ++ symbol Cpp sizeName ++ "() ; " 
                   ++  "++" ++ i ++ ")"
 
-rhsRealm :: Graph v g (Strategy Cpp) -> FGL.Node -> Realm 
-rhsRealm graph n = 
+lhsRealm :: Graph v g (Strategy Cpp) -> FGL.Node -> Realm 
+lhsRealm graph n = 
   case fromJust $ FGL.lab graph n of     
     NValue dyn0 _ -> DVal.realm dyn0
     NInst inst  _ -> 
       case inst of
-        Store _ -> rhsRealm graph $ head $ FGL.pre graph n
+        Store _ -> lhsRealm graph $ head $ FGL.pre graph n
         _       -> undefined
 
 
-binder'sGraph :: Binder v g (Graph v g (Strategy Cpp))
-binder'sGraph =  fmap graphCtx State.get
+bindersGraph :: Binder v g (Graph v g (Strategy Cpp))
+bindersGraph =  fmap graphCtx State.get
 
-rightHandSide :: (Cursor v g) -> Binder v g String
-rightHandSide cursor = do
-  graph <- binder'sGraph
-  return ""
-    
+bindersContext :: Binder v g Context
+bindersContext = fmap context State.get
 
+cursorToNode :: (Cursor v g) -> Binder v g (Node v g (Strategy Cpp))
+cursorToNode cur = do
+  graph <- bindersGraph
+  return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
+
+leftHandSide :: (Cursor v g) -> Binder v g String
+leftHandSide cur = do
+  node  <- cursorToNode cur
+  ctx <- bindersContext
+  let 
+    name0 = case node of
+              NValue _ _   -> fglNodeName $ cursorToFGLNode cur
+              NInst inst _ -> case inst of
+                                Store name1 -> name1
+                                _           -> error $ "this inst cannot be in lhs" 
+    alloc = allocStrategy $ getA node 
+    suffix i = case alloc of
+                 Alloc.Manifest -> "[" ++ nameStr i ++ "]"
+                 Alloc.Delayed  -> "_0_0_0"
+  case ctx of
+    CtxGlobal  -> return $ nameStr name0
+    CtxLocal i -> return $ nameStr name0 ++ suffix i
 
 {----                                                                -----}
 {---- c++ kernel generation                                          -----}
@@ -378,8 +401,6 @@ declareKernel classPrefix kern = unlines [
     graph = dataflow kern
     labNodes = FGL.labNodes graph
 
-    nodeName n = "a" ++ show n
-
     nodeToRealm n = case (fromJust $ FGL.lab graph n) of
       NValue dyn0 _ -> DVal.realm dyn0
       _ -> error "nodeToRealm called on NInst"
@@ -388,7 +409,7 @@ declareKernel classPrefix kern = unlines [
     declareNode (n, node) = case node of
         NInst _ _  -> []
         NValue dyn0 (CppStrategy Alloc.Delayed) -> []
-        NValue dyn0 _ -> [declareVal (nodeName n) dyn0]
+        NValue dyn0 _ -> [declareVal (nameStr $ fglNodeName n) dyn0]
     declareVal name0 dyn0 = let
         x = if DVal.realm dyn0 == Local 
           then "(" ++ symbol Cpp sizeName ++ "())"
@@ -400,7 +421,7 @@ declareKernel classPrefix kern = unlines [
                                  _              -> []
     genSub n node = 
       runBinder graph n $ \cursor -> do 
-        rhs <- rightHandSide cursor
+        lhs <- leftHandSide cursor
         return ()
 
         
