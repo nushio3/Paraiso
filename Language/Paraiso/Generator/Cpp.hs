@@ -299,15 +299,29 @@ data BinderState v g = BinderState {
 
 type Binder v g a = State (BinderState v g) a
  
-runBinder :: BinderState v g -> Binder v g () -> String
-runBinder ini binder = unlines [bindStr, codeStr]
+runBinder :: Graph v g (Strategy Cpp) -> Realm -> Binder v g () -> String
+runBinder graph0 rlm binder = unlines $ header ++  [bindStr, codeStr] ++ footer
   where 
     bindStr = unlines $ Map.elems $ bindings state
     codeStr = unlines $ codes state
     state = snd $ State.runState binder ini
-  
-
-
+    
+    ini = BinderState {
+            context  = case rlm of 
+                         Global -> CtxGlobal
+                         Local  -> CtxLocal $ Name "i",
+            graph    = graph0,
+            bindings = Map.empty,
+            codes    = []
+          }
+    
+    (header,footer) = case context state of
+      CtxGlobal -> ([],[])
+      CtxLocal loopIndex -> ([loop (symbol Cpp loopIndex) ++ " {"], ["}"])
+    loop i =
+      "for (int" ++ i ++ " = 0 ; " 
+                 ++ i ++ " < " ++ symbol Cpp sizeName ++ "() ; " 
+                 ++  "++" ++ i ++ ")"
 
 
 {----                                                                -----}
