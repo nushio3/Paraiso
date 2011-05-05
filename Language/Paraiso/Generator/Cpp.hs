@@ -344,7 +344,7 @@ arithRep op = let
     A.LE -> infx "<=" 
     A.GT -> infx ">" 
     A.GE -> infx ">=" 
-    A.Select -> (\[x,y,z] -> paren $ unwords [x,"&",y,":",z])
+    A.Select -> (\[x,y,z] -> paren $ unwords [x,"?",y,":",z])
     A.Ipow -> func "pow"
     A.Pow -> func "pow"
     A.Madd -> err
@@ -444,9 +444,12 @@ cursorToSymbol side cur = do
                                 Store name1 -> name1
                                 Load  name1 -> name1
                                 _           -> error $ "this inst does not have symbol" 
+    typeDelayed = case node of
+                    NValue dyn0 _ -> symbol Cpp dyn0{DVal.realm = Global}
+                    _             -> error "no type"
     alloc = allocStrategy $ getA node 
     prefix = if side == LeftHand && alloc == Alloc.Delayed 
-             then "const " else ""
+             then "const " ++ typeDelayed ++ " " else ""
     isManifest = case alloc of
                    Alloc.Delayed  -> case node of
                                        NValue _ _ -> False
@@ -456,6 +459,7 @@ cursorToSymbol side cur = do
     suffix i = if isManifest then "[" ++ nameStr i ++ "]" 
                              else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
+
   case ctx of
     CtxGlobal  -> return $ nameStr name0
     CtxLocal i -> return $ prefix ++ nameStr name0 ++ suffix i
