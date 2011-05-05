@@ -261,6 +261,14 @@ genHeader members pom = unlines[
     kernelStr = unlines $ map (\kernel -> "void " ++ nameStr kernel ++ " ();") $
                 kernels pom
 
+
+commonInclude :: String
+commonInclude = unlines[
+                 "#include <vector>",
+                 "#include <cmath>",
+                 ""
+                ]
+
 {----                                                                -----}
 {---- c++ kernel generation                                          -----}
 {----                                                                -----}
@@ -282,7 +290,6 @@ declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g (Strategy Cpp)-> S
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
   declareNodes labNodes,
-  genInsts labNodes,
   "return;",
   "}"
                      ]
@@ -291,8 +298,6 @@ declareKernel classPrefix kern = unlines [
     labNodes = FGL.labNodes graph
 
     nodeName n = "a" ++ show n
-    nodeSinglet i n = nodeName n ++ i
-    namedSinglet i name0 = symbol Cpp name0 ++ "()" ++ i
 
     nodeToRealm n = case (fromJust $ FGL.lab graph n) of
       NValue dyn0 _ -> DVal.realm dyn0
@@ -309,45 +314,4 @@ declareKernel classPrefix kern = unlines [
           else ""
      in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
 
-    genInsts = unlines . concat . map genInst
-    genInst (n, node) =  case node of
-      NValue _ _ -> []
-      NInst inst _ -> [genInst' inst n (FGL.pre graph n) (FGL.suc graph n)]
-    genInst' inst n pres sucs = let
-      (np, ns) = arity inst
-      suc0 = head sucs
-      pre0 = head pres
-      correct = np == length pres && ns == length sucs 
-      comment = if correct then "" else "/* BAD ARITY */"
-     in comment ++ case inst of
-          Imm dyn0 -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ symbol Cpp dyn0 ++ ";")
-          Load name0 -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ namedSinglet i name0 ++ ";")
-          Store name0 -> env pre0 (\i -> namedSinglet i name0 ++ " = " ++ nodeSinglet i pre0 ++ ";")
-          Reduce op -> envR op (nodeSinglet "" suc0) (\i -> nodeSinglet i pre0)
-          Broadcast -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ nodeSinglet "" pre0 ++ ";")
-          Arith op -> env suc0 (\i -> nodeSinglet i suc0 ++ " = " ++ genArith op pres ++ ";")
-          _ -> "/* noop */"
 
-    env :: FGL.Node -> (String -> String) -> String
-    env n f = if nodeToRealm n == Global
-              then f ""
-              else unlines ["for (int i = 0; i < " ++ nameStr sizeName ++ "() ; ++i) {", f "[i]","}"]
-    envR op sum f =
-      unlines [
-        sum ++ " = " ++ f "[0];" ,
-        "for (int i = 1; i < " ++ nameStr sizeName ++ "() ; ++i) {", 
-        sum ++ " = " ++ genReduce op sum (f "[i]") ++ ";",
-        "}"]
-    genReduce op sum x = case op of
-                           Reduce.Max -> "max(" ++ sum ++ "," ++ x ++ ")"
-                           Reduce.Min -> "min(" ++ sum ++ "," ++ x ++ ")"
-                           Reduce.Sum -> "(" ++ sum ++ "+" ++ x ++ ")"
-    genArith op pres = show op ++ show pres
-
-
-commonInclude :: String
-commonInclude = unlines[
-                 "#include <vector>",
-                 "#include <cmath>",
-                 ""
-                ]
