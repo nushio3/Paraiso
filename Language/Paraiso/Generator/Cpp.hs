@@ -373,8 +373,10 @@ declareKernel classPrefix kern = unlines [
     substituteNode (n, node) = case allocStrategy $ getA node of
                                  Alloc.Manifest -> [genSub n node]
                                  _              -> []
-    genSub n node = nodeName n ++ " = something;" 
-    
-
-
-
+    genSub n node = let
+      rlm node0 = case node0 of     
+        NValue dyn0 _ -> DVal.realm dyn0
+        NInst inst  _ -> case inst of
+                           Store _ -> rlm $ fromJust $ FGL.lab graph $ head $ FGL.pre graph n
+                           _       -> undefined
+     in "hige-"
