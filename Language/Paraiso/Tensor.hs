@@ -42,6 +42,8 @@ data n :~ a = (n a) :~ a
 
 deriving instance (Eq a) => Eq (Vec a)
 deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
+deriving instance (Ord a) => Ord (Vec a)
+deriving instance (Ord a, Ord (n a)) => Ord (n :~ a)
 deriving instance (Show a) => Show (Vec a)
 deriving instance (Show a, Show (n a)) => Show (n :~ a)
 deriving instance (Read a) => Read (Vec a)
