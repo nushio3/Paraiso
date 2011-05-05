@@ -268,6 +268,7 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
   
+-- | 'Builder' needs to be an instance of 'Prelude.Num' to be able to read GHC numeric immediates.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
   (+) = (Additive.+)
   (*) = (Ring.*)

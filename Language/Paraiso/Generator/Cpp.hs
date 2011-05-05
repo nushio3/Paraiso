@@ -9,6 +9,8 @@ module Language.Paraiso.Generator.Cpp
     ) where
 import qualified Algebra.Ring as Ring
 import           Control.Monad as Monad
+import           Control.Monad.State (State)
+import qualified Control.Monad.State as State
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
@@ -286,8 +288,25 @@ data Cursor v g =
 data Context  = 
     CtxGlobal |
     CtxLocal  Name     -- ^The name of the indexing variable.
+    deriving (Eq, Ord, Show)
 
-data Bindings v g = Bindings {  bindings :: Map (Cursor v g) String }
+data BinderState v g = BinderState {  
+  context  :: Context,
+  graph    :: Graph v g (Strategy Cpp),
+  bindings :: Map (Cursor v g) String ,
+  codes    :: [String]
+    }              deriving (Show)
+
+type Binder v g a = State (BinderState v g) a
+ 
+runBinder :: BinderState v g -> Binder v g () -> String
+runBinder ini binder = unlines [bindStr, codeStr]
+  where 
+    bindStr = unlines $ Map.elems $ bindings state
+    codeStr = unlines $ codes state
+    state = snd $ State.runState binder ini
+  
+
 
 
 
