@@ -339,6 +339,15 @@ rhsRealm graph n =
         _       -> undefined
 
 
+binder'sGraph :: Binder v g (Graph v g (Strategy Cpp))
+binder'sGraph =  fmap graphCtx State.get
+
+rightHandSide :: (Cursor v g) -> Binder v g String
+rightHandSide cursor = do
+  graph <- binder'sGraph
+  return ""
+    
+
 
 {----                                                                -----}
 {---- c++ kernel generation                                          -----}
@@ -390,6 +399,9 @@ declareKernel classPrefix kern = unlines [
                                  Alloc.Manifest -> [genSub n node]
                                  _              -> []
     genSub n node = 
-      runBinder graph n (const $ return ()) 
+      runBinder graph n $ \cursor -> do 
+        rhs <- rightHandSide cursor
+        return ()
+
         
 
