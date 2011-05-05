@@ -466,10 +466,13 @@ cursorToSymbol side cur = do
                                        NValue _ _ -> False
                                        _          -> True
                    _              -> True
-    -- | TODO shift i
-    suffix i = if isManifest then "[" ++ nameStr i ++ "]" 
+                     
+    suffix i = if isManifest then "[" ++ nameStr i ++ shiftStr ++ "]" 
                              else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
+    
+    shiftStr = foldMap id $ compose shiftAxis
+    shiftAxis ax = paren $ show (axisIndex ax) ++ "..." ++  symbol Cpp ((cursorToShift cur)!ax)
 
   case ctx of
     CtxGlobal  -> return $ nameStr name0

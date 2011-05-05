@@ -59,9 +59,10 @@ buildProceed = do
   isAlive <- bind $
              (cell `eq` 0) && (num `eq` 3) ||
              (cell `eq` 1) && (num `ge` 2) && (num `le` 3) 
-  store (Name "population") $ reduce Reduce.Sum cell
+  newCell <- bind $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "population") $ reduce Reduce.Sum newCell
   store (Name "generation") $ gen + 1
-  store (Name "cell") $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
+  store (Name "cell") $ newCell
 
 
 buildInit :: Builder Vec2 Int ()
