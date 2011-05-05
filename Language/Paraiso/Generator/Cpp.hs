@@ -303,10 +303,11 @@ data Context  =
     CtxLocal  Name     -- ^The name of the indexing variable.
     deriving (Eq, Ord, Show)
 
+type BindingMap v g= Map (Cursor v g) String
 data BinderState v g = BinderState {  
   context     :: Context,
   graphCtx    :: Graph v g (Strategy Cpp),
-  bindings    :: Map (Cursor v g) String 
+  bindings    :: BindingMap v g
     }              deriving (Show)
 
 type Binder v g a = State (BinderState v g) a
@@ -354,15 +355,30 @@ bindersGraph =  fmap graphCtx State.get
 bindersContext :: Binder v g Context
 bindersContext = fmap context State.get
 
+bindersMap :: Binder v g (BindingMap v g)
+bindersMap = fmap bindings State.get
+
+
+bindingModify :: (BindingMap v g -> BindingMap v g) -> Binder v g ()
+bindingModify f = do
+  s <- State.get
+  m <- bindersMap
+  State.put s{bindings = f m}
+
 cursorToNode :: (Cursor v g) -> Binder v g (Node v g (Strategy Cpp))
 cursorToNode cur = do
   graph <- bindersGraph
   return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
 
-addBinding :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g ()
+addBinding :: (Vector v, Symbolable Cpp g, Ord (v g)) => Cursor v g -> Binder v g ()
 addBinding cursor = do 
-  lhs <- leftHandSide cursor
-  return ()
+  m <- bindersMap
+  if Map.member cursor m
+     then return ()
+     else do
+       lhs <- leftHandSide cursor
+       bindingModify $ Map.insert cursor (lhs ++ " = hoge;")
+
 
 leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
 leftHandSide cur = do
@@ -387,7 +403,7 @@ leftHandSide cur = do
 {----                                                                -----}
 
 
-genCpp :: (Vector v, Ring.C g, Additive.C (v g), Symbolable Cpp g) =>
+genCpp :: (Vector v, Ring.C g, Additive.C (v g), Ord (v g),  Symbolable Cpp g) =>
           String -> [CMember] -> POM v g (Strategy Cpp) -> String
 genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
@@ -400,7 +416,7 @@ genCpp headerFn _ pom = unlines [
                 kernels pom
 
 
-declareKernel :: (Vector v, Ring.C g, Additive.C (v g),Symbolable Cpp g) => 
+declareKernel :: (Vector v, Ring.C g, Additive.C (v g), Ord (v g), Symbolable Cpp g) => 
                  String -> Kernel v g (Strategy Cpp)-> String
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
