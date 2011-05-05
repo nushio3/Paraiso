@@ -1,0 +1,9 @@
+(Vector v, Ring.C g) seems to be unnecessary in many positions.
+let us try removing them.
+
+names must be strictly qualified.
+Exceptions are internal modules (Language.Paraiso.*) and base.
+
+let us make Language.Paraiso.Prelude include fundamental abstraction
+modules, upto Traversable. and let Language.Paraiso.Prelude hide their
+lesser counterparts from Prelude.
