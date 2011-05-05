@@ -15,6 +15,7 @@ import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
 import           Data.Char (isAlphaNum)
 import           Data.Dynamic
+import           Data.Either (Either(..))
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
 import           Data.Foldable (foldMap)
@@ -333,7 +334,7 @@ runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
           }
     
     (header,footer) = case context state of
-      CtxGlobal -> (["{"],["}"])
+      CtxGlobal -> ([],[])
       CtxLocal loopIndex -> ([loop (symbol Cpp loopIndex) ++ " {"], ["}"])
     loop i =
       "for (int " ++ i ++ " = 0 ; " 
@@ -387,8 +388,11 @@ addBinding cursor = do
        bindingModify $ Map.insert cursor (lhs ++ " = " ++ rhs ++ ";")
 
 
-leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
-leftHandSide cur = do
+cursorToSymbol :: (Vector v, Symbolable Cpp g) =>
+                  Either () () 
+               -> Cursor v g 
+               -> Binder v g String
+cursorToSymbol side cur = do
   node  <- cursorToNode cur
   ctx <- bindersContext
   let 
@@ -396,23 +400,40 @@ leftHandSide cur = do
               NValue _ _   -> fglNodeName $ cursorToFGLNode cur
               NInst inst _ -> case inst of
                                 Store name1 -> name1
-                                _           -> error $ "this inst cannot be in lhs" 
+                                Load  name1 -> name1
+                                _           -> error $ "this inst does not have symbol" 
     alloc = allocStrategy $ getA node 
-    suffix i = case alloc of
-                 Alloc.Manifest -> "[" ++ nameStr i ++ "]"
-                 Alloc.Delayed  -> foldMap cppoku (cursorToShift cur)
+    prefix = if side == Left () && alloc == Alloc.Delayed 
+             then "const " else ""
+    isManifest = case alloc of
+                   Alloc.Delayed  -> case node of
+                                       NValue _ _ -> False
+                                       _          -> True
+                   _              -> True
+    suffix i = if isManifest then "[" ++ nameStr i ++ "]" 
+                             else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
   case ctx of
     CtxGlobal  -> return $ nameStr name0
-    CtxLocal i -> return $ nameStr name0 ++ suffix i
+    CtxLocal i -> return $ prefix ++ nameStr name0 ++ suffix i
+
+leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
+leftHandSide = cursorToSymbol (Left ())
 
 rightHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
 rightHandSide cur = do
   node0  <- cursorToNode cur
-  ctx0 <- bindersContext
-  let 
-    n0 = getA node0
-  return "hoge"
+  case node0 of
+    NInst inst _ -> rhsInst inst cur
+    NValue _ _   -> return "hoge"
+
+rhsInst :: (Vector v, Symbolable Cpp g) => Inst v g -> Cursor v g -> Binder v g String
+rhsInst inst cursor = 
+  case inst of
+    Imm dyn0 -> return $ symbol Cpp dyn0
+    Load _   -> cursorToSymbol (Right()) cursor
+    _ -> return "hugaa"
+  
 
 
 {----                                                                -----}
