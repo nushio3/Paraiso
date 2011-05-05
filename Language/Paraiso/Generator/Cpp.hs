@@ -475,19 +475,20 @@ cursorToSymbol side cur = do
                                        _          -> True
                    _              -> True
                      
-    suffix i = if isManifest then "[" ++ nameStr i ++ shiftStr ++ "]" 
+    suffix i = if isManifest then "[" ++ shiftStr i ++ "]" 
                              else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
     
-    shiftStr = if shift == Additive.zero 
-               then ""
-               else  " + " ++ (fst (mapAccumR shiftAccum "" allAxes)::String)
+    shiftStr i = if shift == Additive.zero 
+               then nameStr i
+               else fst (mapAccumR shiftAccum "" allAxes)
     allAxes  = fmap fst axes3
     idxAxes  = fmap snd axes3
     shift    = cursorToShift cur
 
-    shiftedAxis ax = paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax)]
-
+    shiftedAxis ax = paren$
+      (paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax),"+",sizeForAxisCall ax])
+      ++ "%" ++ sizeForAxisCall ax
 
     shiftAccum str ax = 
       if (axisIndex ax::Int) == dimension allAxes - 1
@@ -519,7 +520,7 @@ rhsInst inst cursor = do
   graph <- bindersGraph
   let 
     -- FGL indices of all the preceding nodes.
-    preNodes   = FGL.pre graph(cursorToFGLNode cursor)
+    preNodes   = List.sort $ FGL.pre graph(cursorToFGLNode cursor)
     -- Cursors of all the preceding nodes with context unchanged.
     preCursors = map (\n -> cursor{cursorToFGLNode = n}) preNodes
     headCursor = head preCursors
