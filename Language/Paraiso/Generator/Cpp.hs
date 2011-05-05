@@ -154,12 +154,13 @@ decideStrategy = POM.mapGraph dSGraph
                 -> FGL.Node
                 -> Alloc.Allocation
     decideAlloc graph n = 
-      if isGlobal || afterLoad || isStore || afterReduce
+      if isGlobal || afterLoad || isStore || beforeReduce || afterReduce
       then Alloc.Manifest
       else Alloc.Delayed
         where
           self0 = FGL.lab graph n
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph n) 
+          suc0  = FGL.lab graph =<<(listToMaybe $ FGL.suc graph n) 
           isGlobal  = case self0 of
                         Just (NValue (DVal.DynValue Global _) _) -> True
                         _                                        -> False
@@ -169,10 +170,13 @@ decideStrategy = POM.mapGraph dSGraph
           isStore   = case self0 of
                         Just (NInst (Store _) _) -> True
                         _                        -> False
-
+          beforeReduce = case suc0 of
+                        Just (NInst (Reduce _) _) -> True
+                        _                         -> False
           afterReduce = case pre0 of
                         Just (NInst (Reduce _) _) -> True
                         _                         -> False
+
 
 {----                                                                -----}
 {---- c++ class header generation                                    -----}
@@ -189,8 +193,13 @@ instance Nameable CMember where
 
 sizeName :: Name
 sizeName = Name "size"
+sizeNameCall :: String
+sizeNameCall = (++"()") . nameStr $ sizeName
+
 sizeForAxis :: (Vector v) => Axis v -> Name
 sizeForAxis axis = Name $ "size" ++ show (axisIndex axis)
+sizeForAxisCall :: (Vector v) => Axis v -> String
+sizeForAxisCall = (++"()") . nameStr . sizeForAxis
                
 fglNodeName :: FGL.Node -> Name    
 fglNodeName n = Name $ "a" ++ show n
@@ -321,9 +330,11 @@ type Binder v g a = State (BinderState v g) a
  
 data HandSide = LeftHand | RightHand deriving (Eq, Show)
 
+paren :: String -> String
+paren x =  "(" ++ x ++ ")"
+
 arithRep :: A.Operator -> [String] -> String
 arithRep op = let
-    paren x =  "(" ++ x ++ ")"
     unary symb [x] = paren $ unwords [symb,x]
     infx symb [x,y] = paren $ unwords [x,symb,y]
     func symb xs = symb ++ paren (List.concat $ List.intersperse "," xs)
@@ -441,9 +452,9 @@ cursorToSymbol side cur = do
     name0 = case node of
               NValue _ _   -> fglNodeName $ cursorToFGLNode cur
               NInst inst _ -> case inst of
-                                Store name1 -> name1
-                                Load  name1 -> name1
-                                _           -> error $ "this inst does not have symbol" 
+                                Store name1 -> Name $ (++ "()") $ nameStr name1
+                                Load  name1 -> Name $ (++ "()") $ nameStr name1
+                                _           -> error $ "this Inst does not have symbol" 
     typeDelayed = case node of
                     NValue dyn0 _ -> symbol Cpp dyn0{DVal.realm = Global}
                     _             -> error "no type"
@@ -496,12 +507,24 @@ rhsInst inst cursor = do
     Broadcast   -> cursorToSymbol RightHand (CurGlobal $ head preNodes)
     Shift vec   -> cursorToSymbol RightHand headCursor
                    {cursorToShift = vec + cursorToShift headCursor}
-    LoadIndex _ -> return "LoadIndex madados"
+    LoadIndex a -> rhsLoadIndex a
     Arith op    -> do
               xs <- mapM rightHandSide preCursors
               return $ arithRep op xs
 
-
+rhsLoadIndex :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
+                Axis v -> Binder v g String
+rhsLoadIndex axis = do
+  ctx <- bindersContext
+  let
+      loopVar = case ctx of
+                  CtxGlobal  -> error "cannot load index in gloabl context"
+                  CtxLocal i -> nameStr i
+      axes = foldMap (:[]) $ compose (\axis' -> head [axis', axis])
+      axesSmaller = List.filter (\ax -> axisIndex ax < axisIndex axis) axes
+      divs = paren $ unwords $ List.intersperse "/" $  loopVar : map sizeForAxisCall axesSmaller
+      ret =  paren $ unwords $ [divs , "%" ,sizeForAxisCall axis]
+  return ret
 
 {----                                                                -----}
 {---- c++ kernel generation                                          -----}
