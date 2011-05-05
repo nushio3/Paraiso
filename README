@@ -1,0 +1,7 @@
+Type the following commands to play with the Lifegame example.
+
+cd examples/Life/
+make lib
+make
+./main.out
+
