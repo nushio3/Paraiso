@@ -1,5 +1,10 @@
 Type the following commands to play with the Lifegame example.
 
+
+git clone https://github.com/nushio3/Paraiso.git
+cd Paraiso/
+cabal configure
+cabal install
 cd examples/Life/
 make lib
 make
