@@ -7,6 +7,7 @@ module Language.Paraiso.Generator.Cpp
      module Language.Paraiso.Generator,
      Cpp(..), autoStrategy
     ) where
+import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import           Control.Monad as Monad
 import           Control.Monad.State (State)
@@ -301,12 +302,17 @@ data BinderState v g = BinderState {
 
 type Binder v g a = State (BinderState v g) a
  
-runBinder :: Graph v g (Strategy Cpp) -> Realm -> Binder v g () -> String
-runBinder graph0 rlm binder = unlines $ header ++  [bindStr] ++ footer
+runBinder :: (Additive.C (v g)) =>
+  Graph v g (Strategy Cpp) -> FGL.Node -> (Cursor v g -> Binder v g ()) -> String
+runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
   where 
+    rlm = rhsRealm graph0 n0
     bindStr = unlines $ Map.elems $ bindings state
-    state = snd $ State.runState binder ini
+    state = snd $ State.runState (binder iniCur) ini
     
+    iniCur = case rlm of
+               Global -> CurGlobal n0
+               Local  -> CurLocal  n0 Additive.zero
     ini = BinderState {
             context  = case rlm of 
                          Global -> CtxGlobal
@@ -316,12 +322,22 @@ runBinder graph0 rlm binder = unlines $ header ++  [bindStr] ++ footer
           }
     
     (header,footer) = case context state of
-      CtxGlobal -> ([],[])
+      CtxGlobal -> (["{"],["}"])
       CtxLocal loopIndex -> ([loop (symbol Cpp loopIndex) ++ " {"], ["}"])
     loop i =
-      "for (int" ++ i ++ " = 0 ; " 
-                 ++ i ++ " < " ++ symbol Cpp sizeName ++ "() ; " 
-                 ++  "++" ++ i ++ ")"
+      "for (int " ++ i ++ " = 0 ; " 
+                  ++ i ++ " < " ++ symbol Cpp sizeName ++ "() ; " 
+                  ++  "++" ++ i ++ ")"
+
+rhsRealm :: Graph v g (Strategy Cpp) -> FGL.Node -> Realm 
+rhsRealm graph n = 
+  case fromJust $ FGL.lab graph n of     
+    NValue dyn0 _ -> DVal.realm dyn0
+    NInst inst  _ -> 
+      case inst of
+        Store _ -> rhsRealm graph $ head $ FGL.pre graph n
+        _       -> undefined
+
 
 
 {----                                                                -----}
@@ -329,7 +345,7 @@ runBinder graph0 rlm binder = unlines $ header ++  [bindStr] ++ footer
 {----                                                                -----}
 
 
-genCpp :: (Vector v, Ring.C g) => String -> [CMember] -> POM v g (Strategy Cpp) -> String
+genCpp :: (Vector v, Ring.C g, Additive.C (v g)) => String -> [CMember] -> POM v g (Strategy Cpp) -> String
 genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
   "",
@@ -341,7 +357,7 @@ genCpp headerFn _ pom = unlines [
                 kernels pom
 
 
-declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g (Strategy Cpp)-> String
+declareKernel :: (Vector v, Ring.C g, Additive.C (v g)) => String -> Kernel v g (Strategy Cpp)-> String
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
   declareNodes labNodes,
@@ -373,10 +389,7 @@ declareKernel classPrefix kern = unlines [
     substituteNode (n, node) = case allocStrategy $ getA node of
                                  Alloc.Manifest -> [genSub n node]
                                  _              -> []
-    genSub n node = let
-      rlm node0 = case node0 of     
-        NValue dyn0 _ -> DVal.realm dyn0
-        NInst inst  _ -> case inst of
-                           Store _ -> rlm $ fromJust $ FGL.lab graph $ head $ FGL.pre graph n
-                           _       -> undefined
-     in "hige-"
+    genSub n node = 
+      runBinder graph n (const $ return ()) 
+        
+

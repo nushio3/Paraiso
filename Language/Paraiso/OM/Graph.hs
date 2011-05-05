@@ -57,7 +57,7 @@ nmap f = let
 
 -- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
-data (Vector vector, Ring.C gauge) => Node vector gauge a = 
+data Node vector gauge a = 
   -- | A value node. An 'NValue' node only connects to 'NInst' nodes.
   -- An 'NValue' node has one and only one input edge, and has arbitrary number of output edges.
   NValue DynValue a |

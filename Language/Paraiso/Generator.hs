@@ -6,6 +6,7 @@ module Language.Paraiso.Generator
      Generator(..), Symbolable(..)
     ) where
 
+import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import Language.Paraiso.Failure
 import Language.Paraiso.POM
@@ -16,7 +17,7 @@ class Generator gen where
   -- | The data that is daughter of gen; describes the code generation strategy.
   data Strategy gen :: *
   -- | Code generation.
-  generate :: (Vector v, Ring.C g) =>
+  generate :: (Vector v, Ring.C g, Additive.C (v g)) =>
               gen                    -- ^The code generator.
            -> POM v g (Strategy gen) -- ^The 'POM' sourcecode, annotated with 'Strategy'.
            -> FilePath               -- ^The directory name under which the files are to be generated.
