@@ -13,6 +13,7 @@ import qualified Algebra.Ring as Ring
 import           Control.Monad as Monad
 import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
+import           Data.Char (isAlphaNum)
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
@@ -372,12 +373,18 @@ cursorToNode cur = do
 
 addBinding :: (Vector v, Symbolable Cpp g, Ord (v g)) => Cursor v g -> Binder v g ()
 addBinding cursor = do 
+  graph <- bindersGraph
   m <- bindersMap
   if Map.member cursor m
      then return ()
      else do
        lhs <- leftHandSide cursor
-       bindingModify $ Map.insert cursor (lhs ++ " = hoge;")
+       let
+         -- any Node that has well-defined LHS must have one and only one pre Node.
+         preNode = head $ FGL.pre graph(cursorToFGLNode cursor)
+         preCursor = cursor{cursorToFGLNode = preNode}
+       rhs <- rightHandSide preCursor
+       bindingModify $ Map.insert cursor (lhs ++ " = " ++ rhs ++ ";")
 
 
 leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
@@ -393,10 +400,20 @@ leftHandSide cur = do
     alloc = allocStrategy $ getA node 
     suffix i = case alloc of
                  Alloc.Manifest -> "[" ++ nameStr i ++ "]"
-                 Alloc.Delayed  -> foldMap (("_"++).symbol Cpp) (cursorToShift cur)
+                 Alloc.Delayed  -> foldMap cppoku (cursorToShift cur)
+    cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
   case ctx of
     CtxGlobal  -> return $ nameStr name0
     CtxLocal i -> return $ nameStr name0 ++ suffix i
+
+rightHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
+rightHandSide cur = do
+  node0  <- cursorToNode cur
+  ctx0 <- bindersContext
+  let 
+    n0 = getA node0
+  return "hoge"
+
 
 {----                                                                -----}
 {---- c++ kernel generation                                          -----}
