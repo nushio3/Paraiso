@@ -17,7 +17,7 @@ class Generator gen where
   -- | The data that is daughter of gen; describes the code generation strategy.
   data Strategy gen :: *
   -- | Code generation.
-  generate :: (Vector v, Ring.C g, Additive.C (v g)) =>
+  generate :: (Vector v, Ring.C g, Additive.C (v g), Symbolable gen g) =>
               gen                    -- ^The code generator.
            -> POM v g (Strategy gen) -- ^The 'POM' sourcecode, annotated with 'Strategy'.
            -> FilePath               -- ^The directory name under which the files are to be generated.

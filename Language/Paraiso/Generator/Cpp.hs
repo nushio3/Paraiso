@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, NoImplicitPrelude,
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, 
+  MultiParamTypeClasses, NoImplicitPrelude,
   TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 -- | a generic code generator definition.
@@ -15,6 +16,7 @@ import qualified Control.Monad.State as State
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
+import           Data.Foldable (foldMap)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe
@@ -60,6 +62,9 @@ instance Generator Cpp where
 {----                                                                -----}
 {---- Translations of names, symbols, types and values               -----}
 {----                                                                -----}
+
+instance Symbolable Cpp Int where
+  symbolF Cpp x = return (show x)
 
 instance Symbolable Cpp Dynamic where
   symbolF Cpp dyn = let
@@ -354,7 +359,7 @@ cursorToNode cur = do
   graph <- bindersGraph
   return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
 
-leftHandSide :: (Cursor v g) -> Binder v g String
+leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
 leftHandSide cur = do
   node  <- cursorToNode cur
   ctx <- bindersContext
@@ -367,7 +372,7 @@ leftHandSide cur = do
     alloc = allocStrategy $ getA node 
     suffix i = case alloc of
                  Alloc.Manifest -> "[" ++ nameStr i ++ "]"
-                 Alloc.Delayed  -> "_0_0_0"
+                 Alloc.Delayed  -> foldMap (("_"++).symbol Cpp) (cursorToShift cur)
   case ctx of
     CtxGlobal  -> return $ nameStr name0
     CtxLocal i -> return $ nameStr name0 ++ suffix i
@@ -377,7 +382,8 @@ leftHandSide cur = do
 {----                                                                -----}
 
 
-genCpp :: (Vector v, Ring.C g, Additive.C (v g)) => String -> [CMember] -> POM v g (Strategy Cpp) -> String
+genCpp :: (Vector v, Ring.C g, Additive.C (v g), Symbolable Cpp g) =>
+          String -> [CMember] -> POM v g (Strategy Cpp) -> String
 genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
   "",
@@ -389,7 +395,8 @@ genCpp headerFn _ pom = unlines [
                 kernels pom
 
 
-declareKernel :: (Vector v, Ring.C g, Additive.C (v g)) => String -> Kernel v g (Strategy Cpp)-> String
+declareKernel :: (Vector v, Ring.C g, Additive.C (v g),Symbolable Cpp g) => 
+                 String -> Kernel v g (Strategy Cpp)-> String
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
   declareNodes labNodes,
