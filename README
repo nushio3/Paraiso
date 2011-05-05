@@ -10,3 +10,7 @@ make lib
 make
 ./main.out
 
+
+The libraries are generated under the dist/ directory.
+The intermediate virtual machine programs are generated under output/ directory.
+
