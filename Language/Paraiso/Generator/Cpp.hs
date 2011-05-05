@@ -21,6 +21,7 @@ import           Data.Foldable (foldMap)
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe
+import           Data.Traversable (traverse, mapAccumR)
 import qualified Data.Foldable as Foldable
 import           Language.Paraiso.Failure
 import           Language.Paraiso.Generator
@@ -200,7 +201,10 @@ sizeForAxis :: (Vector v) => Axis v -> Name
 sizeForAxis axis = Name $ "size" ++ show (axisIndex axis)
 sizeForAxisCall :: (Vector v) => Axis v -> String
 sizeForAxisCall = (++"()") . nameStr . sizeForAxis
-               
+   
+
+
+            
 fglNodeName :: FGL.Node -> Name    
 fglNodeName n = Name $ "a" ++ show n
 
@@ -441,13 +445,17 @@ addBinding cursor = do
        bindingModify $ Map.insert cursor (lhs ++ " = " ++ rhs ++ ";")
 
 
-cursorToSymbol :: (Vector v, Symbolable Cpp g) =>
+cursorToSymbol :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
                   HandSide
                -> Cursor v g 
                -> Binder v g String
 cursorToSymbol side cur = do
   node  <- cursorToNode cur
   ctx <- bindersContext
+  let axer = \(ax, shiftAmount) -> do
+               idxStr <- rhsLoadIndex ax
+               return (ax, idxStr)
+  axes3 <- traverse axer $ compose (\ax -> (ax, cursorToShift cur!ax))
   let 
     name0 = case node of
               NValue _ _   -> fglNodeName $ cursorToFGLNode cur
@@ -471,14 +479,27 @@ cursorToSymbol side cur = do
                              else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
     
-    shiftStr = foldMap id $ compose shiftAxis
-    shiftAxis ax = paren $ show (axisIndex ax) ++ "..." ++  symbol Cpp ((cursorToShift cur)!ax)
+    shiftStr = if shift == Additive.zero 
+               then ""
+               else  " + " ++ (fst (mapAccumR shiftAccum "" allAxes)::String)
+    allAxes  = fmap fst axes3
+    idxAxes  = fmap snd axes3
+    shift    = cursorToShift cur
+
+    shiftedAxis ax = paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax)]
+
+
+    shiftAccum str ax = 
+      if (axisIndex ax::Int) == dimension allAxes - 1
+      then (shiftedAxis ax, ())
+      else (unwords [shiftedAxis ax, "+", sizeForAxisCall ax , "*", paren str], ())
 
   case ctx of
     CtxGlobal  -> return $ nameStr name0
     CtxLocal i -> return $ prefix ++ nameStr name0 ++ suffix i
 
-leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
+leftHandSide :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
+                Cursor v g -> Binder v g String
 leftHandSide = cursorToSymbol LeftHand
 
 rightHandSide :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
@@ -506,7 +527,7 @@ rhsInst inst cursor = do
     Imm dyn0    -> return $ symbol Cpp dyn0
     Load   _    -> cursorToSymbol RightHand cursor
     Store  _    -> error "Store has no RHS!"
-    Reduce op   -> return "Reduce madayanen"
+    Reduce op   -> return "0/*Reduce madayanen*/"
     Broadcast   -> cursorToSymbol RightHand (CurGlobal $ head preNodes)
     Shift vec   -> cursorToSymbol RightHand headCursor
                    {cursorToShift = vec + cursorToShift headCursor}
@@ -523,10 +544,11 @@ rhsLoadIndex axis = do
       loopVar = case ctx of
                   CtxGlobal  -> error "cannot load index in gloabl context"
                   CtxLocal i -> nameStr i
-      axes = foldMap (:[]) $ compose (\axis' -> head [axis', axis])
-      axesSmaller = List.filter (\ax -> axisIndex ax < axisIndex axis) axes
+      axesSmaller = List.filter (\ax -> axisIndex ax < axisIndex axis) (allAxes axis)
       divs = paren $ unwords $ List.intersperse "/" $  loopVar : map sizeForAxisCall axesSmaller
       ret =  paren $ unwords $ [divs , "%" ,sizeForAxisCall axis]
+      allAxes axis = foldMap (:[]) $ compose (\axis' -> head [axis', axis])
+
   return ret
 
 {----                                                                -----}
