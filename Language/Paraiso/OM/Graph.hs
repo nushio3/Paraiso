@@ -5,7 +5,7 @@
 -- | all the components for constructing Orthotope Machine data flow draph.
 module Language.Paraiso.OM.Graph
     (
-     Setup(..), Kernel(..), Graph, nmap,
+     Setup(..), Kernel(..), Graph, nmap, getA,
      Annotation(..),
      Node(..), 
      Inst(..),
@@ -65,6 +65,14 @@ data (Vector vector, Ring.C gauge) => Node vector gauge a =
   -- The number of input and output edges an 'NValue' node has is specified by its 'Arity'.
   NInst (Inst vector gauge) a
         deriving (Show)
+
+-- | get annotation of the node.
+getA :: (Vector v, Ring.C g) => Node v g a -> a
+getA nd = case nd of
+  NValue _ s -> s
+  NInst  _ s -> s
+  
+
 
 instance (Vector v, Ring.C g) => Functor (Node v g) where
   fmap f (NValue x y) =  (NValue x (f y))  

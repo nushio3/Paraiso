@@ -40,7 +40,10 @@ autoStrategy :: Strategy Cpp
 autoStrategy = CppStrategy Alloc.Auto
 
 instance Generator Cpp where
-  data Strategy Cpp = CppStrategy Alloc.Allocation deriving (Eq, Show)
+  data Strategy Cpp = CppStrategy { 
+    allocStrategy :: Alloc.Allocation 
+                       } deriving (Eq, Show)
+                                  
   generate _ pom0 path = do
     let 
       pom1 = decideStrategy pom0
@@ -291,28 +294,25 @@ data Context  =
     deriving (Eq, Ord, Show)
 
 data BinderState v g = BinderState {  
-  context  :: Context,
-  graph    :: Graph v g (Strategy Cpp),
-  bindings :: Map (Cursor v g) String ,
-  codes    :: [String]
+  context     :: Context,
+  graphCtx    :: Graph v g (Strategy Cpp),
+  bindings    :: Map (Cursor v g) String 
     }              deriving (Show)
 
 type Binder v g a = State (BinderState v g) a
  
 runBinder :: Graph v g (Strategy Cpp) -> Realm -> Binder v g () -> String
-runBinder graph0 rlm binder = unlines $ header ++  [bindStr, codeStr] ++ footer
+runBinder graph0 rlm binder = unlines $ header ++  [bindStr] ++ footer
   where 
     bindStr = unlines $ Map.elems $ bindings state
-    codeStr = unlines $ codes state
     state = snd $ State.runState binder ini
     
     ini = BinderState {
             context  = case rlm of 
                          Global -> CtxGlobal
                          Local  -> CtxLocal $ Name "i",
-            graph    = graph0,
-            bindings = Map.empty,
-            codes    = []
+            graphCtx = graph0,
+            bindings = Map.empty
           }
     
     (header,footer) = case context state of
@@ -345,6 +345,7 @@ declareKernel :: (Vector v, Ring.C g) => String -> Kernel v g (Strategy Cpp)-> S
 declareKernel classPrefix kern = unlines [
   "void " ++ classPrefix ++ nameStr kern ++ " () {",
   declareNodes labNodes,
+  substituteNodes labNodes,
   "return;",
   "}"
                      ]
@@ -360,15 +361,20 @@ declareKernel classPrefix kern = unlines [
 
     declareNodes = unlines . concat . map declareNode
     declareNode (n, node) = case node of
-      NInst _ _  -> []
-      NValue dyn0 (CppStrategy Alloc.Delayed) -> []
-      NValue dyn0 _ -> [declareVal (nodeName n) dyn0]
+        NInst _ _  -> []
+        NValue dyn0 (CppStrategy Alloc.Delayed) -> []
+        NValue dyn0 _ -> [declareVal (nodeName n) dyn0]
     declareVal name0 dyn0 = let
-      x = if DVal.realm dyn0 == Local 
+        x = if DVal.realm dyn0 == Local 
           then "(" ++ symbol Cpp sizeName ++ "())"
           else ""
-     in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
-
+      in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
+    substituteNodes = unlines. concat . map substituteNode
+    substituteNode (n, node) = case allocStrategy $ getA node of
+                                 Alloc.Manifest -> [genSub n node]
+                                 _              -> []
+    genSub n node = nodeName n ++ " = something;" 
+    
 
 
 
