@@ -12,6 +12,8 @@ import           Control.Monad as Monad
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
+import           Data.Map (Map)
+import qualified Data.Map as Map
 import           Data.Maybe
 import qualified Data.Foldable as Foldable
 import           Language.Paraiso.Failure
@@ -270,6 +272,26 @@ commonInclude = unlines[
                 ]
 
 {----                                                                -----}
+{---- c++ kernel generating tools                                    -----}
+{----                                                                -----}
+
+-- | A representation for Addressed Single Static Assignment.
+data Cursor v g = 
+    -- | node number and shift
+    CurLocal  FGL.Node (v g) |
+    -- | node number 
+    CurGlobal FGL.Node 
+              deriving (Eq, Ord, Show)
+                       
+data Context  = 
+    CtxGlobal |
+    CtxLocal  Name     -- ^The name of the indexing variable.
+
+data Bindings v g = Bindings {  bindings :: Map (Cursor v g) String }
+
+
+
+{----                                                                -----}
 {---- c++ kernel generation                                          -----}
 {----                                                                -----}
 
@@ -313,5 +335,7 @@ declareKernel classPrefix kern = unlines [
           then "(" ++ symbol Cpp sizeName ++ "())"
           else ""
      in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
+
+
 
 

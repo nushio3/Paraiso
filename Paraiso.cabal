@@ -89,6 +89,7 @@ Library
                           
   -- Packages needed in order to build this package.
   Build-depends:       base                  >= 4.3.1 && < 4.4,
+                       containers            >= 0.4.0 && < 0.5,
                        control-monad-failure >= 0.7.0 && < 0.8,
                        directory             >= 1.1.0 && < 1.2,
                        filepath              >= 1.2.0 && < 1.3,
