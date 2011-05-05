@@ -15,7 +15,6 @@ import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
 import           Data.Char (isAlphaNum)
 import           Data.Dynamic
-import           Data.Either (Either(..))
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
 import           Data.Foldable (foldMap)
@@ -298,7 +297,12 @@ data Cursor v g =
   CurLocal  { cursorToFGLNode :: FGL.Node, cursorToShift :: (v g)} |
   -- | node number 
   CurGlobal { cursorToFGLNode :: FGL.Node }
-              deriving (Eq, Ord, Show)
+              deriving (Eq, Ord)
+
+instance Show (Cursor v g) where
+  show (CurLocal n _) = "/*L " ++ show n ++ "*/"
+  show (CurGlobal n ) = "/*G " ++ show n ++ "*/"
+  
                        
 data Context  = 
     CtxGlobal |
@@ -314,6 +318,9 @@ data BinderState v g = BinderState {
 
 type Binder v g a = State (BinderState v g) a
  
+data HandSide = LeftHand | RightHand deriving (Eq, Show)
+
+
 runBinder :: (Additive.C (v g)) =>
   Graph v g (Strategy Cpp) -> FGL.Node -> (Cursor v g -> Binder v g ()) -> String
 runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
@@ -372,7 +379,8 @@ cursorToNode cur = do
   graph <- bindersGraph
   return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
 
-addBinding :: (Vector v, Symbolable Cpp g, Ord (v g)) => Cursor v g -> Binder v g ()
+-- | add @cursor@ in the current binding, if missing.
+addBinding :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) => Cursor v g -> Binder v g ()
 addBinding cursor = do 
   graph <- bindersGraph
   m <- bindersMap
@@ -389,7 +397,7 @@ addBinding cursor = do
 
 
 cursorToSymbol :: (Vector v, Symbolable Cpp g) =>
-                  Either () () 
+                  HandSide
                -> Cursor v g 
                -> Binder v g String
 cursorToSymbol side cur = do
@@ -403,13 +411,14 @@ cursorToSymbol side cur = do
                                 Load  name1 -> name1
                                 _           -> error $ "this inst does not have symbol" 
     alloc = allocStrategy $ getA node 
-    prefix = if side == Left () && alloc == Alloc.Delayed 
+    prefix = if side == LeftHand && alloc == Alloc.Delayed 
              then "const " else ""
     isManifest = case alloc of
                    Alloc.Delayed  -> case node of
                                        NValue _ _ -> False
                                        _          -> True
                    _              -> True
+    -- | TODO shift i
     suffix i = if isManifest then "[" ++ nameStr i ++ "]" 
                              else foldMap cppoku (cursorToShift cur)
     cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
@@ -418,22 +427,39 @@ cursorToSymbol side cur = do
     CtxLocal i -> return $ prefix ++ nameStr name0 ++ suffix i
 
 leftHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
-leftHandSide = cursorToSymbol (Left ())
+leftHandSide = cursorToSymbol LeftHand
 
-rightHandSide :: (Vector v, Symbolable Cpp g) => Cursor v g -> Binder v g String
+rightHandSide :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
+                 Cursor v g -> Binder v g String
 rightHandSide cur = do
   node0  <- cursorToNode cur
   case node0 of
     NInst inst _ -> rhsInst inst cur
-    NValue _ _   -> return "hoge"
+    NValue _ _   -> do 
+               when (allocStrategy (getA node0) == Alloc.Delayed) $ addBinding cur 
+               cursorToSymbol RightHand cur
 
-rhsInst :: (Vector v, Symbolable Cpp g) => Inst v g -> Cursor v g -> Binder v g String
-rhsInst inst cursor = 
+
+rhsInst :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
+           Inst v g -> Cursor v g -> Binder v g String
+rhsInst inst cursor = do
+  graph <- bindersGraph
+  let 
+    -- FGL indices of all the preceding nodes.
+    preNodes   = FGL.pre graph(cursorToFGLNode cursor)
+    -- Cursors of all the preceding nodes with context unchanged.
+    preCursors = map (\n -> cursor{cursorToFGLNode = n}) preNodes
+    headCursor = head preCursors
   case inst of
-    Imm dyn0 -> return $ symbol Cpp dyn0
-    Load _   -> cursorToSymbol (Right()) cursor
-    _ -> return "hugaa"
-  
+    Imm dyn0    -> return $ symbol Cpp dyn0
+    Load   _    -> cursorToSymbol RightHand cursor
+    Store  _    -> error "Store has no RHS!"
+    Reduce op   -> return "Reduce madayanen"
+    Broadcast   -> cursorToSymbol RightHand (CurGlobal $ head preNodes)
+    Shift vec   -> cursorToSymbol RightHand headCursor
+                   {cursorToShift = vec + cursorToShift headCursor}
+    LoadIndex _ -> return "LoadIndex madados"
+    Arith op    -> return $ "nanka " ++ show op ++ " nanka"
 
 
 {----                                                                -----}
