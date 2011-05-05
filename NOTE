@@ -1,5 +1,7 @@
 (Vector v, Ring.C g) seems to be unnecessary in many positions.
 let us try removing them.
+Removing them may not be so easy. some parts are inferred, 
+some are required and recursively required. hmhm..
 
 names must be strictly qualified.
 Exceptions are internal modules (Language.Paraiso.*) and base.
