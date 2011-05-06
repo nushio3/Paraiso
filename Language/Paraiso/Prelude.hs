@@ -6,10 +6,17 @@
 
 
 module Language.Paraiso.Prelude
-  (module NumericPrelude,
+  (
+   module Data.Functor,
+   module NumericPrelude,
    Boolean(..)) where
 
-import NumericPrelude hiding (not, (&&), (||))
+import Control.Monad
+import Data.Foldable
+import NumericPrelude hiding 
+    (not, (&&), (||), 
+     fmap, 
+     foldl, foldr, )
 import qualified NumericPrelude as Prelude
 
 infixr 3  &&
