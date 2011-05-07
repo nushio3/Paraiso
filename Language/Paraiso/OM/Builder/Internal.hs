@@ -91,12 +91,12 @@ freeNode = do
   
 -- | add a node to the graph.
 addNode :: (Vector v, Ring.C g) => 
-           [FGL.Node]     -- ^The list of node indicies that the new nodes depend upon.
+           [FGL.Node]     -- ^The list of dependent nodes. The order is recorded.
            -> Node v g () -- ^The new node to be added
            -> Builder v g FGL.Node
 addNode froms new = do
   n <- freeNode
-  modifyG (([((), nn) | nn <-froms], n, new, []) FGL.&)
+  modifyG (([(EOrd i, froms !! i) | i <-[0..length froms - 1] ], n, new, []) FGL.&)
   return n
 
 
