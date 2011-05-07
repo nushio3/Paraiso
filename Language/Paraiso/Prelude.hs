@@ -8,6 +8,7 @@
 
 module Language.Paraiso.Prelude
   (
+   module Control.Applicative,
    module Control.Monad,
    module Data.Foldable,
    module Data.Traversable,
@@ -23,6 +24,7 @@ import NumericPrelude hiding
      (>>=), (>>), return, fail, fmap, mapM, mapM_, sequence, sequence_, (=<<), foldl, foldl1, foldr, foldr1, and, or, any, all, sum, product, concat, concatMap, maximum, minimum, elem, notElem
     )
     
+import Control.Applicative (pure, (<$>), (<*>))
 import qualified NumericPrelude as Prelude
 
 infixr 3  &&
