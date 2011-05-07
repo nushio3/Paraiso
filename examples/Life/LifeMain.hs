@@ -43,8 +43,8 @@ adjVecs = zipWith (\x y -> Vec :~ x :~ y)
 -- R-pentomino pattern
 r5mino :: [Vec2 Int]
 r5mino = zipWith (\x y -> Vec :~ x :~ y)
-         [ 0, 0, 1, 1, 2]
          [ 1, 2, 0, 1, 1]
+         [ 0, 0, 1, 1, 2]
 
 bind :: (Functor f, Monad m) => f a -> f (m a)
 bind = fmap return
