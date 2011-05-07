@@ -518,7 +518,9 @@ rhsInst inst cursor = do
   graph <- bindersGraph
   let 
     -- FGL indices of all the preceding nodes.
-    preNodes   = List.sort $ FGL.pre graph(cursorToFGLNode cursor)
+    preNodes   = map snd $ List.sort $ 
+                 map (\(node, l) -> (l,node)) $ 
+                 FGL.lpre graph(cursorToFGLNode cursor)
     -- Cursors of all the preceding nodes with context unchanged.
     preCursors = map (\n -> cursor{cursorToFGLNode = n}) preNodes
     headCursor = head preCursors
