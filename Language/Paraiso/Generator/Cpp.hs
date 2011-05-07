@@ -21,7 +21,6 @@ import           Data.Maybe (fromJust, listToMaybe)
 import           Language.Paraiso.Failure
 import           Language.Paraiso.Generator
 import qualified Language.Paraiso.Generator.Allocation as Alloc
-import           Language.Paraiso.OM.Arithmetic (arity)
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
@@ -239,9 +238,9 @@ genHeader members pom = unlines[
       symbol Cpp dyn0 ++ " " ++ symbol Cpp name0 ++ "_;"
     decStr = unlines $ ("private:" :) $ concat $ 
       (flip map) members $ 
-      (\(CMember at dv) -> case at of
-                            ReadDepend _ -> []
-                            _            -> [declare dv])
+      (\mem -> case accessType mem of
+                 ReadDepend _ -> []
+                 _            -> [declare $ memberDV mem])
 
     reader (ref',code) (Named name0 dyn0) =
       let name1 = symbol Cpp name0 in
@@ -268,7 +267,7 @@ genHeader members pom = unlines[
     initializeIfLocal (Named name0 dyn0) = let name1 = symbol Cpp name0 in
       if DVal.realm dyn0 == Global
       then []
-      else [name1 ++ "_(" ++ symbol Cpp sizeName ++ "())"]
+      else [name1 ++ "_(" ++ sizeNameCall ++ ")"]
     initializerStr = concat $ List.intersperse "," $ concat $
       (flip map) members $ 
       (\(CMember at dv) -> case at of
@@ -335,9 +334,13 @@ paren x =  "(" ++ x ++ ")"
 arithRep :: A.Operator -> [String] -> String
 arithRep op = let
     unary symb [x] = paren $ unwords [symb,x]
+    unary symb _   = error $ symb ++ "is not a unary operator!"
     infx symb [x,y] = paren $ unwords [x,symb,y]
+    infx symb _     = error $ symb ++ "is not a binary operator, can't be infix!"
     func symb xs = symb ++ paren (List.concat $ List.intersperse "," xs)
     err = error $ "undefined operator : " ++ show op
+    selectMaker [x,y,z] = paren $ unwords [x,"?",y,":",z]
+    selectMaker _       = error "select requires exactly 3 arguments."
   in case op of
     A.Add -> infx "+"
     A.Sub -> infx "-"
@@ -354,7 +357,7 @@ arithRep op = let
     A.LE -> infx "<=" 
     A.GT -> infx ">" 
     A.GE -> infx ">=" 
-    A.Select -> (\[x,y,z] -> paren $ unwords [x,"?",y,":",z])
+    A.Select -> selectMaker
     A.Ipow -> func "pow"
     A.Pow -> func "pow"
     A.Madd -> err
@@ -449,7 +452,7 @@ cursorToSymbol side cur = do
   ctx <- bindersContext
   let axer = \(ax, shiftAmount) -> do
                idxStr <- rhsLoadIndex ax
-               return (ax, idxStr)
+               return (ax, (idxStr, shiftAmount))
   axes3 <- traverse axer $ compose (\ax -> (ax, cursorToShift cur!ax))
   let 
     name0 = case node of
@@ -478,8 +481,8 @@ cursorToSymbol side cur = do
                then nameStr i
                else fst (mapAccumR shiftAccum "" allAxes)
     allAxes  = fmap fst axes3
-    idxAxes  = fmap snd axes3
-    shift    = cursorToShift cur
+    idxAxes  = fmap (fst.snd) axes3
+    shift    = fmap (snd.snd) axes3
 
     shiftedAxis ax = paren$
       (paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax),"+",sizeForAxisCall ax])
@@ -543,7 +546,7 @@ rhsLoadIndex axis = do
       axesSmaller = List.filter (\ax -> axisIndex ax < axisIndex axis) (allAxes axis)
       divs = paren $ unwords $ List.intersperse "/" $  loopVar : map sizeForAxisCall axesSmaller
       ret =  paren $ unwords $ [divs , "%" ,sizeForAxisCall axis]
-      allAxes axis = foldMap (:[]) $ compose (\axis' -> head [axis', axis])
+      allAxes axis1 = foldMap (:[]) $ compose (\axis' -> head [axis', axis1])
 
   return ret
 
@@ -578,14 +581,10 @@ declareKernel classPrefix kern = unlines [
     graph = dataflow kern
     labNodes = FGL.labNodes graph
 
-    nodeToRealm n = case (fromJust $ FGL.lab graph n) of
-      NValue dyn0 _ -> DVal.realm dyn0
-      _ -> error "nodeToRealm called on NInst"
-
     declareNodes = unlines . concat . map declareNode
     declareNode (n, node) = case node of
         NInst _ _  -> []
-        NValue dyn0 (CppStrategy Alloc.Delayed) -> []
+        NValue _ (CppStrategy Alloc.Delayed) -> []
         NValue dyn0 _ -> [declareVal (nameStr $ fglNodeName n) dyn0]
     declareVal name0 dyn0 = let
         x = if DVal.realm dyn0 == Local 
@@ -594,9 +593,9 @@ declareKernel classPrefix kern = unlines [
       in symbol Cpp dyn0 ++ " " ++ name0 ++ x ++ ";"
     substituteNodes = unlines. concat . map substituteNode
     substituteNode (n, node) = case allocStrategy $ getA node of
-                                 Alloc.Manifest -> [genSub n node]
+                                 Alloc.Manifest -> [genSub n]
                                  _              -> []
-    genSub n node = 
+    genSub n = 
       runBinder graph n addBinding
 
         
