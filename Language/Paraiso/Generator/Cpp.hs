@@ -10,19 +10,14 @@ module Language.Paraiso.Generator.Cpp
     ) where
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import           Control.Monad
 import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
-import           Data.Char (isAlphaNum)
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
-import           Data.Foldable (foldMap)
 import           Data.Map (Map)
 import qualified Data.Map as Map
-import           Data.Maybe
-import           Data.Traversable (traverse, mapAccumR)
-import qualified Data.Foldable as Foldable
+import           Data.Maybe (fromJust, listToMaybe)
 import           Language.Paraiso.Failure
 import           Language.Paraiso.Generator
 import qualified Language.Paraiso.Generator.Allocation as Alloc
@@ -32,9 +27,9 @@ import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm (Realm(..))
 import qualified Language.Paraiso.OM.Reduce as Reduce
+import           Language.Paraiso.Prelude
 import           Language.Paraiso.POM as POM
 import           Language.Paraiso.Tensor
-import           NumericPrelude
 import           System.Directory
 import           System.FilePath
 import           Unsafe.Coerce
@@ -222,7 +217,7 @@ makeMembers pom =  [sizeMember] ++ sizeAMembers ++ map (CMember ReadWrite) vals
     globalInt = DynValue Global (typeOf (undefined::Int))
 
     sizeAMembers :: [CMember]
-    sizeAMembers = Foldable.foldMap (:[]) $ f pom
+    sizeAMembers = foldMap (:[]) $ f pom
     
     prod :: String
     prod = concat $ List.intersperse " * " $ map (\m -> nameStr m ++ "()") sizeAMembers
