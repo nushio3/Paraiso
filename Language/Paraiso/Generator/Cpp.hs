@@ -12,13 +12,13 @@ import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import           Control.Monad.State (State)
 import qualified Control.Monad.State as State
-import           Data.Dynamic
+import           Data.Dynamic (Dynamic, Typeable, TypeRep, fromDynamic, typeOf)
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
 import           Data.Map (Map)
 import qualified Data.Map as Map
 import           Data.Maybe (fromJust, listToMaybe)
-import           Language.Paraiso.Failure
+import           Language.Paraiso.Failure 
 import           Language.Paraiso.Generator
 import qualified Language.Paraiso.Generator.Allocation as Alloc
 import qualified Language.Paraiso.OM.Arithmetic as A
@@ -29,9 +29,9 @@ import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.POM as POM
 import           Language.Paraiso.Tensor
-import           System.Directory
-import           System.FilePath
-import           Unsafe.Coerce
+import           System.Directory (createDirectoryIfMissing)
+import           System.FilePath  ((</>))
+import           Unsafe.Coerce (unsafeCoerce) -- for debug purpose only
 
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
