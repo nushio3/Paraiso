@@ -15,6 +15,8 @@ const string pat = " .':";
 int main () {
   Life sim(W, H);
   sim.init();
+  for (int i = 0; i < W/2; ++i) sim.shift_x();
+  for (int i = 0; i < H/2; ++i) sim.shift_y();
   int wait = 1000000;
   for (sim.generation() = 0; sim.generation() < 1500;) {
     string buf; buf.resize((W+1)*H);
