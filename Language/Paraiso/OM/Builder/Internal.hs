@@ -18,10 +18,11 @@ module Language.Paraiso.OM.Builder.Internal
      shift, loadIndex,
      imm, mkOp1, mkOp2
     ) where
-import qualified Algebra.Ring as Ring
-import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Additive as Additive
+import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Field as Field
+import qualified Algebra.Lattice as Lattice
+import qualified Algebra.Ring as Ring
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
@@ -309,4 +310,10 @@ instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) 
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Algebraic.C c) => Algebraic.C (Builder v g (Value r c)) where
   sqrt = mkOp1 A.Sqrt
   x ^/ y = mkOp2 A.Pow x (fromRational' y)
+
+-- | choose the larger or the smaller of the two.
+instance (Vector v, Ring.C g, TRealm r, Typeable c) => Lattice.C (Builder v g (Value r c))
+    where
+      up = mkOp2 A.Max  
+      dn = mkOp2 A.Min
 

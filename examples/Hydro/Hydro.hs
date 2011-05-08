@@ -14,7 +14,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.POM
-import           Language.Paraiso.Prelude
+import           Language.Paraiso.Prelude 
 import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 
