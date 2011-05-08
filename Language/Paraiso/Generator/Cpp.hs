@@ -338,7 +338,7 @@ arithRep op = let
     infx symb [x,y] = paren $ unwords [x,symb,y]
     infx symb _     = error $ symb ++ "is not a binary operator, can't be infix!"
     func symb xs = symb ++ paren (List.concat $ List.intersperse "," xs)
-    err = error $ "undefined operator : " ++ show op
+    err = error $ "unsupported operator : " ++ show op
     selectMaker [x,y,z] = paren $ unwords [x,"?",y,":",z]
     selectMaker _       = error "select requires exactly 3 arguments."
   in case op of
