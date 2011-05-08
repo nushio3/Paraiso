@@ -22,27 +22,47 @@ Synopsis:            a code generator for partial differential equations solvers
 
 -- A longer description of the package.
 
-Description: The purpose of this project is to design a high-level
-             language for computer simulations on supercomputers as
-             well as today’s advanced personal computers. A language
-             to describe the knowledge on algebraic concepts, physical
-             equations, integration algorithms, optimization
-             techniques, and hardware designs --- all the necessaries
-             of computer simulations in abstract, modular, re-usable
-             and combinable forms.
+Description: The purpose of this project is to design a high-level language
+             for implementing explicit partial-differential equations solvers
+             on supercomputers as well as today’s advanced personal
+             computers.
+
+             A language to describe the knowledge on algebraic concepts,
+             physical equations, integration algorithms, optimization
+             techniques, and hardware designs --- all the necessaries of the
+             simulations in abstract, modular, re-usable and combinable forms.
              .
+
              > How to use
 	     .
-             The module "Language.Paraiso.OM.Builder" contains the @Builder@ monad,
-             its typeclass instance declarations and functions that can be used to build
-             Paraiso programs. Reserved words are
-             @load@, @store@, @imm@, @loadIndex@, @shift@, @reduce@ and @broadcast@.
+
+             The module "Language.Paraiso.OM.Builder" contains the @Builder@
+             monad, its typeclass instance declarations and functions that can
+             be used to build Paraiso programs. Reserved words are @load@,
+             @store@, @imm@, @loadIndex@, @shift@, @reduce@ and @broadcast@.
              .
-             * A document describing the current and the future designs : <https://github.com/nushio3/Paraiso/blob/master/paper/om.pdf?raw=true>
+
+             "Language.Paraiso.Tensor" is the library for tensor calculus of
+	     arbitrary rank and dimension. @Vector@ and @Axis@ are two main
+	     concepts. The type @Vector@ represents rank-1 tensor, and tensors
+	     of higher ranks are recursively defined as @Vector@ of
+	     @Vector@s. With @Axis@ you can refer to the components of
+	     @Vector@s, compose them, or contract them. Standalone usecases of
+	     @Tensor@ library and other components of Paraiso are found in:
+	     <https://github.com/nushio3/Paraiso/tree/master/attic>
+
              .
-             * Sample programs : <https://github.com/nushio3/Paraiso/tree/master/examples>        
+
+             * A document describing the current and the future designs :
+             <https://github.com/nushio3/Paraiso/blob/master/paper/om.pdf> 
              .
-             * The codes generated from the samples : <https://github.com/nushio3/Paraiso/tree/exampled/examples>        
+
+             * Sample programs written in Paraiso :
+             <https://github.com/nushio3/Paraiso/tree/master/examples> 
+             .
+
+             * The codes generated from the samples :
+             <https://github.com/nushio3/Paraiso/tree/exampled/examples>
 
 -- URL for the project homepage or repository.
 Homepage:            http://www.paraiso-lang.org/wiki/index.php/Main_Page
