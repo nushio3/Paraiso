@@ -6,7 +6,7 @@
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
-     Cpp(..), autoStrategy
+     Cpp(..), autoStrategy, decideStrategy
     ) where
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
@@ -31,7 +31,6 @@ import           Language.Paraiso.POM as POM
 import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
-import           Unsafe.Coerce (unsafeCoerce) -- for debug purpose only
 
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
@@ -51,7 +50,6 @@ instance Generator Cpp where
       headerFn = nameStr pom1 ++ ".hpp"
       cppFn = nameStr pom1 ++ ".cpp"
     createDirectoryIfMissing True path
-    writeFile "output/POM1.txt" $ show $ (unsafeCoerce pom1 :: POM Vec2 Int (Strategy Cpp))
     writeFile (path </> headerFn) $ genHeader members pom1
     writeFile (path </> cppFn) $ genCpp headerFn members pom1
 
