@@ -1,0 +1,29 @@
+    * class Functor f => Applicative f where
+          o pure :: a -> f a
+          o (<*>) :: f (a -> b) -> f a -> f b
+          o (*>) :: f a -> f b -> f b
+          o (<*) :: f a -> f b -> f a
+    * class Applicative f => Alternative f where
+          o empty :: f a
+          o (<|>) :: f a -> f a -> f a
+          o some :: f a -> f [a]
+          o many :: f a -> f [a]
+    * newtype Const a b = Const {
+          o getConst :: a
+      }
+    * newtype WrappedMonad m a = WrapMonad {
+          o unwrapMonad :: m a
+      }
+    * newtype WrappedArrow a b c = WrapArrow {
+          o unwrapArrow :: a b c
+      }
+    * newtype ZipList a = ZipList {
+          o getZipList :: [a]
+      }
+    * (<$>) :: Functor f => (a -> b) -> f a -> f b
+    * (<$) :: Functor f => a -> f b -> f a
+    * (<**>) :: Applicative f => f a -> f (a -> b) -> f b
+    * liftA :: Applicative f => (a -> b) -> f a -> f b
+    * liftA2 :: Applicative f => (a -> b -> c) -> f a -> f b -> f c
+    * liftA3 :: Applicative f => (a -> b -> c -> d) -> f a -> f b -> f c -> f d
+    * optional :: Alternative f => f a -> f (Maybe a)

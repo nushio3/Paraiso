@@ -7,7 +7,7 @@ module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph, nmap, getA,
      Annotation(..),
-     Node(..), 
+     Node(..), Edge(..),
      Inst(..),
      module Language.Paraiso.Name
     )where
@@ -44,7 +44,7 @@ instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
 
 
 -- | The dataflow graph for Orthotope Machine. a is an additional annotation.
-type Graph vector gauge a = FGL.Gr (Node vector gauge a) ()
+type Graph vector gauge a = FGL.Gr (Node vector gauge a) Edge
 
 -- | Map the 'Graph' annotation from one type to another. Unfortunately we cannot make one data
 -- both the instances of 'FGL.Graph' and 'Functor', so 'nmap' is a standalone function.
@@ -65,6 +65,14 @@ data Node vector gauge a =
   -- The number of input and output edges an 'NValue' node has is specified by its 'Arity'.
   NInst (Inst vector gauge) a
         deriving (Show)
+
+-- | The 'Edge' label for the dataflow 'Graph'. 
+-- | It keeps track of the order of the arguments.
+data Edge = 
+    -- | an unordered edge.  
+    EUnord | 
+    -- | edges where the order matters.
+    EOrd Int deriving (Eq, Ord, Show)
 
 -- | get annotation of the node.
 getA :: Node v g a -> a

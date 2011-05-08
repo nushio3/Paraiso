@@ -91,12 +91,12 @@ freeNode = do
   
 -- | add a node to the graph.
 addNode :: (Vector v, Ring.C g) => 
-           [FGL.Node]     -- ^The list of node indicies that the new nodes depend upon.
+           [FGL.Node]     -- ^The list of dependent nodes. The order is recorded.
            -> Node v g () -- ^The new node to be added
            -> Builder v g FGL.Node
 addNode froms new = do
   n <- freeNode
-  modifyG (([((), nn) | nn <-froms], n, new, []) FGL.&)
+  modifyG (([(EOrd i, froms !! i) | i <-[0..length froms - 1] ], n, new, []) FGL.&)
   return n
 
 
@@ -192,7 +192,7 @@ broadcast builder1 = do
   return (FromNode TLocal c1 n3)
   
 -- | shift the orthotope with a constant vector
-shift :: (Vector v, Ring.C g, Typeable c) => 
+shift :: (Vector v, Ring.C g, Typeable c, Additive.C (v g)) => 
          v g                          -- ^ The amount of shift  
       -> Builder v g (Value TLocal c) -- ^ The 'Local' Value to be shifted
       -> Builder v g (Value TLocal c) -- ^ The result
@@ -202,7 +202,7 @@ shift vec builder1 = do
     type1 = toDyn val1
     c1 = Val.content val1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst (Shift vec) ())
+  n2 <- addNode [n1] (NInst (Shift (Additive.negate vec)) ())
   n3 <- addNode [n2] (NValue type1 ())
   return (FromNode TLocal c1 n3)
 

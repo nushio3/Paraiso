@@ -3,10 +3,7 @@
 
 module Main(main) where
 
-import Control.Monad.State
 import Data.Typeable
-import Data.Traversable (sequenceA)
-import Data.Foldable (foldl1)
 --import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Generator.Cpp
 import Language.Paraiso.OM.Builder
@@ -16,7 +13,7 @@ import Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import Language.Paraiso.POM
-import Language.Paraiso.Prelude hiding (foldl1)
+import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
 
 

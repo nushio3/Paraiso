@@ -21,12 +21,8 @@ module Language.Paraiso.Tensor
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import Control.Applicative
-import Control.Monad
-import Data.Foldable
-import Data.Traversable
 import Language.Paraiso.Failure
-import NumericPrelude
+import Language.Paraiso.Prelude
 
 infixl 9 !
 -- | a component operator.
@@ -119,7 +115,7 @@ instance (Vector v, Additive.C a) => Additive.C ((:~) v a) where
 -- | Tensor contraction. Create a 'Vector' from a function that maps 
 -- axis to component, then sums over the axis and returns a
 contract :: (Vector v, Additive.C a) => (Axis v -> a) -> a
-contract f = Data.Foldable.foldl (+) Additive.zero (compose f)
+contract f = foldl (+) Additive.zero (compose f)
 
 
 

@@ -1,0 +1,11 @@
+    * class (Functor t, Foldable t) => Traversable t where
+          o traverse :: Applicative f => (a -> f b) -> t a -> f (t b)
+          o sequenceA :: Applicative f => t (f a) -> f (t a)
+          o mapM :: Monad m => (a -> m b) -> t a -> m (t b)
+          o sequence :: Monad m => t (m a) -> m (t a)
+    * for :: (Traversable t, Applicative f) => t a -> (a -> f b) -> f (t b)
+    * forM :: (Traversable t, Monad m) => t a -> (a -> m b) -> m (t b)
+    * mapAccumL :: Traversable t => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
+    * mapAccumR :: Traversable t => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
+    * fmapDefault :: Traversable t => (a -> b) -> t a -> t b
+    * foldMapDefault :: (Traversable t, Monoid m) => (a -> m) -> t a -> m
