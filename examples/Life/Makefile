@@ -6,3 +6,7 @@ main.out : main.cpp dist/Life.hpp dist/Life.cpp
 
 lib:
 	runhaskell -i../../ LifeMain.hs
+
+clean:
+	rm -fr dist/
+	rm -f output/*.*
