@@ -18,50 +18,59 @@ import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 
+type Real = Double
 type Dim = Vec2
 type B a = Builder Dim Int a
-type BD = B (Value TLocal Double)
+type BR = B (Value TLocal Real)
 
-doubleDV :: DynValue
-doubleDV = DynValue{DVal.realm = Local, DVal.typeRep = typeOf (0::Double)}
+realDV :: DynValue
+realDV = DynValue{DVal.realm = Local, DVal.typeRep = typeOf (0::Real)}
 
 intGDV :: DynValue
 intGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Int)}
 
-doubleGDV :: DynValue
-doubleGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Double)}
+realGDV :: DynValue
+realGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Real)}
 
 
 -- the list of static variables for this machine
 pomSetup :: Setup Dim Int 
 pomSetup = Setup $ 
             [Named (Name "generation") intGDV] ++
-            [Named (Name "time") doubleGDV] ++
-            [Named (Name "density") doubleDV]  ++
-            foldMap (\name0 -> [Named name0 doubleDV]) velocityNames ++ 
-            [Named (Name "pressure") doubleDV]  
+            [Named (Name "time") realGDV] ++
+            foldMap (\name0 -> [Named name0 realGDV]) dRNames ++ 
+            foldMap (\name0 -> [Named name0 realGDV]) extentNames ++ 
+            [Named (Name "density") realDV]  ++
+            foldMap (\name0 -> [Named name0 realDV]) velocityNames ++ 
+            [Named (Name "pressure") realDV]  
 
 velocityNames :: Dim (Name)
 velocityNames = compose (\axis -> Name $ "velocity" ++ show (axisIndex axis))
 
+dRNames :: Dim (Name)
+dRNames = compose (\axis -> Name $ "dR" ++ show (axisIndex axis))
+
+extentNames :: Dim (Name)
+extentNames = compose (\axis -> Name $ "extent" ++ show (axisIndex axis))
+
 bind :: (Functor f, Monad m) => f a -> f (m a)
 bind = fmap return
        
-loadBindDouble :: Name -> B (BD)
-loadBindDouble = bind . load TLocal (undefined::Double) 
+loadBindReal :: Name -> B (BR)
+loadBindReal = bind . load TLocal (undefined::Real) 
 
 ----------------------------------------------------------------
 -- Hydro utility functions.
 ----------------------------------------------------------------
 
-soundSpeed :: BD -> BD -> B (BD)
+soundSpeed :: BR -> BR -> B (BR)
 soundSpeed density pressure = bind $ sqrt (pressure / density)
 
 buildProceed :: Builder Dim Int ()
 buildProceed = do
-  density <- loadBindDouble $ Name "density"
-  velocity <- mapM loadBindDouble velocityNames
-  pressure <- loadBindDouble $ Name "pressure"
+  density <- loadBindReal $ Name "density"
+  velocity <- mapM loadBindReal velocityNames
+  pressure <- loadBindReal $ Name "pressure"
   sound <- soundSpeed density pressure
   store (Name "density")  sound
 
