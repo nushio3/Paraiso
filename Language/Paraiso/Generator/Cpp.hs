@@ -338,7 +338,7 @@ arithRep op = let
     infx symb [x,y] = paren $ unwords [x,symb,y]
     infx symb _     = error $ symb ++ "is not a binary operator, can't be infix!"
     func symb xs = symb ++ paren (List.concat $ List.intersperse "," xs)
-    err = error $ "undefined operator : " ++ show op
+    err = error $ "unsupported operator : " ++ show op
     selectMaker [x,y,z] = paren $ unwords [x,"?",y,":",z]
     selectMaker _       = error "select requires exactly 3 arguments."
   in case op of
@@ -357,6 +357,8 @@ arithRep op = let
     A.LE -> infx "<=" 
     A.GT -> infx ">" 
     A.GE -> infx ">=" 
+    A.Max -> func "max"
+    A.Min -> func "min"
     A.Select -> selectMaker
     A.Ipow -> func "pow"
     A.Pow -> func "pow"
@@ -395,6 +397,36 @@ runBinder graph0 n0 binder = unlines $ header ++  [bindStr] ++ footer
                   ++ i ++ " < " ++ symbol Cpp sizeName ++ "() ; " 
                   ++  "++" ++ i ++ ")"
 
+
+reduceBinder :: (Additive.C (v g), Ord (v g), Symbolable Cpp g, Vector v) =>
+                Reduce.Operator
+             -> FGL.Node
+             -> FGL.Node
+             -> Binder v g String
+reduceBinder op nInst nSrc = do
+  graph <- bindersGraph
+  let
+    reduceCursor = CurGlobal nInst
+    reducerName  = "reduce_" ++ show nInst;
+    srcNode      = fromJust $ FGL.lab graph nSrc
+    srcType      = case srcNode of
+                     NValue dyn0 _ -> dyn0{DVal.realm = Global}
+                     NInst _ _     -> error "cannot reduce over NInst"
+    srcCursor    = CurLocal nSrc Additive.zero
+    fun          = arithRep $ Reduce.toArith op
+    i            = "i"
+  rhs0 <- withLocalContext (Name "0") $ rightHandSide srcCursor
+  rhs  <- withLocalContext (Name  i ) $ rightHandSide srcCursor
+  bindingModify $ Map.insert reduceCursor $ unlines[
+                              symbol Cpp srcType ++ " " ++ reducerName ++ " = " ++ rhs0 ++ ";", 
+                              "for (int " ++ i ++ " = 1 ; " 
+                              ++ i ++ " < " ++ sizeNameCall ++ "; " 
+                              ++  "++" ++ i ++ ") {",
+                              reducerName ++ " = "++ fun [reducerName,rhs] ++ ";",
+                             "}"]
+  return reducerName
+
+
 lhsRealm :: Graph v g (Strategy Cpp) -> FGL.Node -> Realm 
 lhsRealm graph n = 
   case fromJust $ FGL.lab graph n of     
@@ -426,8 +458,20 @@ cursorToNode cur = do
   graph <- bindersGraph
   return $ fromJust $ FGL.lab graph $ cursorToFGLNode cur
 
+withLocalContext :: Name -> Binder v g a -> Binder v g a
+withLocalContext name0 binder0 = do
+  state0 <- State.get
+  ctx0 <- bindersContext
+  State.put state0{context = CtxLocal name0}
+  ret <- binder0
+  state1 <- State.get
+  State.put state1{context = ctx0}
+  return ret
+
 -- | add @cursor@ in the current binding, if missing.
-addBinding :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) => Cursor v g -> Binder v g ()
+addBinding :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) => 
+              Cursor v g
+           -> Binder v g ()
 addBinding cursor = do 
   graph <- bindersGraph
   m <- bindersMap
@@ -517,18 +561,20 @@ rhsInst :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
 rhsInst inst cursor = do
   graph <- bindersGraph
   let 
+    curNode    = cursorToFGLNode cursor
     -- FGL indices of all the preceding nodes.
     preNodes   = map snd $ List.sort $ 
                  map (\(node, l) -> (l,node)) $ 
-                 FGL.lpre graph(cursorToFGLNode cursor)
-    -- Cursors of all the preceding nodes with context unchanged.
+                 FGL.lpre graph(curNode)
+    -- Cursors of all the preceding nodes with context inherited from cursor.
     preCursors = map (\n -> cursor{cursorToFGLNode = n}) preNodes
     headCursor = head preCursors
+    headNode   = cursorToFGLNode headCursor
   case inst of
     Imm dyn0    -> return $ symbol Cpp dyn0
     Load   _    -> cursorToSymbol RightHand cursor
     Store  _    -> error "Store has no RHS!"
-    Reduce op   -> return "0/*Reduce madayanen*/"
+    Reduce op   -> reduceBinder op curNode headNode
     Broadcast   -> cursorToSymbol RightHand (CurGlobal $ head preNodes)
     Shift vec   -> cursorToSymbol RightHand headCursor
                    {cursorToShift = vec + cursorToShift headCursor}

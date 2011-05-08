@@ -32,6 +32,8 @@ data Operator =
   LE |
   GT |
   GE |
+  Max |
+  Min |
   Select |
   -- | x^y where y is an integer
   Ipow |
@@ -61,6 +63,8 @@ instance Arity Operator where
     LE -> (2,1)
     GT -> (2,1)
     GE -> (2,1)
+    Max -> (2,1)
+    Min -> (2,1)
     Select -> (3,1)
     Ipow -> (2,1)
     Pow -> (2,1)
