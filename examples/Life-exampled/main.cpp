@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <unistd.h>
 
@@ -26,8 +27,12 @@ int main () {
       }
       buf[y*(W+1)+W]='\n';
     }
+    ostringstream oss;
+    oss << buf << "\n" 
+	<< "generation: " << sim.generation() << "\t"
+	<< "population: " << sim.population();
     system("clear");
-    cout << buf << "\n" << sim.generation() << endl;
+    cout << oss.str() << flush;
     usleep(wait);
     wait = max(100000, int(wait*0.9));
     sim.proceed();

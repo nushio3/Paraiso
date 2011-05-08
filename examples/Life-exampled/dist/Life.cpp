@@ -48,7 +48,12 @@ cell()[i] = a67[i];
 
 }
 
-a70 = 0/*Reduce madayanen*/;
+int reduce_69 = a67[0];
+for (int i = 1 ; i < size(); ++i) {
+reduce_69 = (reduce_69 + a67[i]);
+}
+
+a70 = reduce_69;
 
 
 population() = a70;
@@ -116,7 +121,12 @@ a67[i] = (a61_0_0 ? a63_0_0 : a65_0_0);
 
 }
 
-a69 = 0/*Reduce madayanen*/;
+int reduce_68 = a67[0];
+for (int i = 1 ; i < size(); ++i) {
+reduce_68 = (reduce_68 + a67[i]);
+}
+
+a69 = reduce_68;
 
 
 population() = a69;
