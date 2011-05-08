@@ -30,7 +30,19 @@ Description: The purpose of this project is to design a high-level
              techniques, and hardware designs --- all the necessaries
              of computer simulations in abstract, modular, re-usable
              and combinable forms.
-                     
+             .
+             > How to use
+	     .
+             The module "Language.Paraiso.OM.Builder" contains the @Builder@ monad,
+             its typeclass instance declarations and functions that can be used to build
+             Paraiso programs. Reserved words are
+             @load@, @store@, @imm@, @loadIndex@, @shift@, @reduce@ and @broadcast@.
+             .
+             * A document describing the current and the future designs : <https://github.com/nushio3/Paraiso/blob/master/paper/om.pdf?raw=true>
+             .
+             * Sample programs : <https://github.com/nushio3/Paraiso/tree/master/examples>        
+             .
+             * The codes generated from the samples : <https://github.com/nushio3/Paraiso/tree/exampled/examples>        
 
 -- URL for the project homepage or repository.
 Homepage:            http://www.paraiso-lang.org/wiki/index.php/Main_Page

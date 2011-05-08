@@ -63,10 +63,10 @@ initState s = BuilderState {
 type Builder vector gauge val = 
   State.State (BuilderState vector gauge) val
   
--- | 'Builder' needs to be an instance of 'Eq' to become an instance of  'Prelude.Num'  
+--  'Builder' needs to be an instance of 'Eq' to become an instance of  'Prelude.Num'  
 instance Eq (Builder v g v2) where
   _ == _ = undefined
--- | 'Builder' needs to be an instance of 'Show' to become an instance of  'Prelude.Num'  
+--  'Builder' needs to be an instance of 'Show' to become an instance of  'Prelude.Num'  
 instance Show (Builder v g v2) where
   show _ = "<<REDACTED>>"
 
@@ -133,7 +133,7 @@ load :: (TRealm r, Typeable c) =>
         r             -- ^The 'TRealm' type.
      -> c             -- ^The 'Val.content' type.
      -> Name          -- ^The 'Name' of the static value to load.
-     -> B (Value r c) -- ^The result.
+     -> B (Value r c) -- ^The loaded 'TLocal' 'Value' as a result.
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
@@ -164,8 +164,8 @@ store name0 builder0 = do
 -- to make a 'TGlobal' 'Value'
 reduce :: (Vector v, Ring.C g, Typeable c) => 
           Reduce.Operator               -- ^The reduction 'Reduce.Operator'.
-       -> Builder v g (Value TLocal c)  -- ^The 'Value' to be reduced.
-       -> Builder v g (Value TGlobal c) -- ^The result.
+       -> Builder v g (Value TLocal c)  -- ^The 'TLocal' 'Value' to be reduced.
+       -> Builder v g (Value TGlobal c) -- ^The 'TGlobal' 'Value' that holds the reduction result.
 reduce op builder1 = do 
   val1 <- builder1
   let 
@@ -179,8 +179,8 @@ reduce op builder1 = do
 -- | Broadcast a 'TGlobal' 'Value' 
 -- to make it a 'TLocal' 'Value'  
 broadcast :: (Vector v, Ring.C g, Typeable c) => 
-             Builder v g (Value TGlobal c) -- ^The 'Value' to be broadcasted.
-          -> Builder v g (Value TLocal c)  -- ^The result.
+             Builder v g (Value TGlobal c) -- ^The 'TGlobal' 'Value' to be broadcasted.
+          -> Builder v g (Value TLocal c)  -- ^The 'TLocal' 'Value', all of them containing the global value.
 broadcast builder1 = do 
   val1 <- builder1
   let 
@@ -191,11 +191,11 @@ broadcast builder1 = do
   n3 <- addNode [n2] (NValue type2 ())
   return (FromNode TLocal c1 n3)
   
--- | shift the orthotope with a constant vector
+-- | Shift a 'TLocal' 'Value' with a constant vector.
 shift :: (Vector v, Ring.C g, Typeable c, Additive.C (v g)) => 
          v g                          -- ^ The amount of shift  
-      -> Builder v g (Value TLocal c) -- ^ The 'Local' Value to be shifted
-      -> Builder v g (Value TLocal c) -- ^ The result
+      -> Builder v g (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
+      -> Builder v g (Value TLocal c) -- ^ The shifted 'TLocal' 'Value' as a result.
 shift vec builder1 = do
   val1 <- builder1
   let 
@@ -206,11 +206,11 @@ shift vec builder1 = do
   n3 <- addNode [n2] (NValue type1 ())
   return (FromNode TLocal c1 n3)
 
--- | load the mesh index 
+-- | Load the 'Axis' component of the mesh address, to a 'TLocal' 'Value'.
 loadIndex :: (Vector v, Ring.C g, Typeable c) => 
              c                            -- ^The 'Val.content' type.
           -> Axis v                       -- ^ The axis for which index is required
-          -> Builder v g (Value TLocal c) -- ^ The result
+          -> Builder v g (Value TLocal c) -- ^ The 'TLocal' 'Value' that contains the address as a result.
 loadIndex c0 axis = do
   let type0 = mkDyn TLocal c0
   n0 <- addNode [] (NInst (LoadIndex axis) ())
@@ -218,8 +218,11 @@ loadIndex c0 axis = do
   return (FromNode TLocal c0 n1)
 
 
--- | Create an immediate 'Value' from a concrete value. 'TRealm' is type-inferred.
-imm :: (TRealm r, Typeable c) => c -> B (Value r c)
+-- | Create an immediate 'Value' from a Haskell concrete value. 
+-- 'TRealm' is type-inferred.
+imm :: (TRealm r, Typeable c) => 
+       c             -- ^A Haskell value of type @c@ to be stored.
+    -> B (Value r c) -- ^'TLocal' 'Value' with the @c@ stored.
 imm c0 = return (FromImm unitTRealm c0)
 
 -- | Make a unary operator
@@ -256,19 +259,22 @@ mkOp2 op builder1 builder2 = do
   return $ FromNode r1 c1 n01
 
 
-
+-- | Builder is Additive 'Additive.C'.
+-- You can use 'Additive.zero', 'Additive.+', 'Additive.-', 'Additive.negate'.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
   zero = return $ FromImm unitTRealm Additive.zero
   (+) = mkOp2 A.Add
   (-) = mkOp2 A.Sub
   negate = mkOp1 A.Neg
     
+-- | Builder is Ring 'Ring.C'.
+-- You can use 'Ring.one', 'Ring.*'.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g (Value r c)) where
   one = return $ FromImm unitTRealm Ring.one
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
   
--- | 'Builder' needs to be an instance of 'Prelude.Num' to be able to read GHC numeric immediates.
+-- | you can convert GHC numeric immediates to 'Builder'.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
   (+) = (Additive.+)
   (*) = (Ring.*)
@@ -278,16 +284,19 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Bu
   signum = undefined
   fromInteger = Ring.fromInteger
   
+-- | Builder is Field 'Field.C'. You can use 'Field./', 'Field.recip'.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c) => Field.C (Builder v g (Value r c)) where
   (/) = mkOp2 A.Div
   recip = mkOp1 A.Inv
   fromRational' = imm . fromRational'
 
+-- | you can convert GHC floating point immediates to 'Builder'.
 instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractional c) => Prelude.Fractional (Builder v g (Value r c)) where  
   (/) = (Field./)
   recip = Field.recip
   fromRational = imm . Prelude.fromRational
 
+-- | Builder is 'Boolean'. You can use 'true', 'false', 'not', '&&', '||'.
 instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) where  
   true  = imm True
   false = imm False
