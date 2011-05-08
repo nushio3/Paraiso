@@ -364,6 +364,7 @@ arithRep op = let
     A.Msub ->  err
     A.Nmadd ->  err
     A.Nmsub ->  err
+    A.Sqrt  -> func "sqrt"
     A.Sincos ->  err
             
 

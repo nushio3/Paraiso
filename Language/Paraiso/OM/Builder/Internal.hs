@@ -19,6 +19,7 @@ module Language.Paraiso.OM.Builder.Internal
      imm, mkOp1, mkOp2
     ) where
 import qualified Algebra.Ring as Ring
+import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Field as Field
 import Control.Monad
@@ -303,3 +304,9 @@ instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) 
   not   = mkOp1 A.Not
   (&&)  = mkOp2 A.And
   (||)  = mkOp2 A.Or
+
+-- | Builder is Algebraic 'Algebraic.C'. You can use 'Algebraic.sqrt' and so on.
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Algebraic.C c) => Algebraic.C (Builder v g (Value r c)) where
+  sqrt = mkOp1 A.Sqrt
+  x ^/ y = mkOp2 A.Pow x (fromRational' y)
+

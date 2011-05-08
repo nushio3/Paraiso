@@ -43,6 +43,7 @@ data Operator =
   Msub |
   Nmadd |
   Nmsub |
+  Sqrt |
   Sincos 
   deriving (P.Eq, P.Ord, P.Show, P.Read)
 
@@ -72,5 +73,6 @@ instance Arity Operator where
     Msub -> (3,1)
     Nmadd -> (3,1)
     Nmsub -> (3,1)
+    Sqrt -> (1,1)
     Sincos -> (1,2)
 
