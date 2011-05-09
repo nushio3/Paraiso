@@ -3,8 +3,10 @@
 
 module Main(main) where
 
+import qualified Algebra.Additive  as Additive
+import qualified Algebra.Field     as Field
+import qualified Algebra.Ring      as Ring
 import           Data.Typeable
---import qualified Data.Graph.Inductive as FGL
 import           Language.Paraiso.Generator.Cpp
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
@@ -53,26 +55,73 @@ dRNames = compose (\axis -> Name $ "dR" ++ show (axisIndex axis))
 extentNames :: Dim (Name)
 extentNames = compose (\axis -> Name $ "extent" ++ show (axisIndex axis))
 
-bind :: (Functor f, Monad m) => f a -> f (m a)
+bind :: B a -> B (B a)
 bind = fmap return
        
-loadBindReal :: Name -> B (BR)
-loadBindReal = bind . load TLocal (undefined::Real) 
+loadReal :: Name -> BR
+loadReal = load TLocal (undefined::Real) 
 
 ----------------------------------------------------------------
 -- Hydro utility functions.
 ----------------------------------------------------------------
 
-soundSpeed :: BR -> BR -> B (BR)
-soundSpeed density pressure = bind $ sqrt (pressure / density)
+delta :: (Eq a, Ring.C b) => a -> a -> b
+delta i j = if i==j then Ring.one else Additive.zero
+
+kGamma :: Field.C a => a
+kGamma = fromRational' $ 5/3
+
+class Hydrable a where
+  density  :: a -> BR
+  velocity :: a -> Dim BR
+  velocity x = 
+    compose (\i -> momentum x !i / density x)
+  pressure :: a -> BR
+  pressure x = (kGamma-1) * internalEnergy x
+  momentum :: a -> Dim BR
+  momentum x =
+      compose (\i -> density x * velocity x !i)
+  energy   :: a -> BR
+  energy   x = kineticEnergy x + 1/(kGamma-1) * pressure x
+  enthalpy :: a -> BR
+  enthalpy x = kineticEnergy x + kGamma/(kGamma-1) * pressure x
+  densityFlux  :: a -> Dim BR
+  densityFlux  x = momentum x
+  momentumFlux :: a -> Dim (Dim BR)
+  momentumFlux x = 
+      compose (\i -> compose (\j ->
+          momentum x !i * velocity x !j + pressure x * delta i j))
+  energyFlux   :: a -> Dim BR
+  energyFlux x = 
+      compose (\i -> enthalpy x * velocity x !i)
+  soundSpeed   :: a -> BR
+  soundSpeed x = sqrt (kGamma * pressure x / density x)
+  kineticEnergy :: a -> BR
+  kineticEnergy x = 0.5 * contract (\i -> velocity x !i * momentum x !i)
+  internalEnergy :: a -> BR
+  internalEnergy x = energy x - kineticEnergy x
+
+data Hydro = Hydro
+    {densityH::BR, velocityH::Dim BR, pressureH::BR, 
+     momentumH::Dim BR, energyH::BR, enthalpyH::BR,
+     densityFluxH::Dim BR, momentumFluxH::Dim (Dim BR), energyFluxH::Dim BR,
+     soundSpeedH::BR, kineticEnergyH :: BR, internalEnergyH :: BR}
+
+instance Hydrable Hydro where
+  density = densityH; velocity = velocityH; pressure = pressureH;
+  momentum = momentumH; energy = energyH; enthalpy = enthalpyH;
+  densityFlux = densityFluxH; momentumFlux = momentumFluxH;
+  energyFlux = energyFluxH; soundSpeed = soundSpeedH;
+  kineticEnergy = kineticEnergyH; internalEnergy = internalEnergyH;
+
+
 
 buildProceed :: Builder Dim Int ()
 buildProceed = do
-  density <- loadBindReal $ Name "density"
-  velocity <- mapM loadBindReal velocityNames
-  pressure <- loadBindReal $ Name "pressure"
-  sound <- soundSpeed density pressure
-  store (Name "density")  sound
+  dens <- bind $ loadReal $ Name "density"
+  velo <- mapM (bind . loadReal) velocityNames
+  pres <- bind $ loadReal $ Name "pressure"
+  store (Name "density")  pres
 
 buildInit :: Builder Dim Int ()
 buildInit = do
