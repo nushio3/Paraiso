@@ -5,7 +5,7 @@ main.out : main.cpp dist/Life.hpp dist/Life.cpp
 
 
 lib:
-	runhaskell -i../../ Hydro.hs
+	runhaskell -i../../ HydroMain.hs
 
 clean:
 	rm -fr dist/

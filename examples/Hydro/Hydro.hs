@@ -1,65 +1,39 @@
 {-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 
-module Main(main) where
+-- | library for hydrodynamic variables.
+-- the notations are specified to Builder Vec2 Int 
+-- at the moment. and non-hydro-relevant utility functions
+-- are defined.
+-- but this limitation will be lifted and modules will be separated
+-- once everything is working well.
+
+
+module Hydro(Real, Dim, B, BR, bind,
+             delta, kGamma, Hydrable(..),
+             bindPrimitive, bindConserved) where
 
 import qualified Algebra.Additive  as Additive
 import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
-import           Data.Typeable
-import           Language.Paraiso.Generator.Cpp
 import           Language.Paraiso.OM.Builder
-import           Language.Paraiso.OM.Builder.Boolean
-import           Language.Paraiso.OM.DynValue as DVal
-import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm 
-import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value as Val
-import           Language.Paraiso.POM
 import           Language.Paraiso.Prelude 
 import           Language.Paraiso.Tensor
-import           System.Directory (createDirectoryIfMissing)
+
+----------------------------------------------------------------
+-- Binder monad utilities
+----------------------------------------------------------------
 
 type Real = Double
 type Dim = Vec2
 type B a = Builder Dim Int a
 type BR = B (Value TLocal Real)
 
-realDV :: DynValue
-realDV = DynValue{DVal.realm = Local, DVal.typeRep = typeOf (0::Real)}
-
-intGDV :: DynValue
-intGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Int)}
-
-realGDV :: DynValue
-realGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Real)}
-
-
--- the list of static variables for this machine
-pomSetup :: Setup Dim Int 
-pomSetup = Setup $ 
-            [Named (Name "generation") intGDV] ++
-            [Named (Name "time") realGDV] ++
-            foldMap (\name0 -> [Named name0 realGDV]) dRNames ++ 
-            foldMap (\name0 -> [Named name0 realGDV]) extentNames ++ 
-            [Named (Name "density") realDV]  ++
-            foldMap (\name0 -> [Named name0 realDV]) velocityNames ++ 
-            [Named (Name "pressure") realDV]  
-
-velocityNames :: Dim (Name)
-velocityNames = compose (\axis -> Name $ "velocity" ++ show (axisIndex axis))
-
-dRNames :: Dim (Name)
-dRNames = compose (\axis -> Name $ "dR" ++ show (axisIndex axis))
-
-extentNames :: Dim (Name)
-extentNames = compose (\axis -> Name $ "extent" ++ show (axisIndex axis))
-
 bind :: B a -> B (B a)
 bind = fmap return
        
-loadReal :: Name -> BR
-loadReal = load TLocal (undefined::Real) 
 
 ----------------------------------------------------------------
 -- Hydro utility functions.
@@ -70,6 +44,45 @@ delta i j = if i==j then Ring.one else Additive.zero
 
 kGamma :: Field.C a => a
 kGamma = fromRational' $ 5/3
+
+bindPrimitive :: BR -> Dim BR -> BR -> B Hydro
+bindPrimitive density0 velocity0 pressure0 = 
+  bindHydro $ PrimitiveVar density0 velocity0 pressure0
+  
+bindConserved :: BR -> Dim BR -> BR -> B Hydro
+bindConserved density0 momentum0 energy0 = 
+  bindHydro $ ConservedVar density0 momentum0 energy0
+  
+
+bindHydro :: (Hydrable a) => a -> B Hydro
+bindHydro x = do
+  densityBound <- bind $ density x
+  velocityBound <- mapM bind $ velocity x
+  pressureBound <- bind $ pressure x
+  momentumBound <- mapM bind $ momentum x
+  energyBound <- bind $ energy x
+  enthalpyBound <- bind $ enthalpy x
+  densityFluxBound <- mapM bind $ densityFlux x
+  momentumFluxBound <-  mapM (mapM bind) $ momentumFlux x
+  energyFluxBound <- mapM bind $ energyFlux x
+  soundSpeedBound <- bind $ soundSpeed x
+  kineticEnergyBound <- bind $ kineticEnergy x
+  internalEnergyBound <- bind $ internalEnergy x
+  return Hydro{
+    densityHydro = densityBound,
+    velocityHydro = velocityBound,
+    pressureHydro = pressureBound,
+    momentumHydro = momentumBound,
+    energyHydro = energyBound,
+    enthalpyHydro = enthalpyBound,
+    densityFluxHydro = densityFluxBound,
+    momentumFluxHydro = momentumFluxBound,
+    energyFluxHydro = energyFluxBound,
+    soundSpeedHydro = soundSpeedBound,
+    kineticEnergyHydro = kineticEnergyBound,
+    internalEnergyHydro = internalEnergyBound
+             }
+  
 
 class Hydrable a where
   density  :: a -> BR
@@ -102,46 +115,28 @@ class Hydrable a where
   internalEnergy x = energy x - kineticEnergy x
 
 data Hydro = Hydro
-    {densityH::BR, velocityH::Dim BR, pressureH::BR, 
-     momentumH::Dim BR, energyH::BR, enthalpyH::BR,
-     densityFluxH::Dim BR, momentumFluxH::Dim (Dim BR), energyFluxH::Dim BR,
-     soundSpeedH::BR, kineticEnergyH :: BR, internalEnergyH :: BR}
+    {densityHydro::BR, velocityHydro::Dim BR, pressureHydro::BR, 
+     momentumHydro::Dim BR, energyHydro::BR, enthalpyHydro::BR,
+     densityFluxHydro::Dim BR, momentumFluxHydro::Dim (Dim BR), 
+     energyFluxHydro::Dim BR, soundSpeedHydro::BR, 
+     kineticEnergyHydro:: BR, internalEnergyHydro:: BR}
 
 instance Hydrable Hydro where
-  density = densityH; velocity = velocityH; pressure = pressureH;
-  momentum = momentumH; energy = energyH; enthalpy = enthalpyH;
-  densityFlux = densityFluxH; momentumFlux = momentumFluxH;
-  energyFlux = energyFluxH; soundSpeed = soundSpeedH;
-  kineticEnergy = kineticEnergyH; internalEnergy = internalEnergyH;
+  density = densityHydro; velocity = velocityHydro; pressure = pressureHydro;
+  momentum = momentumHydro; energy = energyHydro; enthalpy = enthalpyHydro;
+  densityFlux = densityFluxHydro; momentumFlux = momentumFluxHydro;
+  energyFlux = energyFluxHydro; soundSpeed = soundSpeedHydro;
+  kineticEnergy = kineticEnergyHydro; internalEnergy = internalEnergyHydro;
 
+data PrimitiveVar = PrimitiveVar
+    {densityPrim::BR, velocityPrim::Dim BR, pressurePrim::BR}
 
+instance Hydrable PrimitiveVar where
+  density = densityPrim; velocity = velocityPrim; pressure = pressurePrim
 
-buildProceed :: Builder Dim Int ()
-buildProceed = do
-  dens <- bind $ loadReal $ Name "density"
-  velo <- mapM (bind . loadReal) velocityNames
-  pres <- bind $ loadReal $ Name "pressure"
-  store (Name "density")  pres
+data ConservedVar = ConservedVar
+    {densityCsvd::BR, velocityCsvd::Dim BR, pressureCsvd::BR}
 
-buildInit :: Builder Dim Int ()
-buildInit = do
-  return ()
-  
--- compose the machine.
-pom :: POM Dim Int (Strategy Cpp)
-pom = fmap (\() -> autoStrategy) $ 
-  makePOM (Name "Hydro")  pomSetup
-    [(Name "init"   , buildInit),
-     (Name "proceed", buildProceed)]
-              
+instance Hydrable ConservedVar where
+  density = densityCsvd; velocity = velocityCsvd; pressure = pressureCsvd
 
-main :: IO ()
-main = do
-  createDirectoryIfMissing True "output"
-  writeFile "output/POM.txt" $ show pom ++ "\n"
-  writeFile "output/POM1.txt" $ show (decideStrategy pom) ++ "\n"
-  generate Cpp pom "dist"
- 
-
-
-  
