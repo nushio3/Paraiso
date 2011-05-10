@@ -123,6 +123,28 @@ buildProceed = do
   store (Name "pressure") $ pressure cell3
 
 
+proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
+proceedSingle order dt dR cellF cellS = do
+  let calcWall i = do
+        (lp,rp) <- interpolate order i cellF
+        hllc i lp rp
+  wall <- sequence $ compose calcWall
+  cx <- addFlux dt dR wall (Axis 0) cellS
+  addFlux dt dR wall (Axis 1) cx
+  
+addFlux :: BR -> Dim BR -> Dim (Hydro BR) -> Axis Dim -> Hydro BR -> B (Hydro BR)
+addFlux dt dR wall ex cell = do
+  dtdx <- bind $ dt / dR!ex
+  leftWall  <- mapM bind $ wall ! ex
+  rightWall <- mapM (bind . shift (negate $ unitVector ex)) $ wall!ex
+  dens1 <- bind $ density cell + dtdx * (densityFlux leftWall - densityFlux rightWall)!ex
+  mome1 <- sequence $ compose 
+           (\j -> bind $ (momentum cell !j + dtdx * 
+                          (momentumFlux leftWall - momentumFlux rightWall) !j!ex))
+  enrg1 <- bind $ energy  cell + dtdx * (energyFlux leftWall - energyFlux rightWall)  !ex
+  
+  bindConserved dens1 mome1 enrg1
+
 interpolateSingle :: Int -> BR -> BR -> BR -> BR -> B (BR,BR)
 interpolateSingle order x0 x1 x2 x3 = 
   if order == 1 
@@ -160,27 +182,6 @@ interpolate order i cell = do
   rp <- bp r
   return (lp,rp)
 
-proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
-proceedSingle order dt dR cellF cellS = do
-  let calcWall i = do
-        (lp,rp) <- interpolate order i cellF
-        hllc i lp rp
-  wall <- sequence $ compose calcWall
-  
-  let ex = Axis 0
-  dtdx <- bind $ dt / dR!ex
-  let 
-      leftWall :: Hydro BR
-      leftWall = wall ! ex
-  rightWall <- mapM (bind . shift (negate $ unitVector ex)) (wall!ex)
-  dens1 <- bind $ density cellS + dtdx * (densityFlux leftWall - densityFlux rightWall)!ex
-  mome1 <- sequence $ compose 
-           (\j -> bind $ (momentum cellS !j + dtdx * 
-                          (momentumFlux leftWall - momentumFlux rightWall) !j!ex))
-  enrg1 <- bind $ energy  cellS + dtdx * (energyFlux leftWall - energyFlux rightWall)  !ex
-  
-  bindConserved dens1 mome1 enrg1
-
   
   
   
@@ -196,15 +197,17 @@ buildInit2 = do
 
   let ey = Axis 1
       vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 1) :~ 0
-      vminus = Vec :~ (-1) :~ 0
+      vplus  = Vec :~ ( 0.3) :~ 0
+      vminus = Vec :~ (-0.3) :~ 0
   
   region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
   velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
 
-  store (Name "density") $ kGamma * (kGamma::BR)
+  factor <- bind $ select region 1 2
+
+  store (Name "density") $ factor * kGamma * (kGamma::BR)
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (Name "pressure") $ (kGamma::BR)
+  store (Name "pressure") $ factor * (kGamma::BR)
 
 
 buildInit1 :: Builder Dim Int ()
