@@ -32,6 +32,7 @@ pomSetup :: Setup Dim Int
 pomSetup = Setup $ 
             [Named (Name "generation") intGDV] ++
             [Named (Name "time") realGDV] ++
+            [Named (Name "cfl") realGDV] ++
             foldMap (\name0 -> [Named name0 realGDV]) dRNames ++ 
             foldMap (\name0 -> [Named name0 realGDV]) extentNames ++ 
             [Named (Name "density") realDV]  ++
@@ -103,6 +104,7 @@ buildProceed = do
   pres    <- bind $ loadReal $ Name "pressure"
   
   timeG   <- bind $ loadGReal $ Name "time"
+  cflG    <- bind $ loadGReal $ Name "cfl"
   
   dRG     <- mapM (bind . loadGReal) dRNames  
   dR      <- mapM (bind . broadcast) dRG 
@@ -111,7 +113,7 @@ buildProceed = do
   let timescale i = dR!i / (soundSpeed cell + abs (velocity cell !i))
   dts <- bind $ foldl1 min $ compose timescale
   
-  dtG <- bind $ reduce Reduce.Min dts
+  dtG <- bind $ cflG * reduce Reduce.Min dts
   dt  <- bind $ broadcast dtG
   
   cell2 <- proceedSingle 1 (dt/2) dR cell  cell

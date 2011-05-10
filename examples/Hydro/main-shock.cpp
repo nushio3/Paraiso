@@ -27,6 +27,7 @@ void dump (string fn, Hydro &sim) {
 int main () {
   Hydro sim(W, H);
   sim.time() = 0;
+  sim.cfl() = 1;
   sim.extent0() = 2.0;
   sim.extent1() = 2.0;
   sim.dR0() = sim.extent0() / W;

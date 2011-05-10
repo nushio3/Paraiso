@@ -32,6 +32,7 @@ void dump (string fn, Hydro &sim) {
 int main () {
   Hydro sim(W, H);
   sim.time() = 0;
+  sim.cfl() = 0.5;
   sim.extent0() = 1.0;
   sim.extent1() = 1.0;
   sim.dR0() = sim.extent0() / W;
@@ -41,6 +42,7 @@ int main () {
   system("mkdir -p output");
   while (ctr <= 100) {
     cerr << sim.time() << endl;
+    if (!isfinite(sim.time())) return -1;
     sim.proceed();
     if (sim.time() > 0.1 * ctr) {
       char buf[256];
