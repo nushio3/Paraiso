@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -36,11 +37,16 @@ int main () {
   sim.dR0() = sim.extent0() / W;
   sim.dR1() = sim.extent1() / H;
   sim.init_kh();
-  dump("begin.txt", sim);
-  for (;;) {
+  int ctr = 0;
+  system("mkdir -p output");
+  while (ctr <= 100) {
     cerr << sim.time() << endl;
     sim.proceed();
-    if (sim.time() >1.0) break;
+    if (sim.time() > 0.1 * ctr) {
+      char buf[256];
+      sprintf(buf, "output/snapshot%04d", ctr);
+      dump(buf, sim);
+      ++ctr;
+    }
   }
-  dump("end.txt", sim);
 }
