@@ -378,6 +378,14 @@ arithRep op = let
     A.Nmadd ->  err
     A.Nmsub ->  err
     A.Sqrt  -> func "sqrt"
+    A.Exp   -> func "exp"
+    A.Log   -> func "log"
+    A.Sin   -> func "sin"
+    A.Cos   -> func "cos"
+    A.Tan   -> func "tan"
+    A.Asin  -> func "asin"
+    A.Acos  -> func "acos"
+    A.Atan  -> func "atan"
     A.Sincos ->  err
             
 

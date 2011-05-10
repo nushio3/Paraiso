@@ -46,6 +46,14 @@ data Operator =
   Nmadd |
   Nmsub |
   Sqrt |
+  Exp |
+  Log |
+  Sin |
+  Cos |
+  Tan |
+  Asin |
+  Acos |
+  Atan |
   Sincos 
   deriving (P.Eq, P.Ord, P.Show, P.Read)
 
@@ -78,5 +86,13 @@ instance Arity Operator where
     Nmadd -> (3,1)
     Nmsub -> (3,1)
     Sqrt -> (1,1)
+    Exp -> (1,1)
+    Log -> (1,1)
+    Sin -> (1,1)
+    Cos -> (1,1)
+    Tan -> (1,1)
+    Asin -> (1,1)
+    Acos -> (1,1)
+    Atan -> (1,1)
     Sincos -> (1,2)
 

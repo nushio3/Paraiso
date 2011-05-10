@@ -24,6 +24,7 @@ import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Field as Field
 import qualified Algebra.Lattice as Lattice
 import qualified Algebra.Ring as Ring
+import qualified Algebra.Transcendental as Transcendental
 import qualified Algebra.ZeroTestable as ZeroTestable
 import Control.Monad
 import qualified Control.Monad.State as State
@@ -328,4 +329,15 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Absolute.C (Bui
       abs    = mkOp1 A.Abs
       signum = mkOp1 A.Signum
 
-      
+instance (Vector v, Ring.C g, TRealm r, Typeable c,  Transcendental.C c) =>  
+    Transcendental.C (Builder v g (Value r c)) where      
+        pi = imm pi
+        exp = mkOp1 A.Exp
+        log = mkOp1 A.Log
+        sin = mkOp1 A.Sin
+        cos = mkOp1 A.Cos
+        tan = mkOp1 A.Tan
+        asin = mkOp1 A.Asin
+        acos = mkOp1 A.Acos
+        atan = mkOp1 A.Atan
+        
