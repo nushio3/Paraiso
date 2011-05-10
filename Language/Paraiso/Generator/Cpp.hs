@@ -150,7 +150,7 @@ decideStrategy = POM.mapGraph dSGraph
     decideAlloc graph n = 
       if isGlobal || afterLoad || isStore 
          || beforeReduce || afterReduce 
-         || (False && (beforeShift || afterShift))
+         || (False &&( beforeShift && afterShift))
       then Alloc.Manifest
       else Alloc.Delayed
         where

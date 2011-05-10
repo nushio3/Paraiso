@@ -10,7 +10,7 @@
 -- once everything is working well.
 
 
-module Hydro(Real, Dim, B, BR, BGR, bind,
+module Hydro(Real, Dim, B, BR, BGR, bind, bindManifest,
              delta, kGamma, Hydrable(..), Hydro,
              soundSpeed' , 
              bindPrimitive, bindConserved) where
@@ -20,6 +20,7 @@ import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Realm 
+import           Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.Prelude 
 import           Language.Paraiso.Tensor
@@ -37,6 +38,11 @@ type BGR = B (Value TGlobal Real)
 bind :: B a -> B (B a)
 bind = fmap return
        
+bindManifest :: BR -> B BR       
+bindManifest x = do
+  x' <- bind x
+  _ <- reduce Reduce.Sum x'
+  return x'
 
 ----------------------------------------------------------------
 -- Hydro utility functions.
