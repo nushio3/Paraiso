@@ -126,12 +126,13 @@ buildProceed = do
   dtG <- bind $ reduce Reduce.Min dts
   dt  <- bind $ broadcast dtG
   
-  h1 <- proceedSingle dt dR cell cell
+  cell2 <- proceedSingle (dt/2) dR cell cell
+  cell3 <- proceedSingle  dt    dR cell2 cell
   
   store (Name "time") $ timeG + dtG
-  store (Name "density") $ density h1
-  _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity h1 !i)
-  store (Name "pressure") $ pressure h1
+  store (Name "density") $ density cell3
+  _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
+  store (Name "pressure") $ pressure cell3
 
 proceedSingle :: BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
 proceedSingle dt dR cellF cellS = do
@@ -168,6 +169,7 @@ proceedSingle dt dR cellF cellS = do
   enrg1 <- bind $ energy  cellS + dtdx * (energyFlux leftWall - energyFlux rightWall)  !ex
   
   bindConserved dens1 mome1 enrg1
+
   
   
   
