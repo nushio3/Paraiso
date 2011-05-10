@@ -120,7 +120,7 @@ Library
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.POM
---                     Language.Paraiso.Prelude
+                       Language.Paraiso.Prelude
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
