@@ -18,11 +18,13 @@ module Language.Paraiso.OM.Builder.Internal
      shift, loadIndex,
      imm, mkOp1, mkOp2
     ) where
+import qualified Algebra.Absolute as Absolute
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Field as Field
 import qualified Algebra.Lattice as Lattice
 import qualified Algebra.Ring as Ring
+import qualified Algebra.ZeroTestable as ZeroTestable
 import Control.Monad
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
@@ -317,3 +319,13 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c) => Lattice.C (Builder v g (V
       up = mkOp2 A.Max  
       dn = mkOp2 A.Min
 
+instance (Vector v, Ring.C g, TRealm r, Typeable c) => ZeroTestable.C (Builder v g (Value r c))
+    where
+      isZero _ = error "isZero undefined for builder."
+      
+instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Absolute.C (Builder v g (Value r c))
+    where
+      abs    = mkOp1 A.Abs
+      signum = mkOp1 A.Signum
+
+      

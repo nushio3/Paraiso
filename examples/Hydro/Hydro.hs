@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
+{-# LANGUAGE  DeriveFunctor, DeriveFoldable, DeriveTraversable,
+  FlexibleInstances, NoImplicitPrelude, TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 
 -- | library for hydrodynamic variables.
@@ -9,8 +10,9 @@
 -- once everything is working well.
 
 
-module Hydro(Real, Dim, B, BR, bind,
-             delta, kGamma, Hydrable(..),
+module Hydro(Real, Dim, B, BR, BGR, bind,
+             delta, kGamma, Hydrable(..), Hydro,
+             soundSpeed' , 
              bindPrimitive, bindConserved) where
 
 import qualified Algebra.Additive  as Additive
@@ -30,6 +32,7 @@ type Real = Double
 type Dim = Vec2
 type B a = Builder Dim Int a
 type BR = B (Value TLocal Real)
+type BGR = B (Value TGlobal Real)
 
 bind :: B a -> B (B a)
 bind = fmap return
@@ -43,18 +46,22 @@ delta :: (Eq a, Ring.C b) => a -> a -> b
 delta i j = if i==j then Ring.one else Additive.zero
 
 kGamma :: Field.C a => a
-kGamma = fromRational' $ 5/3
+kGamma = fromRational' $ 7/5
 
-bindPrimitive :: BR -> Dim BR -> BR -> B Hydro
+-- | sound speed as a standalone function.
+soundSpeed' :: BR -> BR -> BR
+soundSpeed' dens0 pres0 = sqrt (kGamma * pres0 / dens0)
+
+bindPrimitive :: BR -> Dim BR -> BR -> B (Hydro BR)
 bindPrimitive density0 velocity0 pressure0 = 
   bindHydro $ PrimitiveVar density0 velocity0 pressure0
   
-bindConserved :: BR -> Dim BR -> BR -> B Hydro
+bindConserved :: BR -> Dim BR -> BR -> B (Hydro BR)
 bindConserved density0 momentum0 energy0 = 
   bindHydro $ ConservedVar density0 momentum0 energy0
   
 
-bindHydro :: (Hydrable a) => a -> B Hydro
+bindHydro :: (Hydrable a) => a -> B (Hydro BR)
 bindHydro x = do
   densityBound <- bind $ density x
   velocityBound <- mapM bind $ velocity x
@@ -97,7 +104,7 @@ class Hydrable a where
   energy   :: a -> BR
   energy   x = kineticEnergy x + 1/(kGamma-1) * pressure x
   enthalpy :: a -> BR
-  enthalpy x = kineticEnergy x + kGamma/(kGamma-1) * pressure x
+  enthalpy x = energy x + pressure x
   densityFlux  :: a -> Dim BR
   densityFlux  x = momentum x
   momentumFlux :: a -> Dim (Dim BR)
@@ -108,26 +115,54 @@ class Hydrable a where
   energyFlux x = 
       compose (\i -> enthalpy x * velocity x !i)
   soundSpeed   :: a -> BR
-  soundSpeed x = sqrt (kGamma * pressure x / density x)
+  soundSpeed x = soundSpeed' (density x) (pressure x) 
   kineticEnergy :: a -> BR
   kineticEnergy x = 0.5 * contract (\i -> velocity x !i * momentum x !i)
   internalEnergy :: a -> BR
   internalEnergy x = energy x - kineticEnergy x
 
-data Hydro = Hydro
-    {densityHydro::BR, velocityHydro::Dim BR, pressureHydro::BR, 
-     momentumHydro::Dim BR, energyHydro::BR, enthalpyHydro::BR,
-     densityFluxHydro::Dim BR, momentumFluxHydro::Dim (Dim BR), 
-     energyFluxHydro::Dim BR, soundSpeedHydro::BR, 
-     kineticEnergyHydro:: BR, internalEnergyHydro:: BR}
 
-instance Hydrable Hydro where
+data Hydro a = Hydro
+    {densityHydro::a, velocityHydro::Dim a, pressureHydro::a, 
+     momentumHydro::Dim a, energyHydro::a, enthalpyHydro::a,
+     densityFluxHydro::Dim a, momentumFluxHydro::Dim (Dim a), 
+     energyFluxHydro::Dim a, soundSpeedHydro::a, 
+     kineticEnergyHydro::a, internalEnergyHydro::a}
+    deriving (Functor, Foldable, Traversable)
+
+instance Hydrable (Hydro BR) where
   density = densityHydro; velocity = velocityHydro; pressure = pressureHydro;
   momentum = momentumHydro; energy = energyHydro; enthalpy = enthalpyHydro;
   densityFlux = densityFluxHydro; momentumFlux = momentumFluxHydro;
   energyFlux = energyFluxHydro; soundSpeed = soundSpeedHydro;
   kineticEnergy = kineticEnergyHydro; internalEnergy = internalEnergyHydro;
 
+instance Applicative Hydro where
+  pure x = Hydro
+    {densityHydro = x, velocityHydro = pure x, pressureHydro = x, 
+     momentumHydro = pure x, energyHydro = x, enthalpyHydro = x,
+     densityFluxHydro = pure x, momentumFluxHydro = pure (pure x), 
+     energyFluxHydro = pure x, soundSpeedHydro = x, 
+     kineticEnergyHydro = x, internalEnergyHydro = x}
+  hf <*> hx = Hydro
+    {densityHydro        = densityHydro        hf $ densityHydro        hx,
+     pressureHydro       = pressureHydro       hf $ pressureHydro       hx,
+     energyHydro         = energyHydro         hf $ energyHydro         hx,
+     enthalpyHydro       = enthalpyHydro       hf $ enthalpyHydro       hx,
+     soundSpeedHydro     = soundSpeedHydro     hf $ soundSpeedHydro     hx,
+     kineticEnergyHydro  = kineticEnergyHydro  hf $ kineticEnergyHydro  hx,
+     internalEnergyHydro = internalEnergyHydro hf $ internalEnergyHydro hx,
+     velocityHydro       = velocityHydro    hf <*> velocityHydro    hx,
+     momentumHydro       = momentumHydro    hf <*> momentumHydro    hx,
+     densityFluxHydro    = densityFluxHydro hf <*> densityFluxHydro hx,
+     energyFluxHydro     = energyFluxHydro  hf <*> energyFluxHydro  hx,
+     momentumFluxHydro   = 
+         compose(\i -> compose(\j -> (momentumFluxHydro hf!i!j) 
+                                     (momentumFluxHydro hx!i!j)))
+-- in other words,  
+-- (<*>)((<*>) <$> momentumFluxHydro hf) $ momentumFluxHydro hx  
+    }                           
+    
 data PrimitiveVar = PrimitiveVar
     {densityPrim::BR, velocityPrim::Dim BR, pressurePrim::BR}
 

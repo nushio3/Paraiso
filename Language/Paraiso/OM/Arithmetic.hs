@@ -34,6 +34,8 @@ data Operator =
   GE |
   Max |
   Min |
+  Abs |
+  Signum |
   Select |
   -- | x^y where y is an integer
   Ipow |
@@ -66,6 +68,8 @@ instance Arity Operator where
     GE -> (2,1)
     Max -> (2,1)
     Min -> (2,1)
+    Abs -> (1,1)
+    Signum -> (1,1)
     Select -> (3,1)
     Ipow -> (2,1)
     Pow -> (2,1)

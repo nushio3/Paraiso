@@ -21,8 +21,8 @@ module Language.Paraiso.Tensor
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import Language.Paraiso.Failure
-import Language.Paraiso.Prelude
+import           Language.Paraiso.Failure
+import           Language.Paraiso.Prelude
 
 infixl 9 !
 -- | a component operator.
@@ -51,6 +51,9 @@ instance Functor Vec where
   fmap = fmapDefault
 instance Traversable Vec where
   traverse _ Vec = pure Vec 
+instance Applicative Vec where
+  pure _  = Vec
+  _ <*> _ = Vec
 
 instance (Traversable n) => Foldable ((:~) n) where
   foldMap = foldMapDefault
@@ -58,6 +61,10 @@ instance (Traversable n) => Functor ((:~) n) where
   fmap = fmapDefault
 instance (Traversable n) => Traversable ((:~) n) where
   traverse f (x :~ y) = (:~) <$> traverse f x <*> f y
+instance (Applicative n, Traversable n) => Applicative ((:~) n) where
+  pure x = pure x :~ x
+  (vf :~ f) <*> (vx :~ x) = (vf <*> vx :~ f x)
+
 
 
 -- | An coordinate 'Axis' , labeled by an integer. 
