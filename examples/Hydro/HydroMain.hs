@@ -195,7 +195,8 @@ buildInit2 = do
   icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
 
-  let ey = Axis 1
+  let ex = Axis 0
+      ey = Axis 1
       vplus, vminus :: Dim BR
       vplus  = Vec :~ ( 0.3) :~ 0
       vminus = Vec :~ (-0.3) :~ 0
@@ -205,7 +206,7 @@ buildInit2 = do
 
   factor <- bind $ select region 1 2
 
-  store (Name "density") $ factor * kGamma * (kGamma::BR)
+  store (Name "density") $ factor * kGamma * (kGamma::BR) * (1 + 1e-2 * sin (6 * pi * coord ! ex))
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
   store (Name "pressure") $ factor * (kGamma::BR)
 
