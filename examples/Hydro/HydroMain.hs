@@ -210,7 +210,7 @@ buildInit2 = do
 
   store (Name "density") $ factor * kGamma * (kGamma::BR) * (1 + 1e-2 * sin (6 * pi * coord ! ex))
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (Name "pressure") $ factor * (kGamma::BR)
+  store (Name "pressure") $ 1.414 * (kGamma::BR)
 
 
 buildInit1 :: Builder Dim Int ()

@@ -26,6 +26,7 @@ void dump (string fn, Hydro &sim) {
           << sim.velocity1()[i] << " "
           << sim.pressure()[i] << endl;
     }
+    ofs << endl;
   }
 }
 
