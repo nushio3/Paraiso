@@ -170,8 +170,8 @@ instance Hydrable PrimitiveVar where
   density = densityPrim; velocity = velocityPrim; pressure = pressurePrim
 
 data ConservedVar = ConservedVar
-    {densityCsvd::BR, velocityCsvd::Dim BR, pressureCsvd::BR}
+    {densityCsvd::BR, momentumCsvd::Dim BR, energyCsvd::BR}
 
 instance Hydrable ConservedVar where
-  density = densityCsvd; velocity = velocityCsvd; pressure = pressureCsvd
+  density = densityCsvd; momentum = momentumCsvd; energy = energyCsvd
 
