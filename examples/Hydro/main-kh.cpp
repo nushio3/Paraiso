@@ -47,7 +47,7 @@ int main () {
     sim.proceed();
     if (sim.time() > 0.1 * ctr) {
       char buf[256];
-      sprintf(buf, "output/snapshot%04d", ctr);
+      sprintf(buf, "output/snapshot%04d.txt", ctr);
       dump(buf, sim);
       ++ctr;
     }

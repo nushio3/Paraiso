@@ -206,11 +206,11 @@ buildInit2 = do
   region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
   velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
 
-  factor <- bind $ select region 1 2
+  factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
 
-  store (Name "density") $ factor * kGamma * (kGamma::BR) * (1 + 1e-2 * sin (6 * pi * coord ! ex))
+  store (Name "density") $ factor * kGamma * (kGamma::BR) * (select region 1 2)
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (Name "pressure") $ 1.414 * (kGamma::BR)
+  store (Name "pressure") $ factor * (kGamma::BR) * 1.414
 
 
 buildInit1 :: Builder Dim Int ()
