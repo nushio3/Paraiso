@@ -10,7 +10,7 @@
 
 using namespace std;
 
-const int W = 128, H = 1;
+const int W = 400, H = 1;
 
 void dump (string fn, Hydro &sim) {
   ofstream ofs (fn.c_str()); 

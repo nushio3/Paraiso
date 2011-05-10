@@ -96,18 +96,6 @@ hllc i left right = do
                  (starShock + pressure x/density x/(shock - speed)))
         bindConserved dens mome enrg
 
-interpolate :: BR -> BR -> BR -> BR -> B (BR,BR)
-interpolate x0 x1 x2 x3 = do
-  d01 <- bind $ x1-x0
-  d12 <- bind $ x2-x1
-  d23 <- bind $ x3-x2
-  let absmaller a b = select ((a*b) `le` 0) 0 $ select (abs a `lt` abs b) a b
-  d1 <- bind $ absmaller d01 d12
-  d2 <- bind $ absmaller d12 d23
-  l <- bind $ x1 + d1/2
-  r <- bind $ x2 - d2/2
-  return (l, r)
-
 buildProceed :: Builder Dim Int ()
 buildProceed = do
   dens    <- bind $ loadReal $ Name "density"
@@ -126,34 +114,57 @@ buildProceed = do
   dtG <- bind $ reduce Reduce.Min dts
   dt  <- bind $ broadcast dtG
   
-  cell2 <- proceedSingle (dt/2) dR cell cell
-  cell3 <- proceedSingle  dt    dR cell2 cell
+  cell2 <- proceedSingle 1 (dt/2) dR cell  cell
+  cell3 <- proceedSingle 2  dt    dR cell2 cell
   
   store (Name "time") $ timeG + dtG
   store (Name "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
   store (Name "pressure") $ pressure cell3
 
-proceedSingle :: BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
-proceedSingle dt dR cellF cellS = do
+
+interpolateSingle :: Int -> BR -> BR -> BR -> BR -> B (BR,BR)
+interpolateSingle order x0 x1 x2 x3 = 
+  if order == 1 
+  then do
+    return (x1, x2)
+  else if order == 2
+       then do
+         d01 <- bind $ x1-x0
+         d12 <- bind $ x2-x1
+         d23 <- bind $ x3-x2
+         let absmaller a b = select ((a*b) `le` 0) 0 $ select (abs a `lt` abs b) a b
+         d1 <- bind $ absmaller d01 d12
+         d2 <- bind $ absmaller d12 d23
+         l <- bind $ x1 + d1/2
+         r <- bind $ x2 - d2/2
+         return (l, r)
+       else error $ show order ++ "th order spatial interpolation is not yet implemented"
+
+interpolate :: Int -> Axis Dim -> Hydro BR -> B (Hydro BR, Hydro BR)
+interpolate order i cell = do
+  let shifti n =  shift $ compose (\j -> if i==j then n else 0)
+  a0 <- mapM (bind . shifti ( 2)) cell
+  a1 <- mapM (bind . shifti ( 1)) cell
+  a2 <- mapM (bind . shifti ( 0)) cell
+  a3 <- mapM (bind . shifti (-1)) cell
+  intp <- sequence $ interpolateSingle order <$> a0 <*> a1 <*> a2 <*> a3
+  let (l,r) = (fmap fst intp , fmap snd intp)
+      bp :: Hydro BR -> B (Hydro BR)
+      bp x = do 
+        dens1 <- bind $ density x
+        velo1 <- mapM bind $ velocity x
+        pres1 <- bind $ pressure x
+        bindPrimitive dens1 velo1 pres1
+  lp <- bp l
+  rp <- bp r
+  return (lp,rp)
+
+proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
+proceedSingle order dt dR cellF cellS = do
   let calcWall i = do
-                 let shifti n =  shift $ compose (\j -> if i==j then n else 0)
-                 a0 <- mapM (bind . shifti ( 2)) cellF
-                 a1 <- mapM (bind . shifti ( 1)) cellF
-                 a2 <- mapM (bind . shifti ( 0)) cellF
-                 a3 <- mapM (bind . shifti (-1)) cellF
-                 -- intp :: Hydro (BR, BR)
-                 intp <- sequence $ interpolate <$> a0 <*> a1 <*> a2 <*> a3
-                 let (l,r) = (fmap fst intp , fmap snd intp)
-                     bp :: Hydro BR -> B (Hydro BR)
-                     bp x = do 
-                       dens1 <- bind $ density x
-                       velo1 <- mapM bind $ velocity x
-                       pres1 <- bind $ pressure x
-                       bindPrimitive dens1 velo1 pres1
-                 lp <- bp l
-                 rp <- bp r
-                 hllc i lp rp
+        (lp,rp) <- interpolate order i cellF
+        hllc i lp rp
   wall <- sequence $ compose calcWall
   
   let ex = Axis 0
