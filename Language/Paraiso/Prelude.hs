@@ -20,11 +20,11 @@ import Control.Monad hiding
 import Data.Foldable
 import Data.Traversable
 import NumericPrelude hiding 
-    (not, (&&), (||), Monad, Functor,
+    (not, (&&), (||), Monad, Functor, (*>),
      (>>=), (>>), return, fail, fmap, mapM, mapM_, sequence, sequence_, (=<<), foldl, foldl1, foldr, foldr1, and, or, any, all, sum, product, concat, concatMap, maximum, minimum, elem, notElem
     )
     
-import Control.Applicative (pure, (<$>), (<*>))
+import           Control.Applicative (Applicative(..), (<$>))
 import qualified NumericPrelude as Prelude
 
 infixr 3  &&

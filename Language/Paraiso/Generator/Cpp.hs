@@ -6,8 +6,9 @@
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
-     Cpp(..), autoStrategy
+     Cpp(..), autoStrategy, decideStrategy
     ) where
+
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
 import           Control.Monad.State (State)
@@ -31,7 +32,6 @@ import           Language.Paraiso.POM as POM
 import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
-import           Unsafe.Coerce (unsafeCoerce) -- for debug purpose only
 
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
@@ -51,7 +51,6 @@ instance Generator Cpp where
       headerFn = nameStr pom1 ++ ".hpp"
       cppFn = nameStr pom1 ++ ".cpp"
     createDirectoryIfMissing True path
-    writeFile "output/POM1.txt" $ show $ (unsafeCoerce pom1 :: POM Vec2 Int (Strategy Cpp))
     writeFile (path </> headerFn) $ genHeader members pom1
     writeFile (path </> cppFn) $ genCpp headerFn members pom1
 
@@ -149,7 +148,9 @@ decideStrategy = POM.mapGraph dSGraph
                 -> FGL.Node
                 -> Alloc.Allocation
     decideAlloc graph n = 
-      if isGlobal || afterLoad || isStore || beforeReduce || afterReduce
+      if isGlobal || afterLoad || isStore 
+         || beforeReduce || afterReduce 
+         || (False &&( beforeShift && afterShift))
       then Alloc.Manifest
       else Alloc.Delayed
         where
@@ -170,6 +171,13 @@ decideStrategy = POM.mapGraph dSGraph
                         _                         -> False
           afterReduce = case pre0 of
                         Just (NInst (Reduce _) _) -> True
+                        _                         -> False
+
+          beforeShift = case suc0 of
+                        Just (NInst (Shift _) _) -> True
+                        _                         -> False
+          afterShift = case pre0 of
+                        Just (NInst (Shift _) _) -> True
                         _                         -> False
 
 
@@ -290,8 +298,9 @@ genHeader members pom = unlines[
 
 commonInclude :: String
 commonInclude = unlines[
-                 "#include <vector>",
+                 "#include <algorithm>",                 
                  "#include <cmath>",
+                 "#include <vector>",
                  ""
                 ]
 
@@ -359,6 +368,8 @@ arithRep op = let
     A.GE -> infx ">=" 
     A.Max -> func "max"
     A.Min -> func "min"
+    A.Abs -> func "abs"
+    A.Signum -> err
     A.Select -> selectMaker
     A.Ipow -> func "pow"
     A.Pow -> func "pow"
@@ -366,6 +377,15 @@ arithRep op = let
     A.Msub ->  err
     A.Nmadd ->  err
     A.Nmsub ->  err
+    A.Sqrt  -> func "sqrt"
+    A.Exp   -> func "exp"
+    A.Log   -> func "log"
+    A.Sin   -> func "sin"
+    A.Cos   -> func "cos"
+    A.Tan   -> func "tan"
+    A.Asin  -> func "asin"
+    A.Acos  -> func "acos"
+    A.Atan  -> func "atan"
     A.Sincos ->  err
             
 
@@ -492,55 +512,58 @@ cursorToSymbol :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
                -> Cursor v g 
                -> Binder v g String
 cursorToSymbol side cur = do
-  node  <- cursorToNode cur
-  ctx <- bindersContext
-  let axer = \(ax, shiftAmount) -> do
-               idxStr <- rhsLoadIndex ax
-               return (ax, (idxStr, shiftAmount))
-  axes3 <- traverse axer $ compose (\ax -> (ax, cursorToShift cur!ax))
-  let 
-    name0 = case node of
-              NValue _ _   -> fglNodeName $ cursorToFGLNode cur
-              NInst inst _ -> case inst of
-                                Store name1 -> Name $ (++ "()") $ nameStr name1
-                                Load  name1 -> Name $ (++ "()") $ nameStr name1
-                                _           -> error $ "this Inst does not have symbol" 
-    typeDelayed = case node of
-                    NValue dyn0 _ -> symbol Cpp dyn0{DVal.realm = Global}
-                    _             -> error "no type"
-    alloc = allocStrategy $ getA node 
-    prefix = if side == LeftHand && alloc == Alloc.Delayed 
-             then "const " ++ typeDelayed ++ " " else ""
-    isManifest = case alloc of
-                   Alloc.Delayed  -> case node of
-                                       NValue _ _ -> False
-                                       _          -> True
-                   _              -> True
-                     
-    suffix i = if isManifest then "[" ++ shiftStr i ++ "]" 
-                             else foldMap cppoku (cursorToShift cur)
-    cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
+  node <- cursorToNode cur
+  ctx  <- bindersContext    
+  case (cur,ctx) of
+    (CurGlobal _, _) -> return $ makeName0 True node undefined undefined
+    (_,CtxGlobal   ) -> return $ makeName0 True node undefined undefined
+    (_,CtxLocal i  ) -> do
+             let axer = \(ax, shiftAmount) -> do
+                          idxStr <- rhsLoadIndex ax
+                          return (ax, (idxStr, shiftAmount))  
+             axes3 <- traverse axer $ compose (\ax -> (ax, cursorToShift cur!ax))
+             return $ makeName0 False node axes3 i
+  where
+    makeName0 isG node axes3 i0 = if isG then nameStr name0 else prefix ++ nameStr name0 ++ suffix i0
+      where
+        name0 = case node of
+                  NValue _ _   -> fglNodeName $ cursorToFGLNode cur
+                  NInst inst _ -> case inst of
+                                    Store name1 -> Name $ (++ "()") $ nameStr name1
+                                    Load  name1 -> Name $ (++ "()") $ nameStr name1
+                                    _           -> error $ "this Inst does not have symbol" 
+        typeDelayed = case node of
+                        NValue dyn0 _ -> symbol Cpp dyn0{DVal.realm = Global}
+                        _             -> error "no type"
+        alloc = allocStrategy $ getA node 
+        prefix = if side == LeftHand && alloc == Alloc.Delayed 
+                 then "const " ++ typeDelayed ++ " " else ""
+        isManifest = case alloc of
+                       Alloc.Delayed  -> case node of
+                                           NValue _ _ -> False
+                                           _          -> True
+                       _              -> True
+                         
+        suffix i = if isManifest then "[" ++ shiftStr i ++ "]" 
+                                 else foldMap cppoku (cursorToShift cur)
+        cppoku = (("_"++).(map (\c->if c=='-' then 'm' else c)).symbol Cpp)
+        
+        shiftStr i = if shift == Additive.zero 
+                   then nameStr i
+                   else fst (mapAccumR shiftAccum "" allAxes)
+        allAxes  = fmap fst axes3
+        idxAxes  = fmap (fst.snd) axes3
+        shift    = fmap (snd.snd) axes3
     
-    shiftStr i = if shift == Additive.zero 
-               then nameStr i
-               else fst (mapAccumR shiftAccum "" allAxes)
-    allAxes  = fmap fst axes3
-    idxAxes  = fmap (fst.snd) axes3
-    shift    = fmap (snd.snd) axes3
-
-    shiftedAxis ax = paren$
-      (paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax),"+",sizeForAxisCall ax])
-      ++ "%" ++ sizeForAxisCall ax
-
-    shiftAccum str ax = 
-      if (axisIndex ax::Int) == dimension allAxes - 1
-      then (shiftedAxis ax, ())
-      else (unwords [shiftedAxis ax, "+", sizeForAxisCall ax , "*", paren str], ())
-
-  case ctx of
-    CtxGlobal  -> return $ nameStr name0
-    CtxLocal i -> return $ prefix ++ nameStr name0 ++ suffix i
-
+        shiftedAxis ax = paren$
+          (paren $ unwords [idxAxes ! ax, "+", symbol Cpp (shift ! ax),"+",sizeForAxisCall ax])
+          ++ "%" ++ sizeForAxisCall ax
+    
+        shiftAccum str ax = 
+          if (axisIndex ax::Int) == dimension allAxes - 1
+          then (shiftedAxis ax, ())
+          else (unwords [shiftedAxis ax, "+", sizeForAxisCall ax , "*", paren str], ())
+    
 leftHandSide :: (Vector v, Symbolable Cpp g, Additive.C (v g), Ord (v g)) =>
                 Cursor v g -> Binder v g String
 leftHandSide = cursorToSymbol LeftHand
@@ -576,8 +599,11 @@ rhsInst inst cursor = do
     Store  _    -> error "Store has no RHS!"
     Reduce op   -> reduceBinder op curNode headNode
     Broadcast   -> cursorToSymbol RightHand (CurGlobal $ head preNodes)
+{-    
     Shift vec   -> cursorToSymbol RightHand headCursor
                    {cursorToShift = vec + cursorToShift headCursor}
+-}
+    Shift vec   -> rightHandSide headCursor{cursorToShift = vec + cursorToShift headCursor}
     LoadIndex a -> rhsLoadIndex a
     Arith op    -> do
               xs <- mapM rightHandSide preCursors
@@ -607,6 +633,7 @@ genCpp :: (Vector v, Ring.C g, Additive.C (v g), Ord (v g),  Symbolable Cpp g) =
           String -> [CMember] -> POM v g (Strategy Cpp) -> String
 genCpp headerFn _ pom = unlines [
   "#include \"" ++ headerFn ++ "\"",
+  "using namespace std;",
   "",
   kernelsStr
                        ]

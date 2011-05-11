@@ -104,12 +104,28 @@ buildInit = do
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
+buildShiftX :: Builder Vec2 Int ()
+buildShiftX = do
+  store (Name "cell") $  
+    shift (Vec :~ 1 :~ 0) $
+    load Rlm.TLocal  (undefined::Int) $ Name "cell"
+
+buildShiftY :: Builder Vec2 Int ()
+buildShiftY = do
+  store (Name "cell") $  
+    shift (Vec :~ 0 :~ 1) $
+    load Rlm.TLocal  (undefined::Int) $ Name "cell"
+
+
 -- compose the machine.
 pom :: POM Vec2 Int (Strategy Cpp)
 pom = fmap (\() -> autoStrategy) $ 
   makePOM (Name "Life")  lifeSetup
     [(Name "init"   , buildInit),
-     (Name "proceed", buildProceed)]
+     (Name "proceed", buildProceed),
+     (Name "shift_x", buildShiftX),
+     (Name "shift_y", buildShiftY)
+     ]
               
 
 main :: IO ()

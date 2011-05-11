@@ -1,13 +1,11 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, TypeSynonymInstances #-}
 {-# OPTIONS -Wall #-}
 -- | An extension module of building blocks. Contains booleans, comparison operations, branchings.
 
 module Language.Paraiso.OM.Builder.Boolean
   (eq, ne, lt, le, gt, ge, select) where
 
-
 import qualified Algebra.Ring as Ring
-import qualified Algebra.Additive as Additive
 import Data.Dynamic (Typeable, typeOf)
 import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Builder.Internal
@@ -16,11 +14,11 @@ import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
 import Language.Paraiso.Tensor
-import NumericPrelude
+import NumericPrelude 
 
 
 -- | generate a binary operator that returns Bool results.
-mkOp2B :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+mkOp2B :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
           A.Operator                   -- ^The operation to be performed
        -> (Builder v g (Value r c))    -- ^The first argument
        -> (Builder v g (Value r c))    -- ^The second argument
@@ -37,7 +35,7 @@ mkOp2B op builder1 builder2 = do
   return $ FromNode r1 True n01
 
 
-eq, ne, lt, le, gt, ge :: (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+eq, ne, lt, le, gt, ge :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
                           (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r Bool))
 
 -- | Equal
@@ -54,7 +52,7 @@ gt = mkOp2B A.GT
 ge = mkOp2B A.GE
 
 -- | selects either the second or the third argument based 
-select ::(Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => 
+select ::(Vector v, Ring.C g, TRealm r, Typeable c) => 
          (Builder v g (Value r Bool)) -- ^The 'Bool' condition
       -> (Builder v g (Value r c))    -- ^The value chosen when the condition is 'True'
       -> (Builder v g (Value r c))    -- ^The value chosen when the condition is 'False'
