@@ -52,5 +52,5 @@ main = do
   print $ s_(\i -> s_(\j -> s_(\k -> eps!i!j!k * eps!i!j!k))) == 6
   print $ c_(\i -> c_(\j -> s_(\m -> s_(\n -> eps!i!m!n * eps!j!m!n)))) == 
     c_(\i -> c_(\j -> 2 * del!i!j))
-  print $ c_(\i -> c_(\j -> s_(\k -> c_(\l -> c_(\m -> eps!i!j!k * eps!k!l!m))))) ==                                                         
+  print $ c_(\i -> c_(\j -> s_(\k -> c_(\l -> c_(\m -> eps!i!j!k * eps!k!l!m))))) ==
     c_(\i -> c_(\j -> c_(\l -> c_(\m -> del!i!l * del!j!m - del!i!m * del!j!l))))
