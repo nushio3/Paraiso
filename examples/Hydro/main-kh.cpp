@@ -11,12 +11,13 @@
 
 using namespace std;
 
-const int W = 200, H = 200;
+const int antiAlias = 1;
+const int W = 200 * antiAlias, H = 200 * antiAlias;
 
 void dump (string fn, Hydro &sim) {
   ofstream ofs (fn.c_str()); 
-  for (int iy = 0; iy < H; ++iy) {
-    for (int ix = 0; ix < W; ++ix) {
+  for (int iy = antiAlias/2; iy < H; iy+=antiAlias) {
+    for (int ix = antiAlias/2; ix < W; ix+=antiAlias) {
       double x = sim.dR0() * (ix+0.5);
       double y = sim.dR0() * (iy+0.5);
       int i = W * iy + ix;
@@ -39,15 +40,16 @@ int main () {
   sim.dR0() = sim.extent0() / W;
   sim.dR1() = sim.extent1() / H;
   sim.init_kh();
+  char buf[256];
+  sprintf(buf, "mkdir -p output%d", antiAlias);
+  system(buf);
   int ctr = 0;
-  system("mkdir -p output");
-  while (ctr <= 100) {
+  while (ctr <= 1000) {
     cerr << sim.time() << endl;
     if (!isfinite(sim.time())) return -1;
     sim.proceed();
     if (sim.time() > 0.1 * ctr) {
-      char buf[256];
-      sprintf(buf, "output/snapshot%04d.txt", ctr);
+        sprintf(buf, "output3/snapshot%04d.txt", ctr);
       dump(buf, sim);
       ++ctr;
     }
