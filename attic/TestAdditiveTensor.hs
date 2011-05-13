@@ -4,9 +4,10 @@
 import qualified Algebra.Additive as Additive
 import Language.Paraiso.Tensor
 import NumericPrelude
+import qualified Prelude as P (Num(..)) 
 
-
-
+instance P.Num (Axis v) where
+    fromInteger = Axis . P.fromInteger
 
 c_ :: Vector v => (Axis v -> a) -> v a
 c_ = compose
