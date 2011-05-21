@@ -2,7 +2,7 @@
   MultiParamTypeClasses, NoImplicitPrelude,
   TypeFamilies #-}
 {-# OPTIONS -Wall #-}
--- | a generic code generator definition.
+-- | a code generator definition for single-core c++ program.
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
