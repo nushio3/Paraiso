@@ -53,6 +53,9 @@ energy = unitize energy'
 vecs :: [Vec9 Double]
 vecs = [density,momx,momy,energy]
 
+projector :: Vec9 (Vec9 Double)
+projector = sum $ [c_ (\i -> c_ (\j ->  a!i * a!j))| a <- vecs]
+
 -- Kronecker's Delta
 del :: Vec9 (Vec9 Double)
 del = compose (\i -> compose (\j -> if i==j then 1 else 0))
@@ -60,6 +63,9 @@ del = compose (\i -> compose (\j -> if i==j then 1 else 0))
 main :: IO ()
 main = do
   putStrLn "density"
-  print $ [s_ (\i -> a!i * b!i)  |a <- vecs, b <- vecs]
+  putStrLn $ unlines $ [mkLine i j | i<-[0..8], j<-[0..8]]
 
-
+mkLine :: Int -> Int -> String
+mkLine i j = "b" ++ decode i ++ " += Real(" ++ show (projector!Axis i!Axis j) ++ ") * a" ++ decode j ++ ";"
+    where
+      decode n = show (mod n 3) ++ show (div n 3)
