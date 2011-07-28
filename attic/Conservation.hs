@@ -60,12 +60,17 @@ projector = sum $ [c_ (\i -> c_ (\j ->  a!i * a!j))| a <- vecs]
 del :: Vec9 (Vec9 Double)
 del = compose (\i -> compose (\j -> if i==j then 1 else 0))
 
+test :: Vec9 Double
+test = Vec  :~ 0 :~ 0 :~ 0 :~ 0 :~ 1 :~ 1 :~ 0 :~ 0 :~ 0 
+
 main :: IO ()
 main = do
   putStrLn "density"
   putStrLn $ unlines $ [mkLine i j | i<-[0..8], j<-[0..8]]
+  print $ c_(\i->  s_(\j-> projector!i!j * test!j ))
+
 
 mkLine :: Int -> Int -> String
-mkLine i j = "b" ++ decode i ++ " += Real(" ++ show (projector!Axis i!Axis j) ++ ") * a" ++ decode j ++ ";"
+mkLine i j = "c" ++ decode i ++ " += Real(" ++ show (projector!Axis i!Axis j) ++ ") * b" ++ decode j ++ ";"
     where
       decode n = show (mod n 3) ++ show (div n 3)
