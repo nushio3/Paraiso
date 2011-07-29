@@ -1,12 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
 greetings :: [T.Text]
-greetings = map T.pack ["おはよう", "こんばんわ", "さよなら"]
+greetings = ["おはよう", "こんばんわ", "さよなら"]
 
 punkt :: T.Text
-punkt = T.pack "、"
+punkt = "、"
 
 main :: IO ()
 main = do
