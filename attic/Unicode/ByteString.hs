@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
-import Data.ListLike.IO 
-import Data.ListLike.Text
-import qualified Data.Text as T
+import Data.ListLike
+import Data.ListLike.IO
+import qualified Data.ByteString.Lazy.Char8 as BS
 import Prelude hiding (putStrLn)
 
-greetings :: [T.Text]
+greetings :: [BS.ByteString]
 greetings = ["おはよう", "こんばんわ", "さよなら"]
 
-punkt :: T.Text
+punkt :: BS.ByteString
 punkt = "、"
 
 main :: IO ()
 main = do
-  putStrLn $ T.intercalate punkt greetings
+  putStrLn $ BS.intercalate punkt greetings
   
