@@ -49,7 +49,7 @@ int main () {
     if (!isfinite(sim.time())) return -1;
     sim.proceed();
     if (sim.time() > 0.1 * ctr) {
-        sprintf(buf, "output3/snapshot%04d.txt", ctr);
+      sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;
     }
