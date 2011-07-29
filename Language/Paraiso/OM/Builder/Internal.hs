@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, NoImplicitPrelude, 
-  RankNTypes, TypeSynonymInstances  #-}
+  PackageImports, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 
@@ -26,19 +26,19 @@ import qualified Algebra.Lattice as Lattice
 import qualified Algebra.Ring as Ring
 import qualified Algebra.Transcendental as Transcendental
 import qualified Algebra.ZeroTestable as ZeroTestable
-import Control.Monad
-import qualified Control.Monad.State as State
+import           Control.Monad
+import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
-import Data.Dynamic (Typeable)
+import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
 import qualified Language.Paraiso.OM.Arithmetic as A
-import Language.Paraiso.OM.DynValue as DVal
-import Language.Paraiso.OM.Graph
-import Language.Paraiso.OM.Realm as Realm
-import Language.Paraiso.OM.Reduce as Reduce
-import Language.Paraiso.OM.Value as Val
-import Language.Paraiso.Prelude
-import Language.Paraiso.Tensor
+import           Language.Paraiso.OM.DynValue as DVal
+import           Language.Paraiso.OM.Graph
+import           Language.Paraiso.OM.Realm as Realm
+import           Language.Paraiso.OM.Reduce as Reduce
+import           Language.Paraiso.OM.Value as Val
+import           Language.Paraiso.Prelude
+import           Language.Paraiso.Tensor
 import qualified Prelude (Num(..), Fractional(..))
 
 data BuilderState vector gauge = BuilderState 
