@@ -7,12 +7,13 @@
 
 module Language.Paraiso.Annotation.Ballon
     (
-     Ballon(..)
+     Balloon(..)
     ) where
 
 import Data.Dynamic
 import Data.Text (Text)
+import Language.Paraiso.Prelude
 
-data (Ord a, Typeable a) => Balloon
+data (Ord a, Typeable a) => Balloon a
     = Balloon a
       deriving (Eq, Ord, Typeable)

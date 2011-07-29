@@ -6,7 +6,6 @@
 module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph, nmap, getA,
-     Annotation(..),
      Node(..), Edge(..),
      Inst(..),
      module Language.Paraiso.Name
@@ -108,8 +107,4 @@ instance Arity (Inst vector gauge) where
     LoadIndex _ -> (0,1)
     Arith op  -> arity op
 
-
--- | you can insert 'Annotation's to control the code generation processes.
-data Annotation = Comment String | Balloon
-                deriving (Eq, Ord, Read, Show)
 

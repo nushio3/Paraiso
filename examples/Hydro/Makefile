@@ -14,7 +14,13 @@ kh.out: kh.o hydro.o
 
 
 lib:
-	runhaskell  -i../../ HydroMain.hs
+	ghc -i../../ --make -O3 HydroMain.hs
+	./HydroMain
+
+recomp:
+	ghc  -i../../ --make -O3 HydroMain.hs -fforce-recomp \
+	-fspec-constr-count=16
+
 
 clean:
 	rm -fr *.o

@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
--- | 'Annotation' is a collection of 'Typeable's 
--- 
+-- | An effectless 'Annotation' with a comment 
 
 module Language.Paraiso.Annotation.Comment
     (
@@ -10,6 +9,7 @@ module Language.Paraiso.Annotation.Comment
 
 import Data.Dynamic
 import Data.Text (Text)
+import Language.Paraiso.Prelude
 
 data Comment = Comment Text
              deriving (Eq, Show, Typeable)
