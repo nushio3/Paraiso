@@ -164,8 +164,8 @@ test-suite runtests
                    test-framework-hunit,
                    HUnit,
                    QuickCheck >= 2 && < 3
-    ghc-options: -Wall
     main-is: runtests.hs
-
+    
+    ghc-options:     -Wall -O3
     Default-Language: Haskell2010
 
