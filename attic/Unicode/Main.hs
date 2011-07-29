@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 import Data.ListLike.IO 
-import Data.ListLike.Text
+import Data.ListLike.Text ()
 import qualified Data.Text as T
 import Prelude hiding (putStrLn)
 
