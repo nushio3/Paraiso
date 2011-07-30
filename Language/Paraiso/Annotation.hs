@@ -5,7 +5,7 @@
 
 module Language.Paraiso.Annotation
     (
-     Annotation, empty, add, toList, toMaybe, map
+     Annotation, add, empty, map, set, toList, toMaybe
     ) where
 
 import Data.Dynamic

@@ -5,7 +5,7 @@
 -- as fast as possible, and statements with negative ballons, 
 -- or @Stone@s, will be allocated as later as possible.
 
-module Language.Paraiso.Annotation.Ballon
+module Language.Paraiso.Annotation.Balloon
     (
      Balloon(..)
     ) where
