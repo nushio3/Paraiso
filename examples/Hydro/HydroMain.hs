@@ -1,10 +1,9 @@
-{-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
 
 import           Data.Typeable
-import           Language.Paraiso.Generator.Cpp
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
 import           Language.Paraiso.OM.DynValue as DVal
@@ -40,13 +39,13 @@ pomSetup = Setup $
             [Named (Name "pressure") realDV]  
 
 velocityNames :: Dim (Name)
-velocityNames = compose (\axis -> Name $ "velocity" ++ show (axisIndex axis))
+velocityNames = compose (\axis -> Name $ "velocity" ++ showT (axisIndex axis))
 
 dRNames :: Dim (Name)
-dRNames = compose (\axis -> Name $ "dR" ++ show (axisIndex axis))
+dRNames = compose (\axis -> Name $ "dR" ++ showT (axisIndex axis))
 
 extentNames :: Dim (Name)
-extentNames = compose (\axis -> Name $ "extent" ++ show (axisIndex axis))
+extentNames = compose (\axis -> Name $ "extent" ++ showT (axisIndex axis))
 
 loadReal :: Name -> BR
 loadReal = load TLocal (undefined::Real) 
@@ -239,8 +238,8 @@ buildInit1 = do
 
   
 -- compose the machine.
-pom :: POM Dim Int (Strategy Cpp)
-pom = fmap (\() -> autoStrategy) $ 
+pom :: POM Dim Int ()
+pom = 
   makePOM (Name "Hydro")  pomSetup
     [(Name "init_shocktube"   , buildInit1),
      (Name "init_kh"   , buildInit2),
@@ -250,10 +249,11 @@ pom = fmap (\() -> autoStrategy) $
 main :: IO ()
 main = do
   createDirectoryIfMissing True "output"
---  writeFile "output/POM.txt" $ show pom ++ "\n"
---  writeFile "output/POM1.txt" $ show (decideStrategy pom) ++ "\n"
-  generate Cpp pom "dist"
- 
+  writeFile "output/POM.txt" $ show pom ++ "\n"
+
+  -- one day, you will be able to generate the library again....
+  -- generate Cpp pom "dist"
+
 
 
   

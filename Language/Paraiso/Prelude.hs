@@ -12,6 +12,7 @@ module Language.Paraiso.Prelude
    module Data.Traversable,
    module NumericPrelude,
    Boolean(..),
+   showT,
    (++)) where
 
 import           Control.Applicative (Applicative(..), (<$>))
@@ -19,7 +20,9 @@ import           Control.Monad hiding
     (mapM_, sequence_, forM_, msum, mapM, sequence, forM)
 import           Data.Foldable
 import           Data.ListLike (append)
+import           Data.ListLike.Text ()
 import qualified Data.ListLike.Base (ListLike)
+import           Data.Text (Text, pack)
 import           Data.Traversable
 import           NumericPrelude hiding 
     (not, (&&), (||), Monad, Functor, (*>), (++),
@@ -27,6 +30,9 @@ import           NumericPrelude hiding
      (=<<), foldl, foldl1, foldr, foldr1, and, or, any, all, sum, product, 
      concat, concatMap, maximum, minimum, elem, notElem)
 import qualified NumericPrelude as Prelude
+
+showT :: Show a => a -> Text
+showT = pack . show
 
 infixr 3  &&
 infixr 2  ||

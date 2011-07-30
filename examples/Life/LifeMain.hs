@@ -1,11 +1,10 @@
-{-# LANGUAGE NoImplicitPrelude, TypeFamilies #-}
+{-# LANGUAGE  NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
 
 import Data.Typeable
 --import qualified Data.Graph.Inductive as FGL
-import Language.Paraiso.Generator.Cpp
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
@@ -118,8 +117,8 @@ buildShiftY = do
 
 
 -- compose the machine.
-pom :: POM Vec2 Int (Strategy Cpp)
-pom = fmap (\() -> autoStrategy) $ 
+pom :: POM Vec2 Int ()
+pom = 
   makePOM (Name "Life")  lifeSetup
     [(Name "init"   , buildInit),
      (Name "proceed", buildProceed),
@@ -133,8 +132,8 @@ main = do
   -- output the intermediate state.
   writeFile "output/POM.txt" $ show pom ++ "\n"
   
-  -- generate the library.
-  generate Cpp pom "dist"
+  -- one day, you will be able to generate the library again....
+  -- generate Cpp pom "dist"
  
 
 

@@ -33,6 +33,18 @@ import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
 
+-- | The translation of Haskell symbols to other languages.
+class (Generator gen) => Symbolable gen a where
+    -- | Failure handling version of symbol translation.
+    symbolF :: (Failure StringException f) =>
+               gen      -- ^The 'Generator'.
+            -> a        -- ^A Haskell object to be translated.
+            -> f String -- ^The translation result which may fail.
+    -- | Pure version, which may emit runtime error.
+    symbol :: gen -> a -> String
+    symbol gen0 a0 = unsafePerformFailure (symbolF gen0 a0)
+
+
 -- | The c++ code generator.
 data Cpp = Cpp deriving (Eq, Show)
 
