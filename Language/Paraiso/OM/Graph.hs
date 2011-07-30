@@ -1,8 +1,22 @@
-{-# LANGUAGE ExistentialQuantification,  NoImplicitPrelude, 
-  StandaloneDeriving #-}
+{-# 
+LANGUAGE ExistentialQuantification,  KindSignatures, 
+         NoImplicitPrelude, StandaloneDeriving #-}
 {-# OPTIONS -Wall #-}
 
--- | all the components for constructing Orthotope Machine data flow draph.
+-- | the components for constructing Orthotope Machine data flow draph.
+--  Most components take three arguments: 
+--
+-- [@vector :: * -> *@] The array dimension. It is a 'Vector' that
+-- defines the dimension of the Orthotope on which the OM operates.
+--
+-- [@gauge :: *@] The array index. The combination @vector gauge@
+-- needs to be an instance of 'Algebra.Additive.C' if you want to
+-- perform @Shift@ operation.
+-- 
+-- [@anot :: *@] The annotations put on each node. If you want to use
+-- Annotation, @anot@ needs to be an instance of 'Data.Monoid'.
+
+
 module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph, nmap, getA,
@@ -11,7 +25,6 @@ module Language.Paraiso.OM.Graph
      module Language.Paraiso.Name
     )where
 
-import qualified Algebra.Ring as Ring
 import Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Name
@@ -25,29 +38,29 @@ import NumericPrelude
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
 -- It's basically a list of static orthotopes 
 -- (its identifier, Realm and Type carried in the form of 'NamedValue')
-data  (Vector vector, Ring.C gauge) => Setup vector gauge = 
+data Setup (vector :: * -> *) gauge = 
   Setup {
     staticValues :: [Named DynValue]
   } deriving (Eq, Show)
 
--- | A 'Kernel' for OM does a bunch of calculations on OM.
-data (Vector vector, Ring.C gauge) => Kernel vector gauge a = 
+-- | A 'Kernel' for OM perfor a block of calculations on OM.
+data  Kernel vector gauge anot = 
   Kernel {
     kernelName :: Name,
-    dataflow :: Graph vector gauge a
+    dataflow :: Graph vector gauge anot
   }         
     deriving (Show)
 
-instance (Vector v, Ring.C g) => Nameable (Kernel v g a) where
+instance Nameable (Kernel v g a) where
   name = kernelName
 
 
--- | The dataflow graph for Orthotope Machine. a is an additional annotation.
-type Graph vector gauge a = FGL.Gr (Node vector gauge a) Edge
+-- | The dataflow graph for Orthotope Machine. anot is an additional annotation.
+type Graph vector gauge anot = FGL.Gr (Node vector gauge anot) Edge
 
 -- | Map the 'Graph' annotation from one type to another. Unfortunately we cannot make one data
 -- both the instances of 'FGL.Graph' and 'Functor', so 'nmap' is a standalone function.
-nmap :: (Vector v, Ring.C g) => (a -> b) -> Graph v g a ->  Graph v g b
+nmap :: (a -> b) -> Graph v g a ->  Graph v g b
 nmap f = let
     nmap' f0 (NValue x a0) = (NValue x $ f0 a0) 
     nmap' f0 (NInst  x a0) = (NInst  x $ f0 a0) 
@@ -56,13 +69,13 @@ nmap f = let
 
 -- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
-data Node vector gauge a = 
+data Node vector gauge anot = 
   -- | A value node. An 'NValue' node only connects to 'NInst' nodes.
   -- An 'NValue' node has one and only one input edge, and has arbitrary number of output edges.
-  NValue DynValue a |
+  NValue DynValue anot |
   -- | An instruction node. An 'NInst' node only connects to 'NValue' nodes.
   -- The number of input and output edges an 'NValue' node has is specified by its 'Arity'.
-  NInst (Inst vector gauge) a
+  NInst (Inst vector gauge) anot
         deriving (Show)
 
 -- | The 'Edge' label for the dataflow 'Graph'. 
@@ -79,9 +92,7 @@ getA nd = case nd of
   NValue _ x -> x
   NInst  _ x -> x
   
-
-
-instance (Vector v, Ring.C g) => Functor (Node v g) where
+instance Functor (Node v g) where
   fmap f (NValue x y) =  (NValue x (f y))  
   fmap f (NInst  x y) =  (NInst  x (f y))  
 

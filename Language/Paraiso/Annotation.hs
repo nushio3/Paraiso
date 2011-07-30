@@ -8,9 +8,9 @@ module Language.Paraiso.Annotation
      Annotation, add, empty, map, set, toList, toMaybe
     ) where
 
-import Data.Dynamic
-import Data.Maybe
-import Language.Paraiso.Prelude hiding (map, toList)
+import           Data.Dynamic
+import           Data.Maybe
+import           Language.Paraiso.Prelude hiding (map, toList)
 import qualified Language.Paraiso.Prelude as P (map)
 
 type Annotation = [Dynamic]

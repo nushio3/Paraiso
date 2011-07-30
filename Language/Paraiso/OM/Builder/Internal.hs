@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, 
+{-# LANGUAGE FlexibleInstances, KindSignatures, NoImplicitPrelude, 
   PackageImports, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
@@ -48,7 +48,7 @@ data BuilderState vector gauge = BuilderState
       target :: Graph vector gauge Annotation} deriving (Show)
 
 -- | Create a 'Kernel' from a 'Builder' monad.
-buildKernel :: (Vector v, Ring.C g) => 
+buildKernel :: 
               Setup v g              -- ^The Orthotope machine setup.
            -> Name                   -- ^The name of the kernel.
            -> Builder v g ()         -- ^The builder monad.
@@ -67,7 +67,7 @@ initState s = BuilderState {
               }
 
 -- | The 'Builder' monad is used to build 'Kernel's.
-type Builder vector gauge val = 
+type Builder (vector :: * -> *) (gauge :: *) (val :: *) = 
   State.State (BuilderState vector gauge) val
   
 --  'Builder' needs to be an instance of 'Eq' to become an instance of  'Prelude.Num'  
@@ -77,17 +77,17 @@ instance Eq (Builder v g v2) where
 instance Show (Builder v g v2) where
   show _ = "<<REDACTED>>"
 
-type B a = (Vector v, Ring.C g) => Builder v g a
-type BuilderOf r c =  (Vector v, Ring.C g) => Builder v g (Value r c)
+type B a = forall (v :: * -> *) (g :: *) . Builder v g a
+type BuilderOf r c = forall (v :: * -> *) (g :: *) .  Builder v g (Value r c)
 
 -- | Modify the dataflow graph stored in the 'Builder'.
-modifyG :: (Vector v, Ring.C g) => 
-           (Graph v g Annotation-> Graph v g Annotation) -- ^The graph modifying function.
-           -> Builder v g ()                             -- ^The state gets silently modified.
+modifyG ::           
+  (Graph v g Annotation-> Graph v g Annotation) -- ^The graph modifying function.
+  -> Builder v g ()                             -- ^The state gets silently modified.
 modifyG f = State.modify (\bs -> bs{target = f.target $ bs})
 
 -- | Get the graph stored in the 'Builder'.
-getG :: (Vector v, Ring.C g) => Builder v g (Graph v g Annotation)
+getG :: forall (v :: * -> *) (g :: *) . Builder v g (Graph v g Annotation)
 getG = fmap target State.get
 
 -- | get the number of the next unoccupied 'FGL.Node' in the graph.
@@ -97,7 +97,7 @@ freeNode = do
   return n
   
 -- | add a node to the graph.
-addNode :: (Vector v, Ring.C g) => 
+addNode :: 
            [FGL.Node]             -- ^The list of dependent nodes. The order is recorded.
            -> Node v g Annotation -- ^The new node to be added.
            -> Builder v g FGL.Node
@@ -107,7 +107,7 @@ addNode froms new = do
   return n
 
 -- | add a node to the graph with an empty Annotation.
-addNodeE :: (Vector v, Ring.C g) => 
+addNodeE :: 
            [FGL.Node]                             -- ^The list of dependent nodes. The order is recorded.
            -> (Annotation -> Node v g Annotation) -- ^The new node to be added, with Annotation missing.
            -> Builder v g FGL.Node
@@ -158,7 +158,7 @@ load r0 c0 name0 = do
   return (FromNode r0 c0 n1)
 
 -- | Store to a static value.
-store :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
+store :: (TRealm r, Typeable c) => 
          Name                    -- ^The 'Name' of the static value to store.
       -> Builder v g (Value r c) -- ^The 'Value' to be stored.
       -> Builder v g ()          -- ^The result.
@@ -176,7 +176,7 @@ store name0 builder0 = do
 -- | Reduce over a 'TLocal' 'Value' 
 -- using the specified reduction 'Reduce.Operator'
 -- to make a 'TGlobal' 'Value'
-reduce :: (Vector v, Ring.C g, Typeable c) => 
+reduce :: (Typeable c) => 
           Reduce.Operator               -- ^The reduction 'Reduce.Operator'.
        -> Builder v g (Value TLocal c)  -- ^The 'TLocal' 'Value' to be reduced.
        -> Builder v g (Value TGlobal c) -- ^The 'TGlobal' 'Value' that holds the reduction result.
@@ -192,7 +192,7 @@ reduce op builder1 = do
 
 -- | Broadcast a 'TGlobal' 'Value' 
 -- to make it a 'TLocal' 'Value'  
-broadcast :: (Vector v, Ring.C g, Typeable c) => 
+broadcast :: (Typeable c) => 
              Builder v g (Value TGlobal c) -- ^The 'TGlobal' 'Value' to be broadcasted.
           -> Builder v g (Value TLocal c)  -- ^The 'TLocal' 'Value', all of them containing the global value.
 broadcast builder1 = do 
@@ -206,7 +206,7 @@ broadcast builder1 = do
   return (FromNode TLocal c1 n3)
   
 -- | Shift a 'TLocal' 'Value' with a constant vector.
-shift :: (Vector v, Ring.C g, Typeable c, Additive.C (v g)) => 
+shift :: (Typeable c, Additive.C (v g)) => 
          v g                          -- ^ The amount of shift  
       -> Builder v g (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
       -> Builder v g (Value TLocal c) -- ^ The shifted 'TLocal' 'Value' as a result.
@@ -221,7 +221,7 @@ shift vec builder1 = do
   return (FromNode TLocal c1 n3)
 
 -- | Load the 'Axis' component of the mesh address, to a 'TLocal' 'Value'.
-loadIndex :: (Vector v, Ring.C g, Typeable c) => 
+loadIndex :: (Typeable c) => 
              c                            -- ^The 'Val.content' type.
           -> Axis v                       -- ^ The axis for which index is required
           -> Builder v g (Value TLocal c) -- ^ The 'TLocal' 'Value' that contains the address as a result.
@@ -240,7 +240,7 @@ imm :: (TRealm r, Typeable c) =>
 imm c0 = return (FromImm unitTRealm c0)
 
 -- | Make a unary operator
-mkOp1 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
+mkOp1 :: (TRealm r, Typeable c) => 
          A.Operator                -- ^The operator symbol
       -> (Builder v g (Value r c)) -- ^Input
       -> (Builder v g (Value r c)) -- ^Output              
@@ -255,7 +255,7 @@ mkOp1 op builder1 = do
   return $ FromNode r1 c1 n01
 
 -- | Make a binary operator
-mkOp2 :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
+mkOp2 :: (TRealm r, Typeable c) => 
          A.Operator                -- ^The operator symbol 
       -> (Builder v g (Value r c)) -- ^Input 1              
       -> (Builder v g (Value r c)) -- ^Input 2               
@@ -275,7 +275,7 @@ mkOp2 op builder1 builder2 = do
 
 -- | Builder is Additive 'Additive.C'.
 -- You can use 'Additive.zero', 'Additive.+', 'Additive.-', 'Additive.negate'.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
+instance (TRealm r, Typeable c, Additive.C c) => Additive.C (Builder v g (Value r c)) where
   zero = return $ FromImm unitTRealm Additive.zero
   (+) = mkOp2 A.Add
   (-) = mkOp2 A.Sub
@@ -283,13 +283,13 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Additive.C c) => Additive.C 
     
 -- | Builder is Ring 'Ring.C'.
 -- You can use 'Ring.one', 'Ring.*'.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g (Value r c)) where
+instance (TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g (Value r c)) where
   one = return $ FromImm unitTRealm Ring.one
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
   
 -- | you can convert GHC numeric immediates to 'Builder'.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
+instance (TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g (Value r c)) where  
   (+) = (Additive.+)
   (*) = (Ring.*)
   (-) = (Additive.-)
@@ -299,19 +299,19 @@ instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Prelude.Num (Bu
   fromInteger = Ring.fromInteger
   
 -- | Builder is Field 'Field.C'. You can use 'Field./', 'Field.recip'.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c) => Field.C (Builder v g (Value r c)) where
+instance (TRealm r, Typeable c, Field.C c) => Field.C (Builder v g (Value r c)) where
   (/) = mkOp2 A.Div
   recip = mkOp1 A.Inv
   fromRational' = imm . fromRational'
 
 -- | you can convert GHC floating point immediates to 'Builder'.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Field.C c, Prelude.Fractional c) => Prelude.Fractional (Builder v g (Value r c)) where  
+instance (TRealm r, Typeable c, Field.C c, Prelude.Fractional c) => Prelude.Fractional (Builder v g (Value r c)) where  
   (/) = (Field./)
   recip = Field.recip
   fromRational = imm . Prelude.fromRational
 
 -- | Builder is 'Boolean'. You can use 'true', 'false', 'not', '&&', '||'.
-instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) where  
+instance (TRealm r) => Boolean (Builder v g (Value r Bool)) where  
   true  = imm True
   false = imm False
   not   = mkOp1 A.Not
@@ -319,26 +319,26 @@ instance (Vector v, Ring.C g, TRealm r) => Boolean (Builder v g (Value r Bool)) 
   (||)  = mkOp2 A.Or
 
 -- | Builder is Algebraic 'Algebraic.C'. You can use 'Algebraic.sqrt' and so on.
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Algebraic.C c) => Algebraic.C (Builder v g (Value r c)) where
+instance (TRealm r, Typeable c, Algebraic.C c) => Algebraic.C (Builder v g (Value r c)) where
   sqrt = mkOp1 A.Sqrt
   x ^/ y = mkOp2 A.Pow x (fromRational' y)
 
 -- | choose the larger or the smaller of the two.
-instance (Vector v, Ring.C g, TRealm r, Typeable c) => Lattice.C (Builder v g (Value r c))
+instance (TRealm r, Typeable c) => Lattice.C (Builder v g (Value r c))
     where
       up = mkOp2 A.Max  
       dn = mkOp2 A.Min
 
-instance (Vector v, Ring.C g, TRealm r, Typeable c) => ZeroTestable.C (Builder v g (Value r c))
+instance (TRealm r, Typeable c) => ZeroTestable.C (Builder v g (Value r c))
     where
       isZero _ = error "isZero undefined for builder."
       
-instance (Vector v, Ring.C g, TRealm r, Typeable c, Ring.C c) => Absolute.C (Builder v g (Value r c))
+instance (TRealm r, Typeable c, Ring.C c) => Absolute.C (Builder v g (Value r c))
     where
       abs    = mkOp1 A.Abs
       signum = mkOp1 A.Signum
 
-instance (Vector v, Ring.C g, TRealm r, Typeable c,  Transcendental.C c) =>  
+instance (TRealm r, Typeable c,  Transcendental.C c) =>  
     Transcendental.C (Builder v g (Value r c)) where      
         pi = imm pi
         exp = mkOp1 A.Exp
