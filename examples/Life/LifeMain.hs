@@ -5,6 +5,7 @@ module Main(main) where
 
 import Data.Typeable
 --import qualified Data.Graph.Inductive as FGL
+import Language.Paraiso.Annotation (Annotation)
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
@@ -117,7 +118,7 @@ buildShiftY = do
 
 
 -- compose the machine.
-pom :: POM Vec2 Int ()
+pom :: POM Vec2 Int Annotation
 pom = 
   makePOM (Name "Life")  lifeSetup
     [(Name "init"   , buildInit),

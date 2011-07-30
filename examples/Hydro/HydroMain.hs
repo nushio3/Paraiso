@@ -4,6 +4,7 @@
 module Main(main) where
 
 import           Data.Typeable
+import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
 import           Language.Paraiso.OM.DynValue as DVal
@@ -238,7 +239,7 @@ buildInit1 = do
 
   
 -- compose the machine.
-pom :: POM Dim Int ()
+pom :: POM Dim Int Annotation
 pom = 
   makePOM (Name "Hydro")  pomSetup
     [(Name "init_shocktube"   , buildInit1),

@@ -11,8 +11,8 @@ module Language.Paraiso.OM.Builder.Internal
     (
      Builder, BuilderState(..),
      B, BuilderOf,
-     makeKernel, initState,
-     modifyG, getG, freeNode, addNode, valueToNode, lookUpStatic,
+     buildKernel, initState,
+     modifyG, getG, freeNode, addNode, addNodeE, valueToNode, lookUpStatic,
      load, store,
      reduce, broadcast,
      shift, loadIndex,
@@ -31,6 +31,8 @@ import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
+import           Language.Paraiso.Annotation (Annotation)
+import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
@@ -43,15 +45,15 @@ import qualified Prelude (Num(..), Fractional(..))
 
 data BuilderState vector gauge = BuilderState 
     { setup :: Setup vector gauge, 
-      target :: Graph vector gauge ()} deriving (Show)
+      target :: Graph vector gauge Annotation} deriving (Show)
 
 -- | Create a 'Kernel' from a 'Builder' monad.
-makeKernel :: (Vector v, Ring.C g) => 
-              Setup v g      -- ^The Orthotope machine setup.
-           -> Name           -- ^The name of the kernel.
-           -> Builder v g () -- ^The builder monad.
-           -> Kernel v g ()  -- ^The created kernel.
-makeKernel setup0 name0 builder0 = let
+buildKernel :: (Vector v, Ring.C g) => 
+              Setup v g              -- ^The Orthotope machine setup.
+           -> Name                   -- ^The name of the kernel.
+           -> Builder v g ()         -- ^The builder monad.
+           -> Kernel v g Annotation  -- ^The created kernel.
+buildKernel setup0 name0 builder0 = let
     state0 = initState setup0
     graph = target $ snd $ State.runState builder0 state0
   in Kernel{kernelName = name0, dataflow = graph}
@@ -80,12 +82,12 @@ type BuilderOf r c =  (Vector v, Ring.C g) => Builder v g (Value r c)
 
 -- | Modify the dataflow graph stored in the 'Builder'.
 modifyG :: (Vector v, Ring.C g) => 
-           (Graph v g () -> Graph v g ()) -- ^The graph modifying function.
-               -> Builder v g ()          -- ^The state gets silently modified.
+           (Graph v g Annotation-> Graph v g Annotation) -- ^The graph modifying function.
+           -> Builder v g ()                             -- ^The state gets silently modified.
 modifyG f = State.modify (\bs -> bs{target = f.target $ bs})
 
 -- | Get the graph stored in the 'Builder'.
-getG :: (Vector v, Ring.C g) => Builder v g (Graph v g ())
+getG :: (Vector v, Ring.C g) => Builder v g (Graph v g Annotation)
 getG = fmap target State.get
 
 -- | get the number of the next unoccupied 'FGL.Node' in the graph.
@@ -96,13 +98,20 @@ freeNode = do
   
 -- | add a node to the graph.
 addNode :: (Vector v, Ring.C g) => 
-           [FGL.Node]     -- ^The list of dependent nodes. The order is recorded.
-           -> Node v g () -- ^The new node to be added
+           [FGL.Node]             -- ^The list of dependent nodes. The order is recorded.
+           -> Node v g Annotation -- ^The new node to be added.
            -> Builder v g FGL.Node
 addNode froms new = do
   n <- freeNode
   modifyG (([(EOrd i, froms !! i) | i <-[0..length froms - 1] ], n, new, []) FGL.&)
   return n
+
+-- | add a node to the graph with an empty Annotation.
+addNodeE :: (Vector v, Ring.C g) => 
+           [FGL.Node]                             -- ^The list of dependent nodes. The order is recorded.
+           -> (Annotation -> Node v g Annotation) -- ^The new node to be added, with Annotation missing.
+           -> Builder v g FGL.Node
+addNodeE froms new' =  addNode froms (new' Anot.empty)
 
 
 -- | convert a 'Value' to a 
@@ -114,8 +123,8 @@ valueToNode val = do
   case val of
     FromNode _ _ n -> return n
     FromImm _ _ -> do
-             n0 <- addNode [] (NInst (Imm (Dynamic.toDyn con)) ())
-             n1 <- addNode [n0] (NValue type0 ())
+             n0 <- addNodeE []   $ NInst (Imm (Dynamic.toDyn con))
+             n1 <- addNodeE [n0] $ NValue type0
              return n1
 
 -- | look up the 'Named' 'DynValue' with the correct name and type 
@@ -144,8 +153,8 @@ load r0 c0 name0 = do
       type0 = mkDyn r0 c0
       nv = Named name0 type0
   lookUpStatic nv
-  n0 <- addNode [] (NInst (Load name0) ())
-  n1 <- addNode [n0] (NValue type0 ())
+  n0 <- addNodeE []   $ NInst  (Load name0) 
+  n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode r0 c0 n1)
 
 -- | Store to a static value.
@@ -160,7 +169,7 @@ store name0 builder0 = do
       nv = Named name0 type0
   lookUpStatic nv
   n0 <- valueToNode val0
-  _ <- addNode [n0] (NInst (Store name0) ())
+  _ <- addNodeE [n0] $ NInst (Store name0) 
   return ()
 
 
@@ -177,8 +186,8 @@ reduce op builder1 = do
       c1 = Val.content val1
       type2 = mkDyn TGlobal c1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst (Reduce op) ())
-  n3 <- addNode [n2] (NValue type2 ())
+  n2 <- addNodeE [n1] $ NInst (Reduce op) 
+  n3 <- addNodeE [n2] $ NValue type2 
   return (FromNode TGlobal c1 n3)
 
 -- | Broadcast a 'TGlobal' 'Value' 
@@ -192,8 +201,8 @@ broadcast builder1 = do
       c1 = Val.content val1
       type2 = mkDyn TLocal c1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst Broadcast ())
-  n3 <- addNode [n2] (NValue type2 ())
+  n2 <- addNodeE [n1] $ NInst Broadcast 
+  n3 <- addNodeE [n2] $ NValue type2 
   return (FromNode TLocal c1 n3)
   
 -- | Shift a 'TLocal' 'Value' with a constant vector.
@@ -207,8 +216,8 @@ shift vec builder1 = do
     type1 = toDyn val1
     c1 = Val.content val1
   n1 <- valueToNode val1
-  n2 <- addNode [n1] (NInst (Shift (Additive.negate vec)) ())
-  n3 <- addNode [n2] (NValue type1 ())
+  n2 <- addNodeE [n1] $ NInst $ Shift (Additive.negate vec)
+  n3 <- addNodeE [n2] $ NValue type1 
   return (FromNode TLocal c1 n3)
 
 -- | Load the 'Axis' component of the mesh address, to a 'TLocal' 'Value'.
@@ -218,8 +227,8 @@ loadIndex :: (Vector v, Ring.C g, Typeable c) =>
           -> Builder v g (Value TLocal c) -- ^ The 'TLocal' 'Value' that contains the address as a result.
 loadIndex c0 axis = do
   let type0 = mkDyn TLocal c0
-  n0 <- addNode [] (NInst (LoadIndex axis) ())
-  n1 <- addNode [n0] (NValue type0 ())
+  n0 <- addNodeE []   $ NInst (LoadIndex axis)
+  n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TLocal c0 n1)
 
 
@@ -241,8 +250,8 @@ mkOp1 op builder1 = do
       r1 = Val.realm v1
       c1 = Val.content v1
   n1 <- valueToNode v1
-  n0 <- addNode [n1] (NInst (Arith op) ())
-  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  n0 <-  addNodeE [n1] $ NInst (Arith op) 
+  n01 <- addNodeE [n0] $ NValue (toDyn v1) 
   return $ FromNode r1 c1 n01
 
 -- | Make a binary operator
@@ -259,8 +268,8 @@ mkOp2 op builder1 builder2 = do
       c1 = Val.content v1
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [n1, n2] (NInst (Arith op) ())
-  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  n0 <-  addNodeE [n1, n2] $ NInst (Arith op)
+  n01 <- addNodeE [n0] $ NValue (toDyn v1) 
   return $ FromNode r1 c1 n01
 
 
