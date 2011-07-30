@@ -11,7 +11,6 @@ module Language.Paraiso.Annotation.Ballon
     ) where
 
 import Data.Dynamic
-import Data.Text (Text)
 import Language.Paraiso.Prelude
 
 data (Ord a, Typeable a) => Balloon a

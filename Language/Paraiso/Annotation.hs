@@ -23,6 +23,12 @@ empty = []
 add :: (Typeable a) => a -> Annotation -> Annotation
 add x ys = toDyn x : ys
 
+-- | Remove all elements of type @a@ from the collection, and
+--   set @x@ as the only member of the type in the collection.
+set :: (Typeable a) => a -> Annotation -> Annotation
+set x ys = toDyn x : filter ((/= typeOf x) . dynTypeRep) ys
+
+
 -- | Extract all annotations of type @a@ from 
 -- the collection.
 toList :: (Typeable a) => Annotation -> [a]
