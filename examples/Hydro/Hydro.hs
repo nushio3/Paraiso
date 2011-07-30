@@ -18,6 +18,7 @@ module Hydro(Real, Dim, B, BR, BGR, bind,
 import qualified Algebra.Additive  as Additive
 import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
+import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.OM.Value as Val
@@ -30,7 +31,7 @@ import           Language.Paraiso.Tensor
 
 type Real = Double
 type Dim = Vec2
-type B a = Builder Dim Int a
+type B a = Builder Dim Int Annotation a
 type BR = B (Value TLocal Real)
 type BGR = B (Value TGlobal Real)
 

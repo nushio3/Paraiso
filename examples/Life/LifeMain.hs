@@ -6,6 +6,7 @@ module Main(main) where
 import Data.Typeable
 --import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Annotation (Annotation)
+import qualified Language.Paraiso.Annotation as Anot
 import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
@@ -27,11 +28,13 @@ intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 
 
 -- the list of static variables for this machine
-lifeSetup :: Setup Vec2 Int 
-lifeSetup = Setup $ 
-            [Named (Name "population") intGDV] ++
-            [Named (Name "generation") intGDV] ++
-            [Named (Name "cell") intDV] 
+lifeSetup :: Setup Vec2 Int Annotation
+lifeSetup = Setup vars $ Anot.add (42::Int) []
+  where
+    vars =
+      [Named (Name "population") intGDV] ++
+      [Named (Name "generation") intGDV] ++
+      [Named (Name "cell") intDV] 
 
 
 -- adjacency vectors in Conway's game of Life
@@ -51,7 +54,7 @@ bind = fmap return
     
        
        
-buildProceed :: Builder Vec2 Int ()
+buildProceed :: Builder Vec2 Int Annotation ()
 buildProceed = do
   -- load a Local variable called "cell."
   cell <- bind $ load Rlm.TLocal  (undefined::Int) $ Name "cell"
@@ -84,7 +87,7 @@ buildProceed = do
   store (Name "cell") $ newCell
 
 
-buildInit :: Builder Vec2 Int ()
+buildInit :: Builder Vec2 Int  Annotation ()
 buildInit = do
   -- create the current coordinate vector.
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
@@ -104,13 +107,13 @@ buildInit = do
     agree coord point = 
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
-buildShiftX :: Builder Vec2 Int ()
+buildShiftX :: Builder Vec2 Int  Annotation  ()
 buildShiftX = do
   store (Name "cell") $  
     shift (Vec :~ 1 :~ 0) $
     load Rlm.TLocal  (undefined::Int) $ Name "cell"
 
-buildShiftY :: Builder Vec2 Int ()
+buildShiftY :: Builder Vec2 Int  Annotation  ()
 buildShiftY = do
   store (Name "cell") $  
     shift (Vec :~ 0 :~ 1) $

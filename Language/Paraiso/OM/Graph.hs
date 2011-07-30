@@ -36,11 +36,13 @@ import NumericPrelude
 
 
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.
--- It's basically a list of static orthotopes 
--- (its identifier, Realm and Type carried in the form of 'NamedValue')
-data Setup (vector :: * -> *) gauge = 
+data Setup (vector :: * -> *) gauge anot = 
   Setup {
-    staticValues :: [Named DynValue]
+    -- | The list of static orthotopes 
+    --  (its identifier, Realm and Type carried in the form of 'NamedValue')
+    staticValues :: [Named DynValue], 
+    -- | The machine-global annotations
+    globalAnnotation :: anot          
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM perfor a block of calculations on OM.

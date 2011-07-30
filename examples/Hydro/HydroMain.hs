@@ -28,16 +28,18 @@ realGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Real)}
 
 
 -- the list of static variables for this machine
-pomSetup :: Setup Dim Int 
-pomSetup = Setup $ 
-            [Named (Name "generation") intGDV] ++
-            [Named (Name "time") realGDV] ++
-            [Named (Name "cfl") realGDV] ++
-            foldMap (\name0 -> [Named name0 realGDV]) dRNames ++ 
-            foldMap (\name0 -> [Named name0 realGDV]) extentNames ++ 
-            [Named (Name "density") realDV]  ++
-            foldMap (\name0 -> [Named name0 realDV]) velocityNames ++ 
-            [Named (Name "pressure") realDV]  
+pomSetup :: Setup Dim Int Annotation
+pomSetup = Setup vars []
+  where
+    vars = 
+      [Named (Name "generation") intGDV] ++
+      [Named (Name "time") realGDV] ++
+      [Named (Name "cfl") realGDV] ++
+      foldMap (\name0 -> [Named name0 realGDV]) dRNames ++ 
+      foldMap (\name0 -> [Named name0 realGDV]) extentNames ++ 
+      [Named (Name "density") realDV]  ++
+      foldMap (\name0 -> [Named name0 realDV]) velocityNames ++ 
+      [Named (Name "pressure") realDV]  
 
 velocityNames :: Dim (Name)
 velocityNames = compose (\axis -> Name $ "velocity" ++ showT (axisIndex axis))
@@ -97,7 +99,7 @@ hllc i left right = do
                  (starShock + pressure x/density x/(shock - speed)))
         bindConserved dens mome enrg
 
-buildProceed :: Builder Dim Int ()
+buildProceed :: B ()
 buildProceed = do
   dens    <- bind $ loadReal $ Name "density"
   velo    <- mapM (bind . loadReal) velocityNames
@@ -190,7 +192,7 @@ interpolate order i cell = do
   
   
 
-buildInit2 :: Builder Dim Int ()
+buildInit2 :: B ()
 buildInit2 = do
   dRG     <- mapM (bind . loadGReal) dRNames
   extentG <- mapM (bind . loadGReal) extentNames
@@ -215,7 +217,7 @@ buildInit2 = do
   store (Name "pressure") $ factor * (kGamma::BR) * 1.414
 
 
-buildInit1 :: Builder Dim Int ()
+buildInit1 :: B ()
 buildInit1 = do
   dRG     <- mapM (bind . loadGReal) dRNames
   extentG <- mapM (bind . loadGReal) extentNames
