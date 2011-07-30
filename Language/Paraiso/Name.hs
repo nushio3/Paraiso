@@ -8,17 +8,21 @@ module Language.Paraiso.Name
    Nameable(..), namee
   ) where
 import Control.Monad
+import Data.Text (Text, unpack)
 
 -- | a name.
-newtype Name = Name String deriving (Eq, Ord, Show, Read)
+newtype Name = Name Text deriving (Eq, Ord, Show, Read)
 
 -- | something that has name.
 class Nameable a where
   -- | get its name.
   name :: a -> Name
+  -- | get its name as a 'Text'.
+  nameText :: a -> Text
+  nameText = (\(Name str) -> str) . name
   -- | get its name as a 'String'.
   nameStr :: a -> String
-  nameStr = (\(Name str) -> str) . name
+  nameStr = unpack . (\(Name str) -> str) . name
 
 -- | 'Name' has 'Name'. 'Name' of 'Name' is 'Name' itself. 
 instance Nameable Name where
