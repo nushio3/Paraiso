@@ -5,7 +5,7 @@ module Test.Tensor
      testTensor
     )where
 
-import Algebra.Additive (zero)
+import Algebra.Additive (zero, negate)
 import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
 import Test.Adaptor     (testResult)
@@ -21,8 +21,9 @@ testTensor = testGroup "test for tensor" $ tests
     tests = [
       makeTest "simple test" ((==0) . dimension :: Vec Int -> Bool) ,
       makeTest "dimension test" ((==4) . dimension :: Vec4 (Vec3 Double) -> Bool) ,
-      makeTest "additive test" (\x -> x + zero44 == x) ,
       makeTest "add zero test" (\x -> x + zero44 == x) ,
+      makeTest "subtraction test" (\x -> zero44 - x == negate x) ,
+      makeTest "negate test" (\x -> x + negate x == zero44) ,
       makeTest "multiply zero test" 
         (\x -> compose (\i -> contract (\j -> compose (\k -> x!i!j * zero44!j!k))) == zero44) ,
       makeTest "commutativity test" (\x y -> x + y == y + x && x - x == zero44) ,
