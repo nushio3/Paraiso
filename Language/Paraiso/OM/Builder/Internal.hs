@@ -31,6 +31,7 @@ import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
+import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph

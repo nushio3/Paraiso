@@ -113,6 +113,7 @@ Library
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Allocation
+                       Language.Paraiso.Generator.Claris
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
                        Language.Paraiso.OM

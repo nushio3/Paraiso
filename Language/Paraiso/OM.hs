@@ -5,6 +5,7 @@ module Language.Paraiso.OM
     OM(..), makeOM
   ) where
 
+import           Language.Paraiso.Name
 import           Language.Paraiso.OM.Builder (Builder, buildKernel)
 import           Language.Paraiso.OM.Graph
 import           NumericPrelude

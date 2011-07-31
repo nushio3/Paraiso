@@ -22,7 +22,6 @@ module Language.Paraiso.OM.Graph
      Setup(..), Kernel(..), Graph, nmap, getA,
      Node(..), Edge(..),
      Inst(..),
-     module Language.Paraiso.Name
     )where
 
 import Data.Dynamic
