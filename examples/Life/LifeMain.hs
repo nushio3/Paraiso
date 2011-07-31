@@ -11,9 +11,9 @@ import Language.Paraiso.OM.Builder
 import Language.Paraiso.OM.Builder.Boolean
 import Language.Paraiso.OM.DynValue 
 import Language.Paraiso.OM.Graph
+import Language.Paraiso.OM
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
-import Language.Paraiso.POM
 import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
 
@@ -121,9 +121,9 @@ buildShiftY = do
 
 
 -- compose the machine.
-pom :: POM Vec2 Int Annotation
-pom = 
-  makePOM (Name "Life")  lifeSetup
+myOM :: OM Vec2 Int Annotation
+myOM = 
+  makeOM (Name "Life")  lifeSetup
     [(Name "init"   , buildInit),
      (Name "proceed", buildProceed),
      (Name "shift_x", buildShiftX),
@@ -134,7 +134,7 @@ pom =
 main :: IO ()
 main = do
   -- output the intermediate state.
-  writeFile "output/POM.txt" $ show pom ++ "\n"
+  writeFile "output/OM.txt" $ show myOM ++ "\n"
   
   -- one day, you will be able to generate the library again....
   -- generate Cpp pom "dist"

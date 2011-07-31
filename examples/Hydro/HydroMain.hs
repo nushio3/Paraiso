@@ -5,13 +5,13 @@ module Main(main) where
 
 import           Data.Typeable
 import           Language.Paraiso.Annotation (Annotation)
+import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm 
 import qualified Language.Paraiso.OM.Reduce as Reduce
-import           Language.Paraiso.POM
 import           Language.Paraiso.Prelude 
 import           Language.Paraiso.Tensor
 import           Hydro
@@ -28,8 +28,8 @@ realGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Real)}
 
 
 -- the list of static variables for this machine
-pomSetup :: Setup Dim Int Annotation
-pomSetup = Setup vars []
+myOMSetup :: Setup Dim Int Annotation
+myOMSetup = Setup vars []
   where
     vars = 
       [Named (Name "generation") intGDV] ++
@@ -241,9 +241,9 @@ buildInit1 = do
 
   
 -- compose the machine.
-pom :: POM Dim Int Annotation
-pom = 
-  makePOM (Name "Hydro")  pomSetup
+myOM :: OM Dim Int Annotation
+myOM = 
+  makeOM (Name "Hydro")  myOMSetup
     [(Name "init_shocktube"   , buildInit1),
      (Name "init_kh"   , buildInit2),
      (Name "proceed", buildProceed)]
@@ -252,7 +252,7 @@ pom =
 main :: IO ()
 main = do
   createDirectoryIfMissing True "output"
-  writeFile "output/POM.txt" $ show pom ++ "\n"
+  writeFile "output/OM.txt" $ show myOM ++ "\n"
 
   -- one day, you will be able to generate the library again....
   -- generate Cpp pom "dist"

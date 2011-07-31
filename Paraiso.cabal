@@ -115,6 +115,7 @@ Library
                        Language.Paraiso.Generator.Allocation
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
+                       Language.Paraiso.OM
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
                        Language.Paraiso.OM.Builder.Boolean
@@ -126,7 +127,6 @@ Library
                        Language.Paraiso.OM.Value
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
-                       Language.Paraiso.POM
                        Language.Paraiso.Prelude
                        Language.Paraiso.Tensor
                           
