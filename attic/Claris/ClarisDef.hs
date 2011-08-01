@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 module ClarisDef (
-  Program(..)
+  Program(..), Text
   ) where
 
 import           Data.ListLike.String (StringLike)

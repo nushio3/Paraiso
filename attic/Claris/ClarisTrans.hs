@@ -5,9 +5,7 @@ module ClarisTrans (
   ) where
 
 import           ClarisDef
-import           Data.ListLike.String (StringLike)
-import           Data.String (IsString)
 
-class (StringLike text, IsString text) => Translator config text where
-  translate :: config -> Program -> text
+class Translator config where
+  translate :: config -> Program -> Text
   
