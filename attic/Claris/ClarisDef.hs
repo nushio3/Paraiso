@@ -7,6 +7,19 @@ module ClarisDef (
 import Util
 
 
-data Program = Program
+data Program = Program {
+  progName  :: Text,
+  functions :: [Function]
+  }
 
+instance Nameable Program where name = progName
+
+data Function = Function {
+  funcName :: Text, 
+  funcType :: FuncType,
+  funcBody :: [Statement]
+  }
   
+data FuncType = MemberFunc | KernelFunc                
+
+data Statement = Statement

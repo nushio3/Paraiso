@@ -7,8 +7,6 @@ module ClarisTrans (
 import           ClarisDef
 import qualified Data.List as L
 import qualified Data.ListLike as LL
-import           Data.ListLike.String (StringLike)
-import           Data.String (IsString)
 import           Util
 import           Prelude hiding ((++))
 
@@ -34,11 +32,9 @@ paren p str = prefix ++ str ++ suffix
       Quotation  -> ("\'","\'")
       Quotation2 -> ("\"","\"")
 
-joinBy :: (StringLike text, IsString text, LL.ListLike text char) 
-          => text -> [text] -> text
+joinBy :: Text -> [Text] -> Text
 joinBy sep xs = LL.concat $ L.intersperse sep xs
          
-joinEndBy :: (StringLike text, IsString text, LL.ListLike text char) 
-          => text -> [text] -> text
+joinEndBy :: Text -> [Text] -> Text
 joinEndBy sep xs = joinBy sep xs ++ sep
 
