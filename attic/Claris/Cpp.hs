@@ -8,6 +8,6 @@ import qualified Claris
 
 data Config = Config
 
-instance Claris.Translator Config where
+instance Claris.Translator Config Claris.Program where
   translate Config _ = "int main () {}"
   

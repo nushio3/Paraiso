@@ -1,13 +1,11 @@
 {-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 module ClarisDef (
-  Program(..), Text
+  Program(..)
   ) where
 
-import           Data.ListLike.String (StringLike)
-import           Data.String (IsString)
+import Util
 
-type Text = (StringLike text, IsString text) => text
 data Program = Program
 
   

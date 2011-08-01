@@ -1,3 +1,4 @@
+#!/usr/bin/env runhaskell
 {-# OPTIONS -Wall #-}
 
 import qualified Claris
