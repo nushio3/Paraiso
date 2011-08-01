@@ -5,6 +5,7 @@ module Main(main) where
 
 import           Data.Typeable
 import           Language.Paraiso.Annotation (Annotation)
+import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean

@@ -9,23 +9,24 @@
 
 module Language.Paraiso.Generator.Claris
     (
-      Claris, translate
+      Program, translate
     ) where
 
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM (OM)
 import qualified Language.Paraiso.OM as OM
 import           Language.Paraiso.OM.Graph (Setup) 
+import           Language.Paraiso.Prelude 
 
-data Claris vector gauge anot = 
-  Claris {
-    clarisName :: Name,
+data Program vector gauge anot = 
+  Program {
+    programName :: Name,
     setup :: Setup  vector gauge anot 
-    }
+    } deriving (Eq, Show)
 
-instance Nameable (Claris v g a) where
-  name = clarisName
+instance Nameable (Program v g a) where
+  name = programName
 
 
-translate :: OM vector gauge anot -> Claris vector gauge anot 
-translate om = Claris {clarisName = name om, setup = OM.setup om}
+translate :: OM vector gauge anot -> Program vector gauge anot 
+translate om = Program {programName = name om, setup = OM.setup om}

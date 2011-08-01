@@ -8,7 +8,6 @@ module Language.Paraiso.Annotation.Comment
     ) where
 
 import Data.Dynamic
-import Data.Text (Text)
 import Language.Paraiso.Prelude
 
 data Comment = Comment Text

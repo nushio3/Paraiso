@@ -3,19 +3,19 @@
 
 module Main(main) where
 
-import Data.Typeable
---import qualified Data.Graph.Inductive as FGL
-import Language.Paraiso.Annotation (Annotation)
+import           Data.Typeable
+import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation as Anot
-import Language.Paraiso.OM.Builder
-import Language.Paraiso.OM.Builder.Boolean
-import Language.Paraiso.OM.DynValue 
-import Language.Paraiso.OM.Graph
-import Language.Paraiso.OM
+import           Language.Paraiso.Name
+import           Language.Paraiso.OM.Builder
+import           Language.Paraiso.OM.Builder.Boolean
+import           Language.Paraiso.OM.DynValue 
+import           Language.Paraiso.OM.Graph
+import           Language.Paraiso.OM
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
-import Language.Paraiso.Prelude
-import Language.Paraiso.Tensor
+import           Language.Paraiso.Prelude
+import           Language.Paraiso.Tensor
 
 
 -- a dynamic representation for a local static value (an array)

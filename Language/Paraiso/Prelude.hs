@@ -12,7 +12,7 @@ module Language.Paraiso.Prelude
    module Data.Traversable,
    module NumericPrelude,
    Boolean(..),
-   showT,
+   Text, showT, 
    (++)) where
 
 import           Control.Applicative (Applicative(..), (<$>))
@@ -22,7 +22,7 @@ import           Data.Foldable
 import           Data.ListLike (append)
 import           Data.ListLike.Text ()
 import qualified Data.ListLike.Base (ListLike)
-import           Data.Text (Text, pack)
+import qualified Data.Text as Text
 import           Data.Traversable
 import           NumericPrelude hiding 
     (not, (&&), (||), Monad, Functor, (*>), (++),
@@ -31,8 +31,11 @@ import           NumericPrelude hiding
      concat, concatMap, maximum, minimum, elem, notElem)
 import qualified NumericPrelude as Prelude
 
+-- | An efficient String that is used thoroughout Paraiso modules.
+type Text = Text.Text
+
 showT :: Show a => a -> Text
-showT = pack . show
+showT = Text.pack . show
 
 infixr 3  &&
 infixr 2  ||
