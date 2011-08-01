@@ -9,6 +9,6 @@ import           Data.ListLike (ListLike(..))
 
 data Config = Config
 
-instance (ListLike str char) => Claris.Translator Config str where
+instance Claris.Translator Config where
   translate Config _ = "int main () {}"
   

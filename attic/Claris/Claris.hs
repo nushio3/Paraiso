@@ -1,13 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 module Claris (
-  Program(..), Translator(..)
+  Program(..), Text, Translator(..)
   ) where
 
-import Data.ListLike (ListLike(..))
+import qualified Data.Text as Text
+
+type Text = Text.Text
 
 data Program = Program
 
-class (ListLike str char) => Translator config str where
-  translate :: config -> Program -> str
+class Translator config where
+  translate :: config -> Program -> Text
   
