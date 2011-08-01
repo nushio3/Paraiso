@@ -5,11 +5,11 @@ module Cpp (
   ) where
 
 import qualified Claris
-import           Data.ListLike.String (StringLike(..))
-import           Data.String (IsString(..))
+import           Data.ListLike.String (StringLike)
+import           Data.String (IsString)
 
 data Config = Config
 
-instance (StringLike str, IsString str) => Claris.Translator Config str where
+instance (StringLike text, IsString text) => Claris.Translator Config text where
   translate Config _ = "int main () {}"
   
