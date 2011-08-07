@@ -1,10 +1,13 @@
-{-# LANGUAGE MultiParamTypeClasses, OverloadedStrings, RankNTypes #-}
+{-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses,
+OverloadedStrings, RankNTypes #-} 
+
 {-# OPTIONS -Wall #-}
 module ClarisDef (
   Program(..),
-  
-  Pragma(..), TopLevel (..), Function(..), Qualifier(..), Statement(..), 
-  Var(..), Expr(..), Parenthesis(..)
+
+  Pragma(..), TopLevelElem (..), Function(..), Qualifier(..), Statement(..), 
+  Var(..), UnknownType(..), unknownType,
+  Expr(..), Parenthesis(..)
   ) where
 
 import Data.Dynamic
@@ -13,13 +16,13 @@ import Util
 data Program 
   = Program {
     progName :: Text,
-    topLevel :: [TopLevel] }
+    topLevel :: [TopLevelElem] }
 instance Nameable Program where name = progName
 
-data TopLevel 
+data TopLevelElem 
   = PragmaDecl Pragma
   | FuncDecl Function
-  | UsingNamespaceStandard
+  | UsingNamespace Text
 
 data Pragma 
   = PragmaInclude {
@@ -27,7 +30,7 @@ data Pragma
     includeToHeader :: Bool,
     includeParen :: Parenthesis }
   | PragmaOnce
-    
+
 data Function 
   = Function {
     funcName :: Text, 
@@ -46,20 +49,29 @@ data Qualifier
 
 data Statement 
   = StmtExpr Expr
-  | StmtDecl Var Expr
+  | StmtDecl Var 
+  | StmtDeclInit Var Expr
   | StmtReturn Expr
   | StmtLoop 
 
 data Var = Var TypeRep Text
 instance Nameable Var where name (Var _ x) = x
+                            
+data UnknownType = UnknownType deriving (Eq, Show, Typeable)
+unknownType :: TypeRep
+unknownType = typeOf UnknownType
+
+
 
 data Expr
   = Imm Dynamic 
   | VarExpr Var
+  | FuncCall Text [Expr]
   | Op1Prefix Text Expr
+  | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr
   | Op3Infix Text Text Expr Expr Expr
-    
+
 data Parenthesis 
   = Paren | Bracket | Brace 
   | Chevron | Chevron2 | Chevron3 

@@ -2,7 +2,7 @@
 StandaloneDeriving #-}
 {-# OPTIONS -Wall #-}
 module Util (
-  Text, (++), 
+  Text, (++), showT,
   
   Named(..),
   Nameable(..), namee
@@ -15,6 +15,10 @@ import           Prelude hiding ((++))
 import qualified Data.Text 
 
 type Text = Data.Text.Text
+
+showT :: Show a => a -> Data.Text.Text
+showT = Data.Text.pack . show
+
 
 infixr 5 ++
 
@@ -32,7 +36,7 @@ class Nameable a where
   nameStr :: a -> String
   nameStr = toString . name
 
-  
+
 -- | Convert some type to a named type.
 data Named a = Named Text a
 
