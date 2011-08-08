@@ -1,10 +1,10 @@
 {-# OPTIONS -Wall #-}
-module Test.QuickCheckItself
+module Test.Paraiso.QuickCheckItself
     (
      testQuickCheckItself
     )where
 
-import Test.Adaptor     (testResult)
+import Test.Paraiso.Adaptor     (testResult)
 import Test.Framework   (Test, testGroup)
 import Test.QuickCheck
 

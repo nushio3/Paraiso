@@ -1,5 +1,5 @@
 {-# OPTIONS -Wall #-}
-module Test.Adaptor
+module Test.Paraiso.Adaptor
     (
      testResult
     )where

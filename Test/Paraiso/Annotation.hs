@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
-module Test.Annotation
+module Test.Paraiso.Annotation
     (
      testAnnotation
     )where
@@ -12,7 +12,7 @@ import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation as Anot
 import           Language.Paraiso.Annotation.Balloon (Balloon(..))
 import           Language.Paraiso.Annotation.Comment (Comment(..))
-import           Test.Adaptor     (testResult)
+import           Test.Paraiso.Adaptor     (testResult)
 import           Test.Framework   (Test, testGroup)
 import           Test.QuickCheck
 

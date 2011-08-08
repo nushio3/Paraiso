@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleContexts, NoImplicitPrelude, TypeOperators  #-}
 {-# OPTIONS -Wall #-}
-module Test.Tensor
+module Test.Paraiso.Tensor
     (
      testTensor
     )where
@@ -8,7 +8,7 @@ module Test.Tensor
 import Algebra.Additive (zero, negate)
 import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
-import Test.Adaptor     (testResult)
+import Test.Paraiso.Adaptor     (testResult)
 import Test.Framework   (Test, testGroup)
 import Test.QuickCheck
 
