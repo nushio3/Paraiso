@@ -4,7 +4,7 @@
 -- | name identifier.
 module Language.Paraiso.Name 
   (
-   Name(..), Named(..),
+   Name, Named(..), mkName,
    Nameable(..), namee
   ) where
 import Control.Monad
@@ -12,6 +12,11 @@ import Data.Text (Text, unpack)
 
 -- | a name.
 newtype Name = Name Text deriving (Eq, Ord, Show, Read)
+
+-- | create a name from a 'Text'. 
+-- We do not export the constructor 'Name' for future extensibility.
+mkName :: Text -> Name
+mkName x = Name x
 
 -- | something that has name.
 class Nameable a where
