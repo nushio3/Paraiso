@@ -116,7 +116,6 @@ Library
                        Language.Paraiso.Generator.Claris
                        Language.Paraiso.Generator.ClarisDef
                        Language.Paraiso.Generator.ClarisTrans
-                       Language.Paraiso.Generator.Cpp
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
                        Language.Paraiso.OM
@@ -145,6 +144,8 @@ Library
                        listlike-instances    >= 0.1    && < 0.2,
                        mtl                   >= 2.0.1  && < 2.1,
                        numeric-prelude       >= 0.2.1  && < 0.3,
+                       process               >= 1.0.1  && < 1.0.2,
+                       random                >= 1.0.0  && < 1.1,
                        text                  >= 0.11.1 && < 0.12
   -- Modules not exported by this package.
   -- Other-modules:       
@@ -152,7 +153,7 @@ Library
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
 
-  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing
+  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing -threaded
 
   if impl(ghc >= 7.0)
     ghc-options:        -fspec-constr-count=25
@@ -176,6 +177,8 @@ test-suite runtests
                        listlike-instances    >= 0.1    && < 0.2,
                        mtl                   >= 2.0.1  && < 2.1,
                        numeric-prelude       >= 0.2.1  && < 0.3,
+                       process               >= 1.0.1  && < 1.0.2,
+                       random                >= 1.0.0  && < 1.1,
                        text                  >= 0.11.1 && < 0.12,
 
                        test-framework,
@@ -185,6 +188,6 @@ test-suite runtests
                        QuickCheck >= 2 && < 3
     main-is: runtests.hs
     
-    ghc-options:     -Wall -O3
+    ghc-options:     -Wall -O3  -threaded
     Default-Language: Haskell2010
 

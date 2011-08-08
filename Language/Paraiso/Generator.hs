@@ -12,12 +12,11 @@ import Language.Paraiso.Annotation (Annotation)
 import Language.Paraiso.OM
 import Language.Paraiso.Tensor (Vector)
 
--- | The definition for code generator.
-class Generator gen where
-  -- | Code generation.
-  generate :: (Vector v, Ring.C g, Additive.C (v g), Ord (v g)) =>
-              gen                -- ^The code generator configuration.
-           -> OM v g Annotation  -- ^The 'POM' sourcecode, annotated with 'Annotation'.
-           -> FilePath           -- ^The directory name under which the files are to be generated.
-           -> IO ()               -- ^The act of generation.
+-- | The definition for library generator.
+class Generator src where
+  -- | Generate the library under a certain directory.
+  generate 
+    :: src           -- ^The object from which the library shall be generated.
+    -> FilePath      -- ^The directory name under which the files are to be generated.
+    -> IO [FilePath] -- ^The act of generation. Returns the list of generated files.
 

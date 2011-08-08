@@ -17,13 +17,15 @@ import Language.Paraiso.Prelude
 data Program 
   = Program {
     progName :: Name,
-    topLevel :: [TopLevelElem] }
+    topLevel :: [TopLevelElem] } 
+  deriving (Show)
 instance Nameable Program where name = progName
 
 data TopLevelElem 
   = PragmaDecl Pragma
   | FuncDecl Function
-  | UsingNamespace Name
+  | UsingNamespace Name 
+  deriving (Show)
 
 data Pragma 
   = PragmaInclude {
@@ -31,7 +33,8 @@ data Pragma
     includeToHeader :: Bool,
     includeParen :: Parenthesis }
   | PragmaOnce
-
+  deriving (Show)
+           
 data Function 
   = Function {
     funcName :: Name, 
@@ -39,6 +42,7 @@ data Function
     funcType :: TypeRep,
     funcArgs :: [Var],
     funcBody :: [Statement] }
+  deriving (Show)
 instance Nameable Function where name = funcName
 
 data Qualifier
@@ -48,15 +52,17 @@ data Qualifier
   | Host
   | Constant
   | Shared
-
+  deriving (Show)
+           
 data Statement 
   = StmtExpr Expr
   | StmtDecl Var 
   | StmtDeclInit Var Expr
   | StmtReturn Expr
   | StmtLoop 
-
-data Var = Var TypeRep Name
+  deriving (Show)
+           
+data Var = Var TypeRep Name deriving (Show)
 instance Nameable Var where name (Var _ x) = x
 
 data UnknownType = UnknownType deriving (Eq, Show, Typeable)
@@ -73,8 +79,10 @@ data Expr
   | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr
   | Op3Infix Text Text Expr Expr Expr
-
+  deriving (Show)
+           
 data Parenthesis 
   = Paren | Bracket | Brace 
   | Chevron | Chevron2 | Chevron3 
   | Quotation | Quotation2
+  deriving (Show)
