@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses,
+NoImplicitPrelude, OverloadedStrings, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Generator.ClarisDef (      
   Program(..),
@@ -9,34 +10,36 @@ module Language.Paraiso.Generator.ClarisDef (
   ) where
 
 import Data.Dynamic
+import Language.Paraiso.Name
 import Language.Paraiso.Prelude
 
 
 data Program 
   = Program {
-    progName :: Text,
+    progName :: Name,
     topLevel :: [TopLevelElem] }
 instance Nameable Program where name = progName
 
 data TopLevelElem 
   = PragmaDecl Pragma
   | FuncDecl Function
-  | UsingNamespace Text
+  | UsingNamespace Name
 
 data Pragma 
   = PragmaInclude {
-    includeName :: Text,
+    includeName :: Name,
     includeToHeader :: Bool,
     includeParen :: Parenthesis }
   | PragmaOnce
 
 data Function 
   = Function {
-    funcName :: Text, 
+    funcName :: Name, 
     funcQual :: [Qualifier],
     funcType :: TypeRep,
     funcArgs :: [Var],
     funcBody :: [Statement] }
+instance Nameable Function where name = funcName
 
 data Qualifier
   = Member 
@@ -53,9 +56,9 @@ data Statement
   | StmtReturn Expr
   | StmtLoop 
 
-data Var = Var TypeRep Text
+data Var = Var TypeRep Name
 instance Nameable Var where name (Var _ x) = x
-                            
+
 data UnknownType = UnknownType deriving (Eq, Show, Typeable)
 unknownType :: TypeRep
 unknownType = typeOf UnknownType

@@ -114,6 +114,8 @@ Library
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Allocation
                        Language.Paraiso.Generator.Claris
+                       Language.Paraiso.Generator.ClarisDef
+                       Language.Paraiso.Generator.ClarisTrans
                        Language.Paraiso.Generator.Cpp
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        

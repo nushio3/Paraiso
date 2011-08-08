@@ -7,13 +7,12 @@ module Language.Paraiso.Generator.ClarisTrans (
   Translatable(..), paren, joinBy, joinEndBy
   ) where
 
-
-import           Control.Monad
 import           Data.Dynamic
 import qualified Data.List as L
 import qualified Data.ListLike as LL
 import qualified Data.ListLike.String as LL
-import           Language.Paraiso.ClarisDef
+import           Language.Paraiso.Generator.ClarisDef
+import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
 class Translatable a where
@@ -26,25 +25,25 @@ instance Translatable TopLevelElem where
   translate tl = case tl of
     PragmaDecl x -> translate x 
     FuncDecl   x -> translate x 
-    UsingNamespace x -> "using namespace " ++ x ++ ";"
+    UsingNamespace x -> "using namespace " ++ nameText x ++ ";"
 
 instance Translatable Pragma where
   translate PragmaInclude {
     includeName = x, includeToHeader = _, includeParen = p
-    } = "#include " ++ paren p x
+    } = "#include " ++ paren p (nameText x)
 
   translate PragmaOnce = "#pragma once"
 
 instance Translatable Function where
   translate f = LL.unwords
     [ translate (funcType f)
-    , funcName f
+    , nameText f
     , paren Paren $ joinBy ", " $ map (translate . StmtDecl) (funcArgs f)
     , paren Brace $ joinEndBy ";\n" $ map translate $ funcBody f]
 
 instance Translatable Statement where    
   translate (StmtExpr x)             = translate x
-  translate (StmtDecl (Var typ nam)) = LL.unwords [translate typ, nam]
+  translate (StmtDecl (Var typ nam)) = LL.unwords [translate typ, nameText nam]
   translate (StmtDeclInit v x)       = translate (StmtDecl v) ++ " = " ++ translate x
   translate (StmtReturn x)           = "return " ++ translate x
   translate StmtLoop                 = "todo"
@@ -66,7 +65,7 @@ instance Translatable Expr where
     where
       ret = case expr of
         (Imm x) -> translate x
-        (VarExpr x) -> name x
+        (VarExpr x) -> nameText x
         (FuncCall f args) -> (f++) $ paren Paren $ joinBy ", " $ map translate args
         (Op1Prefix op x) -> op ++ translate x
         (Op1Postfix op x) -> translate x ++ op
