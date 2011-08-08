@@ -1,9 +1,9 @@
 import Test.Framework (defaultMain)
 
 -- Actual tests
-import Test.Annotation
-import Test.QuickCheckItself
-import Test.Tensor
+import Test.Paraiso.Annotation
+import Test.Paraiso.QuickCheckItself
+import Test.Paraiso.Tensor
 
 main :: IO ()
 main = defaultMain [testQuickCheckItself, testAnnotation, testTensor]
