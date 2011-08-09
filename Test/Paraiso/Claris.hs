@@ -56,7 +56,7 @@ adderProgram x1 x2 =
     C.progName = mkName "hello",
     C.topLevel = 
       [C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream",
-       C.FuncDecl $ C.Function (mkName "main") [] tInt [] body]
+       C.FuncDecl $ (C.function tInt (mkName "main")){C.funcBody = body}]
     }
   where
     body = 

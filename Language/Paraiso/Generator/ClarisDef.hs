@@ -5,7 +5,8 @@ module Language.Paraiso.Generator.ClarisDef (
   Program(..),
 
   FileType(..),
-  Preprocessing(..), TopLevelElem (..), Function(..), Qualifier(..), Statement(..), 
+  Preprocessing(..), TopLevelElem (..), Function(..), function, 
+  Qualifier(..), Statement(..), 
   Var(..), UnknownType(..), unknownType,
   Expr(..), Parenthesis(..)
   ) where
@@ -56,6 +57,16 @@ data Function
     }
   deriving (Eq, Show)
 instance Nameable Function where name = funcName
+
+-- | A default function maker
+function :: TypeRep -> Name ->  Function
+function tr na = Function
+  { funcName = na,
+    funcType = tr,
+    funcQual = [],
+    funcArgs = [],
+    funcBody = []
+  }
 
 data Qualifier
   = Member 
