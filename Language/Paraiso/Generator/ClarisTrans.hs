@@ -91,7 +91,8 @@ instance Translatable Expr where
       ret = case expr of
         (Imm x) -> translate conf x
         (VarExpr x) -> nameText x
-        (FuncCall f args) -> (f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
+        (FuncCallUser f args)    -> (nameText f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
+        (FuncCallBuiltin f args) -> (f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
         (Op1Prefix op x) -> op ++ translate conf x
         (Op1Postfix op x) -> translate conf x ++ op
         (Op2Infix op x y) -> LL.unwords [translate conf x, op, translate conf y]

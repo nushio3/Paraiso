@@ -1,7 +1,7 @@
 all: main.out
 
 main.out : main.cpp
-	g++ -O3 main.cpp -o main.out 
+	g++ -Wall -O3 main.cpp -o main.out 
 
 main.cpp : Main
 	./Main

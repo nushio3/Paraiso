@@ -95,7 +95,8 @@ unknownType = typeOf UnknownType
 data Expr
   = Imm Dynamic 
   | VarExpr Var
-  | FuncCall Text [Expr]
+  | FuncCallUser    Name [Expr]
+  | FuncCallBuiltin Text [Expr]
   | Op1Prefix Text Expr
   | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr
