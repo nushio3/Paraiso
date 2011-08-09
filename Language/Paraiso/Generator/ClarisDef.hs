@@ -5,15 +5,17 @@ module Language.Paraiso.Generator.ClarisDef (
   Program(..),
 
   FileType(..),
-  Preprocessing(..), TopLevelElem (..), Function(..), function, 
+  Preprocessing(..), TopLevelElem (..), 
+  TypeRep(..), typeOf, toDyn,
+  Function(..), function, 
   Qualifier(..), Statement(..), 
-  Var(..), UnknownType(..), unknownType,
+  Var(..), 
   Expr(..), Parenthesis(..)
   ) where
 
-import Data.Dynamic
-import Language.Paraiso.Name
-import Language.Paraiso.Prelude
+import qualified Data.Dynamic as Dyn
+import           Language.Paraiso.Name
+import           Language.Paraiso.Prelude
 
 
 data Program 
@@ -47,6 +49,16 @@ data Preprocessing
     }
   deriving (Eq, Show)    
            
+data TypeRep 
+  = UnitType     Dyn.TypeRep
+  | PtrOf        TypeRep
+  | TemplateType Text [TypeRep]
+  | UnknownType
+  deriving (Eq, Show)    
+
+typeOf :: (Dyn.Typeable a) => a -> TypeRep
+typeOf = UnitType . Dyn.typeOf
+
 data Function 
   = Function 
     { funcName :: Name, 
@@ -57,6 +69,7 @@ data Function
     }
   deriving (Eq, Show)
 instance Nameable Function where name = funcName
+
 
 -- | A default function maker
 function :: TypeRep -> Name ->  Function
@@ -88,12 +101,9 @@ data Statement
 data Var = Var TypeRep Name deriving (Eq, Show)
 instance Nameable Var where name (Var _ x) = x
 
-data UnknownType = UnknownType deriving (Eq, Show, Typeable)
-unknownType :: TypeRep
-unknownType = typeOf UnknownType
 
 data Expr
-  = Imm Dynamic 
+  = Imm Dyn.Dynamic 
   | VarExpr Var
   | FuncCallUser    Name [Expr]
   | FuncCallBuiltin Text [Expr]
@@ -103,6 +113,9 @@ data Expr
   | Op3Infix Text Text Expr Expr Expr
   | ArrayAccess Expr Expr
   deriving (Show)
+
+toDyn :: (Dyn.Typeable a) => a -> Expr
+toDyn = Imm . Dyn.toDyn
 
 instance Eq Expr where
   (==)_ _= error "cannot compare Expr."

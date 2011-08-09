@@ -56,15 +56,15 @@ adderProgram x1 x2 =
       
     coutExpr = cout << message << endl
 
-    cout = C.VarExpr $ C.Var C.unknownType $ mkName "std::cout"
-    endl = C.VarExpr $ C.Var C.unknownType $ mkName "std::endl"
+    cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
+    endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
     
-    message = C.Op2Infix "+" (C.Imm $ toDyn x1) (C.Imm $ toDyn x2)
+    message = C.Op2Infix "+" (C.toDyn x1) (C.toDyn x2)
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
 
 
-    tInt :: TypeRep
-    tInt = typeOf (undefined :: Int)
+    tInt :: C.TypeRep
+    tInt = C.typeOf (undefined :: Int)
     

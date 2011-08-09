@@ -7,7 +7,6 @@ import qualified Language.Paraiso.Generator.Claris as C
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
-
 main :: IO ()
 main = do
   _ <- generate (sampleProgram 5 8) "./" 
@@ -33,7 +32,7 @@ sampleProgram x1 x2 =
     varZ = C.Var tInt (mkName "z")
     mainBody = 
       [C.StmtExpr   $ cout << message << endl,
-       C.StmtReturn $ C.Imm $ toDyn (0::Int) ]
+       C.StmtReturn $ C.toDyn (0::Int) ]
     
     calcBody = 
       [C.StmtDeclInit varZ (C.Imm $ toDyn(2::Int)),
@@ -42,13 +41,13 @@ sampleProgram x1 x2 =
        C.StmtReturn $ (C.VarExpr varZ) 
       ]
 
-    cout = C.VarExpr $ C.Var C.unknownType $ mkName "std::cout"
-    endl = C.VarExpr $ C.Var C.unknownType $ mkName "std::endl"
+    cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
+    endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
 
-    message = C.FuncCallUser (mkName "calc") [C.Imm $ toDyn x1, C.Imm $ toDyn x2]
+    message = C.FuncCallUser (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
 
-    tInt :: TypeRep
-    tInt = typeOf (undefined :: Int)
+    tInt :: C.TypeRep
+    tInt = C.typeOf (undefined :: Int)

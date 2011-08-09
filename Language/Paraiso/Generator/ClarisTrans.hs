@@ -7,7 +7,7 @@ module Language.Paraiso.Generator.ClarisTrans (
   Translatable(..), paren, joinBy, joinEndBy, headerFile, sourceFile
   ) where
 
-import           Data.Dynamic
+import qualified Data.Dynamic as Dyn
 import qualified Data.List as L
 import qualified Data.ListLike as LL
 import qualified Data.ListLike.String as LL
@@ -73,17 +73,24 @@ instance Translatable Statement where
   translate conf (StmtReturn x)           = "return " ++ translate conf x
   translate conf StmtLoop                 = "todo"
 
-instance Translatable TypeRep where  
+instance Translatable TypeRep where
+  translate conf (UnitType x) = translate conf x
+  translate conf (PtrOf x)    = "*" ++ translate conf x
+  translate conf 
+    (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys)
+  translate conf UnknownType  = error "cannot translate unknown type."
+  
+instance Translatable Dyn.TypeRep where  
   translate conf x = 
     case msum $ map ($x) typeRepDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate conf type: " ++ show x
+      Nothing  -> error $ "cannot translate Haskell type: " ++ show x
 
-instance Translatable Dynamic where  
+instance Translatable Dyn.Dynamic where  
   translate conf x = 
     case msum $ map ($x) dynamicDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate conf immediate of type: " ++ show x
+      Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
 
 instance Translatable Expr where
   translate conf expr = paren Paren ret
@@ -100,15 +107,15 @@ instance Translatable Expr where
         (ArrayAccess x y) -> translate conf x ++ paren Bracket (translate conf y)
         
 -- | The databeses for Haskell -> Cpp type name translations.
-typeRepDB:: [TypeRep -> Maybe Text]
+typeRepDB:: [Dyn.TypeRep -> Maybe Text]
 typeRepDB = map fst symbolDB
 
 -- | The databeses for Haskell -> Cpp immediate values translations.
-dynamicDB:: [Dynamic -> Maybe Text]
+dynamicDB:: [Dyn.Dynamic -> Maybe Text]
 dynamicDB = map snd symbolDB
 
 -- | The united database for translating Haskell types and immediate values to Cpp
-symbolDB:: [(TypeRep -> Maybe Text, Dynamic -> Maybe Text)]
+symbolDB:: [(Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)]
 symbolDB = [ 
   add "void"          (\() -> ""),
   add "bool"          (\x->if x then "true" else "false"),
@@ -120,14 +127,14 @@ symbolDB = [
   add "std::string"   (showT::Text->Text)
        ]  
   where
-    add ::  (Typeable a) => Text -> (a->Text) 
-        -> (TypeRep -> Maybe Text,Dynamic -> Maybe Text)
+    add ::  (Dyn.Typeable a) => Text -> (a->Text) 
+        -> (Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)
     add = add' undefined
-    add' :: (Typeable a) => a -> Text -> (a->Text) 
-        -> (TypeRep -> Maybe Text,Dynamic -> Maybe Text)
+    add' :: (Dyn.Typeable a) => a -> Text -> (a->Text) 
+        -> (Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)
     add' dummy typename f = 
-      (\tr -> if tr==typeOf dummy then Just typename else Nothing,
-       fmap f . fromDynamic)
+      (\tr -> if tr == Dyn.typeOf dummy then Just typename else Nothing,
+       fmap f . Dyn.fromDynamic)
 
 
 -- | an parenthesizer for lazy person.
