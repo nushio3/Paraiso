@@ -42,7 +42,7 @@ instance Arbitrary AdderQuiz where
                  AdderQuiz{ 
                    adderProg    = prog,
                    adderQuizAns = x+y,
-                   progText     = C.translate prog
+                   progText     = C.translate C.sourceFile prog
                    }
               ) 
 
@@ -55,7 +55,7 @@ adderProgram x1 x2 =
   C.Program {
     C.progName = mkName "hello",
     C.topLevel = 
-      [C.PragmaDecl $ C.PragmaInclude (mkName "iostream") False C.Chevron,
+      [C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream",
        C.FuncDecl $ C.Function (mkName "main") [] tInt [] body]
     }
   where
@@ -86,7 +86,7 @@ evaluate prog = unsafePerformIO $ do
   files <- generate prog path
   let cppFn :: FilePath
       cppFn = head $ filter (LL.isSuffixOf ".cpp") files
-  _ <- system $ unwords [Option.cppc, "-O3",  cppFn,  "-o",  exeFn]
+  _ <- system $ unwords [Option.cppc, "-O3",  cppFn, "-I", path,  "-o",  exeFn]
   (_, Just hout, _, handle) <- createProcess (shell exeFn) {std_out = CreatePipe}
   ret <- fmap (read :: String -> Int) $ hGetLine hout
   _ <- forkIO $ suckAll hout
