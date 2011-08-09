@@ -15,7 +15,7 @@ main = do
 sampleProgram :: Int -> Int -> C.Program
 sampleProgram x1 x2 = 
   C.Program {
-    C.progName = mkName "main",
+    C.progName = mkName "simple",
     C.topLevel = 
       [ C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
         C.FuncDecl $ (C.function tInt (mkName "main"))
