@@ -101,6 +101,7 @@ data Expr
   | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr
   | Op3Infix Text Text Expr Expr Expr
+  | ArrayAccess Expr Expr
   deriving (Show)
 
 instance Eq Expr where

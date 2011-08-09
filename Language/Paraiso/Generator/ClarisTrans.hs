@@ -97,7 +97,7 @@ instance Translatable Expr where
         (Op1Postfix op x) -> translate conf x ++ op
         (Op2Infix op x y) -> LL.unwords [translate conf x, op, translate conf y]
         (Op3Infix op1 op2 x y z) -> LL.unwords [translate conf x, op1, translate conf y, op2, translate conf z]
-        
+        (ArrayAccess x y) -> translate conf x ++ paren Bracket (translate conf y)
         
 -- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [TypeRep -> Maybe Text]

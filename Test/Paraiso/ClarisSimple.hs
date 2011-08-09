@@ -25,17 +25,18 @@ test = testGroup "simple program generated from Claris" tests
 
 data AdderQuiz = AdderQuiz {adderQuizAns :: Int, adderProg :: C.Program, progText :: Text} deriving Show
 instance Arbitrary AdderQuiz where
-  arbitrary = flip fmap arbitrary $
-              (\(x',y') -> 
-                let [x,y] = map (`div` 65536) [x', y'] 
-                    prog = adderProgram x y
-                in
-                 AdderQuiz{ 
-                   adderProg    = prog,
-                   adderQuizAns = x+y,
-                   progText     = C.translate C.sourceFile prog
-                   }
-              ) 
+  arbitrary = 
+    flip fmap arbitrary $
+    \(x',y') -> 
+      let [x,y] = map (`div` 65536) [x', y'] 
+          prog = adderProgram x y
+      in
+       AdderQuiz { 
+         adderProg    = prog,
+         adderQuizAns = x+y,
+         progText     = C.translate C.sourceFile prog
+         }
+               
 
 testQuiz :: AdderQuiz -> Bool
 testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
