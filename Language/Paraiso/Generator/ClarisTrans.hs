@@ -4,7 +4,7 @@ RankNTypes #-}
 
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Generator.ClarisTrans (      
-  Translatable(..), paren, joinBy, joinEndBy
+  Translatable(..), paren, joinBy, joinEndBy, headerFile, sourceFile
   ) where
 
 import           Data.Dynamic
@@ -16,61 +16,86 @@ import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
 class Translatable a where
-  translate :: a -> Text
+  translate :: Context -> a -> Text
+
+data Context 
+  = Context 
+    { fileType :: FileType
+    }
+
+headerFile :: Context
+headerFile = Context {fileType = HeaderFile}
+
+sourceFile :: Context
+sourceFile = Context {fileType = SourceFile}
+
 
 instance Translatable Program where
-  translate Program{topLevel = xs} = LL.unlines $ map translate xs
+  translate conf Program{topLevel = xs} = LL.unlines $ map (translate conf) xs
 
 instance Translatable TopLevelElem where  
-  translate tl = case tl of
-    PragmaDecl x -> translate x 
-    FuncDecl   x -> translate x 
+  translate conf tl = case tl of
+    PrprInst   x -> translate conf x 
+    FuncDecl   x -> translate conf x 
     UsingNamespace x -> "using namespace " ++ nameText x ++ ";"
 
-instance Translatable Pragma where
-  translate PragmaInclude {
-    includeName = x, includeToHeader = _, includeParen = p
-    } = "#include " ++ paren p (nameText x)
-
-  translate PragmaOnce = "#pragma once"
+instance Translatable Preprocessing where
+  translate conf prpr@Include{}
+    | fileType conf == prprFileType prpr = str
+    | otherwise                          = ""
+      where 
+        str = "#include " ++ paren (includeParen prpr) (includeFileName prpr)
+  translate conf prpr@Pragma{}
+    | fileType conf == prprFileType prpr = "#pragma " ++ pragmaText prpr
+    | otherwise                          = ""
 
 instance Translatable Function where
-  translate f = LL.unwords
-    [ translate (funcType f)
-    , nameText f
-    , paren Paren $ joinBy ", " $ map (translate . StmtDecl) (funcArgs f)
-    , paren Brace $ joinEndBy ";\n" $ map translate $ funcBody f]
+  translate conf f = ret
+    where
+      ret = if fileType conf == HeaderFile then funcDecl else funcDef
+      funcDecl
+        = LL.unwords
+          [ translate conf (funcType f)
+          , nameText f
+          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
+          , ";"]
+      funcDef 
+        = LL.unwords
+          [ translate conf (funcType f)
+          , nameText f
+          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
+          , paren Brace $ joinEndBy ";\n" $ map (translate conf) $ funcBody f]
 
 instance Translatable Statement where    
-  translate (StmtExpr x)             = translate x
-  translate (StmtDecl (Var typ nam)) = LL.unwords [translate typ, nameText nam]
-  translate (StmtDeclInit v x)       = translate (StmtDecl v) ++ " = " ++ translate x
-  translate (StmtReturn x)           = "return " ++ translate x
-  translate StmtLoop                 = "todo"
+  translate conf (StmtExpr x)             = translate conf x
+  translate conf (StmtDecl (Var typ nam)) = LL.unwords [translate conf typ, nameText nam]
+  translate conf (StmtDeclInit v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
+  translate conf (StmtReturn x)           = "return " ++ translate conf x
+  translate conf StmtLoop                 = "todo"
 
 instance Translatable TypeRep where  
-  translate x = 
+  translate conf x = 
     case msum $ map ($x) typeRepDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate type: " ++ show x
+      Nothing  -> error $ "cannot translate conf type: " ++ show x
 
 instance Translatable Dynamic where  
-  translate x = 
+  translate conf x = 
     case msum $ map ($x) dynamicDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate immediate of type: " ++ show x
+      Nothing  -> error $ "cannot translate conf immediate of type: " ++ show x
 
 instance Translatable Expr where
-  translate expr = paren Paren ret
+  translate conf expr = paren Paren ret
     where
       ret = case expr of
-        (Imm x) -> translate x
+        (Imm x) -> translate conf x
         (VarExpr x) -> nameText x
-        (FuncCall f args) -> (f++) $ paren Paren $ joinBy ", " $ map translate args
-        (Op1Prefix op x) -> op ++ translate x
-        (Op1Postfix op x) -> translate x ++ op
-        (Op2Infix op x y) -> LL.unwords [translate x, op, translate y]
-        (Op3Infix op1 op2 x y z) -> LL.unwords [translate x, op1, translate y, op2, translate z]
+        (FuncCall f args) -> (f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
+        (Op1Prefix op x) -> op ++ translate conf x
+        (Op1Postfix op x) -> translate conf x ++ op
+        (Op2Infix op x y) -> LL.unwords [translate conf x, op, translate conf y]
+        (Op3Infix op1 op2 x y z) -> LL.unwords [translate conf x, op1, translate conf y, op2, translate conf z]
         
         
 -- | The databeses for Haskell -> Cpp type name translations.

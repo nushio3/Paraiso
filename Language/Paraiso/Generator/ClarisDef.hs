@@ -4,7 +4,8 @@ NoImplicitPrelude, OverloadedStrings, RankNTypes #-}
 module Language.Paraiso.Generator.ClarisDef (      
   Program(..),
 
-  Pragma(..), TopLevelElem (..), Function(..), Qualifier(..), Statement(..), 
+  FileType(..),
+  Preprocessing(..), TopLevelElem (..), Function(..), Qualifier(..), Statement(..), 
   Var(..), UnknownType(..), unknownType,
   Expr(..), Parenthesis(..)
   ) where
@@ -15,34 +16,45 @@ import Language.Paraiso.Prelude
 
 
 data Program 
-  = Program {
-    progName :: Name,
-    topLevel :: [TopLevelElem] } 
+  = Program 
+    { progName :: Name,
+      topLevel :: [TopLevelElem] 
+    } 
   deriving (Show)
 instance Nameable Program where name = progName
 
+data FileType 
+  = HeaderFile
+  | SourceFile 
+  deriving (Eq, Show)
+           
 data TopLevelElem 
-  = PragmaDecl Pragma
+  = PrprInst Preprocessing
   | FuncDecl Function
   | UsingNamespace Name 
-  deriving (Show)
+  deriving (Eq, Show)
 
-data Pragma 
-  = PragmaInclude {
-    includeName :: Name,
-    includeToHeader :: Bool,
-    includeParen :: Parenthesis }
-  | PragmaOnce
-  deriving (Show)
+data Preprocessing
+  = Include 
+    { prprFileType :: FileType   ,
+      includeParen :: Parenthesis,    
+      includeFileName :: Text    
+    }
+  | Pragma 
+    { prprFileType :: FileType,
+      pragmaText :: Text      
+    }
+  deriving (Eq, Show)    
            
 data Function 
-  = Function {
-    funcName :: Name, 
-    funcQual :: [Qualifier],
-    funcType :: TypeRep,
-    funcArgs :: [Var],
-    funcBody :: [Statement] }
-  deriving (Show)
+  = Function 
+    { funcName :: Name, 
+      funcQual :: [Qualifier],
+      funcType :: TypeRep,
+      funcArgs :: [Var],
+      funcBody :: [Statement] 
+    }
+  deriving (Eq, Show)
 instance Nameable Function where name = funcName
 
 data Qualifier
@@ -52,24 +64,22 @@ data Qualifier
   | Host
   | Constant
   | Shared
-  deriving (Show)
-           
+  deriving (Eq, Show)                        
+
 data Statement 
   = StmtExpr Expr
   | StmtDecl Var 
   | StmtDeclInit Var Expr
   | StmtReturn Expr
   | StmtLoop 
-  deriving (Show)
-           
-data Var = Var TypeRep Name deriving (Show)
+  deriving (Eq, Show)                    
+
+data Var = Var TypeRep Name deriving (Eq, Show)
 instance Nameable Var where name (Var _ x) = x
 
 data UnknownType = UnknownType deriving (Eq, Show, Typeable)
 unknownType :: TypeRep
 unknownType = typeOf UnknownType
-
-
 
 data Expr
   = Imm Dynamic 
@@ -80,9 +90,14 @@ data Expr
   | Op2Infix Text Expr Expr
   | Op3Infix Text Text Expr Expr Expr
   deriving (Show)
-           
+
+instance Eq Expr where
+  (==)_ _= error "cannot compare Expr."
+instance Ord Expr where
+  compare _ _ = error "cannot compare Expr."
+
 data Parenthesis 
   = Paren | Bracket | Brace 
   | Chevron | Chevron2 | Chevron3 
   | Quotation | Quotation2
-  deriving (Show)
+  deriving (Eq, Show)                    
