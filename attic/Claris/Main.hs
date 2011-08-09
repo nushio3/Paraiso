@@ -18,13 +18,14 @@ sampleProgram x1 x2 =
   C.Program {
     C.progName = mkName "main",
     C.topLevel = 
-      [C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
-       C.FuncDecl $ (C.function tInt (mkName "main")){C.funcBody= mainBody}, 
-       C.FuncDecl $ (C.function tInt (mkName "calc"))
-         { C.funcArgs = [varX, varY] ,
-           C.funcBody = calcBody
-         }
-       ]
+      [ C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
+        C.FuncDecl $ (C.function tInt (mkName "main"))
+          { C.funcBody= mainBody }, 
+        C.FuncDecl $ (C.function tInt (mkName "calc"))
+          { C.funcArgs = [varX, varY] ,
+            C.funcBody = calcBody
+          }
+      ]
     }
   where
     varX = C.Var tInt (mkName "x") 
