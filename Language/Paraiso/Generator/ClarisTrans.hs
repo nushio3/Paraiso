@@ -71,7 +71,12 @@ instance Translatable Statement where
   translate conf (StmtDecl (Var typ nam)) = LL.unwords [translate conf typ, nameText nam]
   translate conf (StmtDeclInit v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
   translate conf (StmtReturn x)           = "return " ++ translate conf x
-  translate conf StmtLoop                 = "todo"
+  translate conf (StmtWhile test xs )     = "while" 
+    ++ paren Paren (translate conf test) 
+    ++ paren Brace (joinEndBy ";\n" $ map (translate conf) xs)
+  translate conf (StmtFor init test inc xs) = "for" 
+    ++ paren Paren (joinBy ";" $ [translate conf init, translate conf test, translate conf inc]) 
+    ++ paren Brace (joinEndBy ";\n" $ map (translate conf) xs)
 
 instance Translatable TypeRep where
   translate conf (UnitType x) = translate conf x
@@ -93,18 +98,22 @@ instance Translatable Dyn.Dynamic where
       Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
 
 instance Translatable Expr where
-  translate conf expr = paren Paren ret
+  translate conf expr = ret
     where
+      pt  = paren Paren . translate conf
+      t :: Translatable a => a -> Text
+      t   = translate conf
       ret = case expr of
-        (Imm x) -> translate conf x
+        (Imm x) -> t x
         (VarExpr x) -> nameText x
-        (FuncCallUser f args)    -> (nameText f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
-        (FuncCallBuiltin f args) -> (f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
-        (Op1Prefix op x) -> op ++ translate conf x
-        (Op1Postfix op x) -> translate conf x ++ op
-        (Op2Infix op x y) -> LL.unwords [translate conf x, op, translate conf y]
-        (Op3Infix op1 op2 x y z) -> LL.unwords [translate conf x, op1, translate conf y, op2, translate conf z]
-        (ArrayAccess x y) -> translate conf x ++ paren Bracket (translate conf y)
+        (FuncCallUsr f args)    -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
+        (FuncCallStd f args) -> (f++) $ paren Paren $ joinBy ", " $ map t args
+        (Member x y) -> LL.unwords [pt x, ".", t y]
+        (Op1Prefix op x) -> op ++ pt x
+        (Op1Postfix op x) -> pt x ++ op
+        (Op2Infix op x y) -> LL.unwords [pt x, op, pt y]
+        (Op3Infix op1 op2 x y z) -> LL.unwords [pt x, op1, pt y, op2, pt z]
+        (ArrayAccess x y) -> pt x ++ paren Bracket (t y)
         
 -- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [Dyn.TypeRep -> Maybe Text]

@@ -82,8 +82,7 @@ function tr na = Function
   }
 
 data Qualifier
-  = Member 
-  | Global
+  = Global
   | Device
   | Host
   | Constant
@@ -95,7 +94,8 @@ data Statement
   | StmtDecl Var 
   | StmtDeclInit Var Expr
   | StmtReturn Expr
-  | StmtLoop 
+  | StmtWhile Expr [Statement]
+  | StmtFor Statement Expr Expr [Statement]
   deriving (Eq, Show)                    
 
 data Var = Var TypeRep Name deriving (Eq, Show)
@@ -105,8 +105,9 @@ instance Nameable Var where name (Var _ x) = x
 data Expr
   = Imm Dyn.Dynamic 
   | VarExpr Var
-  | FuncCallUser    Name [Expr]
-  | FuncCallBuiltin Text [Expr]
+  | FuncCallUsr Name [Expr]
+  | FuncCallStd Text [Expr]
+  | Member Expr Expr
   | Op1Prefix Text Expr
   | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr

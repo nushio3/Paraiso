@@ -28,6 +28,7 @@ sampleProgram x1 x2 =
       ]
     }
   where
+    varI = C.Var tInt (mkName "i") 
     varX = C.Var tInt (mkName "x") 
     varY = C.Var tInt (mkName "y")
     varZ = C.Var tInt (mkName "z")
@@ -36,11 +37,16 @@ sampleProgram x1 x2 =
 
     mainBody = 
       [ C.StmtDecl   $ varXs ,
+        C.StmtFor 
+          (C.StmtDeclInit varI (C.toDyn (0::Int)))
+          (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
+          (C.Op1Prefix "++" (C.VarExpr varI))
+          [] , 
         C.StmtExpr   $ cout << message << endl,
         C.StmtReturn $ C.toDyn (0::Int) ]
 
     calcBody = 
-      [C.StmtDeclInit varZ (C.Imm $ toDyn(2::Int)),
+      [C.StmtDeclInit varZ (C.toDyn(2::Int)),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 
@@ -49,7 +55,7 @@ sampleProgram x1 x2 =
     cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
     endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
 
-    message = C.FuncCallUser (mkName "calc") [C.toDyn x1, C.toDyn x2]
+    message = C.FuncCallUsr (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
@@ -62,3 +68,4 @@ sampleProgram x1 x2 =
     
     tV2Int :: C.TypeRep
     tV2Int = C.TemplateType "std::vector" [tVecInt]
+
