@@ -9,7 +9,7 @@ import           Control.Concurrent         (forkIO)
 import           Data.Dynamic
 import qualified Data.ListLike as LL
 import           Language.Paraiso.Generator (generate)
-import           Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.Claris as C
 import           Language.Paraiso.Name      (mkName)
 import           Language.Paraiso.Prelude
 import           System.IO                  (hGetLine, hIsEOF, Handle)
@@ -53,25 +53,25 @@ testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
 adderProgram :: Int -> Int -> C.Program
 adderProgram x1 x2 = 
   C.Program {
-    progName = mkName "hello",
-    topLevel = 
-      [PragmaDecl $ PragmaInclude (mkName "iostream") False Chevron,
-       FuncDecl $ Function (mkName "main") [] tInt [] body]
+    C.progName = mkName "hello",
+    C.topLevel = 
+      [C.PragmaDecl $ C.PragmaInclude (mkName "iostream") False C.Chevron,
+       C.FuncDecl $ C.Function (mkName "main") [] tInt [] body]
     }
   where
     body = 
-      [StmtExpr coutExpr,
-       StmtReturn $ Imm $ toDyn (0::Int) ]
+      [C.StmtExpr coutExpr,
+       C.StmtReturn $ C.Imm $ toDyn (0::Int) ]
       
     coutExpr = cout << message << endl
 
-    cout = VarExpr $ Var unknownType $ mkName "std::cout"
-    endl = VarExpr $ Var unknownType $ mkName "std::endl"
+    cout = C.VarExpr $ C.Var C.unknownType $ mkName "std::cout"
+    endl = C.VarExpr $ C.Var C.unknownType $ mkName "std::endl"
     
-    message = Op2Infix "+" (Imm $ toDyn x1) (Imm $ toDyn x2)
+    message = C.Op2Infix "+" (C.Imm $ toDyn x1) (C.Imm $ toDyn x2)
 
     infixl 1 <<
-    (<<) = Op2Infix "<<"
+    (<<) = C.Op2Infix "<<"
 
 
     tInt :: TypeRep
