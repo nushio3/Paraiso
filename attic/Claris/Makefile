@@ -17,8 +17,6 @@ vector.out : vector.cpp
 
 vector.cpp : Vector
 	./Vector
-	indent -kr -i2 vector.hpp
-	indent -kr -i2 vector.cpp
 
 Vector : Vector.hs
 	ghc -O3 --make -i../../ Vector.hs

@@ -9,7 +9,7 @@ import           Language.Paraiso.Prelude
 
 main :: IO ()
 main = do
-  _ <- generate (sampleProgram 5 8) "./" 
+  _ <- generate (sampleProgram 4 8) "./" 
   return ()
 
 sampleProgram :: Int -> Int -> C.Program
@@ -18,6 +18,7 @@ sampleProgram x1 x2 =
     C.progName = mkName "vector",
     C.topLevel = 
       [ C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
+        C.PrprInst $ C.Include C.SourceFile C.Chevron "vector" ,
         C.FuncDecl $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
         C.FuncDecl $ (C.function tInt (mkName "calc"))
@@ -30,10 +31,14 @@ sampleProgram x1 x2 =
     varX = C.Var tInt (mkName "x") 
     varY = C.Var tInt (mkName "y")
     varZ = C.Var tInt (mkName "z")
-    mainBody = 
-      [C.StmtExpr   $ cout << message << endl,
-       C.StmtReturn $ C.toDyn (0::Int) ]
     
+    varXs = C.Var tV2Int (mkName "xs") 
+
+    mainBody = 
+      [ C.StmtDecl   $ varXs ,
+        C.StmtExpr   $ cout << message << endl,
+        C.StmtReturn $ C.toDyn (0::Int) ]
+
     calcBody = 
       [C.StmtDeclInit varZ (C.Imm $ toDyn(2::Int)),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
@@ -51,3 +56,9 @@ sampleProgram x1 x2 =
 
     tInt :: C.TypeRep
     tInt = C.typeOf (undefined :: Int)
+
+    tVecInt :: C.TypeRep
+    tVecInt = C.TemplateType "std::vector" [tInt]
+    
+    tV2Int :: C.TypeRep
+    tV2Int = C.TemplateType "std::vector" [tVecInt]

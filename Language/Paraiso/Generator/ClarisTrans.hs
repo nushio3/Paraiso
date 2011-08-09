@@ -77,7 +77,7 @@ instance Translatable TypeRep where
   translate conf (UnitType x) = translate conf x
   translate conf (PtrOf x)    = "*" ++ translate conf x
   translate conf 
-    (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys)
+    (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
   translate conf UnknownType  = error "cannot translate unknown type."
   
 instance Translatable Dyn.TypeRep where  
