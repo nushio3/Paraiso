@@ -9,7 +9,7 @@ import           Language.Paraiso.Prelude
 
 main :: IO ()
 main = do
-  _ <- generate (sampleProgram 5 8) "./" 
+  _ <- generate (sampleProgram 8 5) "./" 
   return ()
 
 sampleProgram :: Int -> Int -> C.Program
@@ -17,7 +17,7 @@ sampleProgram x1 x2 =
   C.Program {
     C.progName = mkName "simple",
     C.topLevel = 
-      [ C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
+      [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,
         C.FuncDecl $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
         C.FuncDecl $ (C.function tInt (mkName "calc"))
@@ -35,7 +35,7 @@ sampleProgram x1 x2 =
        C.StmtReturn $ C.toDyn (0::Int) ]
     
     calcBody = 
-      [C.StmtDeclInit varZ (C.Imm $ toDyn(2::Int)),
+      [C.StmtExpr $ C.VarDeclSub varZ (C.Imm $ toDyn(2::Int)),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 
@@ -44,7 +44,7 @@ sampleProgram x1 x2 =
     cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
     endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
 
-    message = C.FuncCallUser (mkName "calc") [C.toDyn x1, C.toDyn x2]
+    message = C.FuncCallUsr (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"

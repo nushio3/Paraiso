@@ -17,8 +17,9 @@ sampleProgram x1 x2 =
   C.Program {
     C.progName = mkName "vector",
     C.topLevel = 
-      [ C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream" ,
-        C.PrprInst $ C.Include C.SourceFile C.Chevron "vector" ,
+      [ include C.Chevron "iostream" ,
+        include C.Chevron "vector" ,
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varN (intImm 256),
         C.FuncDecl $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
         C.FuncDecl $ (C.function tInt (mkName "calc"))
@@ -28,17 +29,21 @@ sampleProgram x1 x2 =
       ]
     }
   where
+    include p = C.Exclusive C.SourceFile . C.StmtPrpr . C.PrprInclude p
+    
     varI = C.Var tInt (mkName "i") 
     varX = C.Var tInt (mkName "x") 
     varY = C.Var tInt (mkName "y")
     varZ = C.Var tInt (mkName "z")
     
+    varN = C.Var (C.Const tInt) (mkName "N")
+    
     varXs = C.Var tVecInt (mkName "xs") 
     
     mainBody = 
-      [ C.StmtDeclCon  varXs  (intImm 0),
+      [ C.StmtExpr $ C.VarDeclCon  varXs  (intImm 0),
         C.StmtFor 
-          (C.StmtDeclCon varI (intImm 0))
+          (C.VarDeclCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
 
@@ -48,7 +53,7 @@ sampleProgram x1 x2 =
         C.StmtReturn $ intImm 0 ]
 
     calcBody = 
-      [C.StmtDeclCon varZ (intImm 10),
+      [C.StmtExpr $ C.VarDeclSub varZ (intImm 10),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 

@@ -34,8 +34,8 @@ instance Generator Program where
       prog = prog0{topLevel = tlm}
       tlm0  = topLevel prog0
       
-      pragmaOnce = PrprInst $ Pragma HeaderFile "once"
-      myHeader   = PrprInst $ Include SourceFile Quotation2 $ T.pack headerFnBody
+      pragmaOnce = Exclusive HeaderFile $ StmtPrpr $ PrprPragma "once"
+      myHeader   = Exclusive SourceFile $ StmtPrpr $ PrprInclude Quotation2 $ T.pack headerFnBody
       
       tlm = addIfMissing pragmaOnce $ addIfMissing myHeader $ tlm0
       

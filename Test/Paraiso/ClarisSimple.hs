@@ -28,7 +28,7 @@ instance Arbitrary AdderQuiz where
   arbitrary = 
     flip fmap arbitrary $
     \(x',y') -> 
-      let [x,y] = map (`div` 65536) [x', y'] 
+      let [x,y] = map (`mod` 65536) [x', y'] 
           prog = adderProgram x y
       in
        AdderQuiz { 
@@ -44,26 +44,39 @@ testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
 adderProgram :: Int -> Int -> C.Program
 adderProgram x1 x2 = 
   C.Program {
-    C.progName = mkName "hello",
+    C.progName = mkName "simple",
     C.topLevel = 
-      [C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream",
-       C.FuncDecl $ (C.function tInt (mkName "main")){C.funcBody = body}]
+      [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,
+        C.FuncDecl $ (C.function tInt (mkName "main"))
+          { C.funcBody= mainBody }, 
+        C.FuncDecl $ (C.function tInt (mkName "calc"))
+          { C.funcArgs = [varX, varY] ,
+            C.funcBody = calcBody
+          }
+      ]
     }
   where
-    body = 
-      [C.StmtExpr coutExpr,
-       C.StmtReturn $ C.Imm $ toDyn (0::Int) ]
-      
-    coutExpr = cout << message << endl
+    varX = C.Var tInt (mkName "x") 
+    varY = C.Var tInt (mkName "y")
+    varZ = C.Var tInt (mkName "z")
+    mainBody = 
+      [C.StmtExpr   $ cout << message << endl,
+       C.StmtReturn $ C.toDyn (0::Int) ]
+    
+    calcBody = 
+      [C.StmtExpr $ C.VarDeclSub varZ (C.Imm $ toDyn(0::Int)),
+       C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
+       $ C.Op2Infix "+" (C.VarExpr varX) (C.VarExpr varY),
+       C.StmtReturn $ (C.VarExpr varZ) 
+      ]
 
     cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
     endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
-    
-    message = C.Op2Infix "+" (C.toDyn x1) (C.toDyn x2)
+
+    message = C.FuncCallUsr (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
-
 
     tInt :: C.TypeRep
     tInt = C.typeOf (undefined :: Int)

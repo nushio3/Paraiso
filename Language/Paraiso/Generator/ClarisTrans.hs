@@ -33,21 +33,26 @@ sourceFile = Context {fileType = SourceFile}
 instance Translatable Program where
   translate conf Program{topLevel = xs} = LL.unlines $ map (translate conf) xs
 
-instance Translatable TopLevelElem where  
-  translate conf tl = case tl of
-    PrprInst   x -> translate conf x 
-    FuncDecl   x -> translate conf x 
-    UsingNamespace x -> "using namespace " ++ nameText x ++ ";"
+instance Translatable Statement where    
+  translate conf stmt = case stmt of
+    StmtPrpr   x             -> translate conf x ++ "\n"
+    UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
+    FuncDecl   x             -> translate conf x 
+    StmtExpr x               -> translate conf x ++ ";"
+    StmtReturn x             -> "return " ++ translate conf x                 ++ ";"
+    StmtWhile test xs        -> "while" 
+      ++ paren Paren (translate conf test) 
+      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
+    StmtFor init test inc xs -> "for" 
+      ++ paren Paren (joinBy "; " [translate conf init, translate conf test, translate conf inc]) 
+      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
+    Exclusive file stmt2     ->
+      if file == fileType conf then translate conf stmt2 else ""
 
 instance Translatable Preprocessing where
-  translate conf prpr@Include{}
-    | fileType conf == prprFileType prpr = str
-    | otherwise                          = ""
-      where 
-        str = "#include " ++ paren (includeParen prpr) (includeFileName prpr)
-  translate conf prpr@Pragma{}
-    | fileType conf == prprFileType prpr = "#pragma " ++ pragmaText prpr
-    | otherwise                          = ""
+  translate conf prpr = case prpr of
+    PrprInclude par na -> "#include " ++ paren par na
+    PrprPragma  str    -> "#pragma " ++ str
 
 instance Translatable Function where
   translate conf f = ret
@@ -57,27 +62,15 @@ instance Translatable Function where
         = LL.unwords
           [ translate conf (funcType f)
           , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDecl) (funcArgs f)
           , ";"]
       funcDef 
         = LL.unwords
           [ translate conf (funcType f)
           , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
-          , paren Brace $ joinEndBy ";\n" $ map (translate conf) $ funcBody f]
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDecl) (funcArgs f)
+          , paren Brace $ joinEndBy "\n" $ map (translate conf) $ funcBody f]
 
-instance Translatable Statement where    
-  translate conf (StmtExpr x)             = translate conf x
-  translate conf (StmtDecl (Var typ nam)) = LL.unwords [translate conf typ, nameText nam]
-  translate conf (StmtDeclCon v x)       = translate conf (StmtDecl v) ++ paren Paren (translate conf x)
-  translate conf (StmtDeclSub v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
-  translate conf (StmtReturn x)           = "return " ++ translate conf x
-  translate conf (StmtWhile test xs )     = "while" 
-    ++ paren Paren (translate conf test) 
-    ++ paren Brace (joinEndBy ";\n" $ map (translate conf) xs)
-  translate conf (StmtFor init test inc xs) = "for" 
-    ++ paren Paren (joinBy ";" $ [translate conf init, translate conf test, translate conf inc]) 
-    ++ paren Brace (joinEndBy ";\n" $ map (translate conf) xs)
 
 instance Translatable TypeRep where
   translate conf (UnitType x)  = translate conf x
@@ -91,11 +84,9 @@ instance Translatable TypeRep where
 instance Translatable Qualifier where  
   translate conf CudaGlobal = "__global__"
   translate conf CudaDevice = "__device__"
-  translate conf CudaHost = "__host__"
+  translate conf CudaHost   = "__host__"
   translate conf CudaShared = "__shared__"
-  translate conf CudaConst = "__constant__"
-  translate conf CudaConst = "__constant__"
-  
+  translate conf CudaConst  = "__constant__"
 
 
 instance Translatable Dyn.TypeRep where  
@@ -117,16 +108,19 @@ instance Translatable Expr where
       t :: Translatable a => a -> Text
       t   = translate conf
       ret = case expr of
-        (Imm x) -> t x
-        (VarExpr x) -> nameText x
-        (FuncCallUsr f args)    -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
-        (FuncCallStd f args) -> (f++) $ paren Paren $ joinBy ", " $ map t args
-        (Member x y) -> LL.unwords [pt x, ".", t y]
-        (Op1Prefix op x) -> op ++ pt x
-        (Op1Postfix op x) -> pt x ++ op
-        (Op2Infix op x y) -> LL.unwords [pt x, op, pt y]
-        (Op3Infix op1 op2 x y z) -> LL.unwords [pt x, op1, pt y, op2, pt z]
-        (ArrayAccess x y) -> pt x ++ paren Bracket (t y)
+        Imm x                  -> t x
+        VarExpr x              -> nameText x
+        VarDecl (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
+        VarDeclCon v x         -> translate conf (VarDecl v) ++ paren Paren (translate conf x) 
+        VarDeclSub v x         -> translate conf (VarDecl v) ++ " = " ++ translate conf x      
+        FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
+        FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args
+        Member x y             -> pt x ++ "." ++ t y
+        Op1Prefix op x         -> op ++ pt x
+        Op1Postfix op x        -> pt x ++ op
+        Op2Infix op x y        -> LL.unwords [pt x, op, pt y]
+        Op3Infix op1 op2 x y z -> LL.unwords [pt x, op1, pt y, op2, pt z]
+        ArrayAccess x y        -> pt x ++ paren Bracket (t y)
 
 -- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [Dyn.TypeRep -> Maybe Text]

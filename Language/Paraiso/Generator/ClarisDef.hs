@@ -5,10 +5,11 @@ module Language.Paraiso.Generator.ClarisDef (
   Program(..),
 
   FileType(..),
-  Preprocessing(..), TopLevelElem (..), 
+  Statement(..), 
+  Preprocessing(..), 
   TypeRep(..), typeOf, toDyn,
   Function(..), function, 
-  Qualifier(..), Statement(..), 
+  Qualifier(..), 
   Var(..), 
   Expr(..), Parenthesis(..)
   ) where
@@ -21,7 +22,7 @@ import           Language.Paraiso.Prelude
 data Program 
   = Program 
     { progName :: Name,
-      topLevel :: [TopLevelElem] 
+      topLevel :: [Statement] 
     } 
   deriving (Show)
 instance Nameable Program where name = progName
@@ -30,23 +31,22 @@ data FileType
   = HeaderFile
   | SourceFile 
   deriving (Eq, Show)
-           
-data TopLevelElem 
-  = PrprInst Preprocessing
+
+
+data Statement 
+  = StmtPrpr Preprocessing
+  | UsingNamespace Name     
+  | StmtExpr Expr
   | FuncDecl Function
-  | UsingNamespace Name 
-  deriving (Eq, Show)
+  | StmtReturn Expr
+  | StmtWhile Expr [Statement]
+  | StmtFor Expr Expr Expr [Statement]
+  | Exclusive FileType Statement
+  deriving (Eq, Show)                    
 
 data Preprocessing
-  = Include 
-    { prprFileType :: FileType   ,
-      includeParen :: Parenthesis,    
-      includeFileName :: Text    
-    }
-  | Pragma 
-    { prprFileType :: FileType,
-      pragmaText :: Text      
-    }
+  = PrprInclude Parenthesis Text
+  | PrprPragma Text
   deriving (Eq, Show)    
 
 data Function 
@@ -59,7 +59,6 @@ data Function
     }
   deriving (Eq, Show)
 instance Nameable Function where name = funcName
-
 
 -- | A default function maker
 function :: TypeRep -> Name ->  Function
@@ -91,16 +90,6 @@ data Qualifier
   | CudaConst
   deriving (Eq, Show)                        
 
-data Statement 
-  = StmtExpr Expr
-  | StmtDecl Var 
-  | StmtDeclCon Var Expr
-  | StmtDeclSub Var Expr
-  | StmtReturn Expr
-  | StmtWhile Expr [Statement]
-  | StmtFor Statement Expr Expr [Statement]
-  deriving (Eq, Show)                    
-
 data Var = Var TypeRep Name deriving (Eq, Show)
 instance Nameable Var where name (Var _ x) = x
 
@@ -108,6 +97,9 @@ instance Nameable Var where name (Var _ x) = x
 data Expr
   = Imm Dyn.Dynamic 
   | VarExpr Var
+  | VarDecl Var 
+  | VarDeclCon Var Expr
+  | VarDeclSub Var Expr
   | FuncCallUsr Name [Expr]
   | FuncCallStd Text [Expr]
   | Member Expr Expr
