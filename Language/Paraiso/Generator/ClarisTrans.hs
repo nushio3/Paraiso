@@ -73,13 +73,14 @@ instance Translatable Function where
 
 
 instance Translatable TypeRep where
-  translate conf (UnitType x) = translate conf x
-  translate conf (PtrOf x)    = translate conf x ++ " *"
-  translate conf (RefOf x)    = translate conf x ++ " &"
-  translate conf (Const x)    = "const " ++ translate conf x 
-  translate conf 
-    (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
-  translate _     UnknownType = error "cannot translate unknown type."
+  translate conf trp = case trp of
+    UnitType x         -> translate conf x
+    PtrOf x            -> translate conf x ++ " *"
+    RefOf x            -> translate conf x ++ " &"
+    Const x            -> "const " ++ translate conf x 
+    TemplateType x ys  -> x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
+    QualifiedType qs x -> (joinEndBy " " $ map (translate conf) qs) ++ translate conf x
+    UnknownType        -> error "cannot translate unknown type."
   
 instance Translatable Qualifier where  
   translate _ CudaGlobal = "__global__"
@@ -115,6 +116,9 @@ instance Translatable Expr where
         VarDeclSub v x         -> translate conf (VarDecl v) ++ " = " ++ translate conf x      
         FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
         FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args
+        CudaFuncCallUsr  f numBlock numThread args 
+                               -> nameText f ++ paren Chevron3 (t numBlock ++ "," ++ t numThread) ++
+                                  (paren Paren $ joinBy ", " $ map t args)
         Member x y             -> pt x ++ "." ++ t y
         Op1Prefix op x         -> op ++ pt x
         Op1Postfix op x        -> pt x ++ op

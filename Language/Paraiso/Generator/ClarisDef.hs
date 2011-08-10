@@ -53,7 +53,6 @@ data Preprocessing
 data Function 
   = Function 
     { funcName :: Name, 
-      funcQual :: [Qualifier],
       funcType :: TypeRep,
       funcArgs :: [Var],
       funcBody :: [Statement] 
@@ -66,7 +65,6 @@ function :: TypeRep -> Name ->  Function
 function tr na = Function
   { funcName = na,
     funcType = tr,
-    funcQual = [],
     funcArgs = [],
     funcBody = []
   }
@@ -77,6 +75,7 @@ data TypeRep
   | RefOf        TypeRep
   | Const        TypeRep
   | TemplateType Text [TypeRep]
+  | QualifiedType [Qualifier] TypeRep
   | UnknownType
   deriving (Eq, Show)    
 
@@ -103,6 +102,7 @@ data Expr
   | VarDeclSub Var Expr
   | FuncCallUsr Name [Expr]
   | FuncCallStd Text [Expr]
+  | CudaFuncCallUsr Name Expr Expr [Expr]
   | Member Expr Expr
   | Op1Prefix Text Expr
   | Op1Postfix Text Expr
