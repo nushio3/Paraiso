@@ -4,6 +4,7 @@
 import           Data.Dynamic
 import           Language.Paraiso.Generator (generate)
 import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
@@ -15,6 +16,7 @@ main = do
 sampleProgram :: Int -> Int -> C.Program
 sampleProgram x1 x2 = 
   C.Program {
+    C.language = Native.CPlusPlus,
     C.progName = mkName "vector",
     C.topLevel = 
       [ include C.Chevron "iostream" ,

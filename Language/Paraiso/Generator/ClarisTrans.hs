@@ -43,14 +43,14 @@ instance Translatable Statement where
     StmtWhile test xs        -> "while" 
       ++ paren Paren (translate conf test) 
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
-    StmtFor init test inc xs -> "for" 
-      ++ paren Paren (joinBy "; " [translate conf init, translate conf test, translate conf inc]) 
+    StmtFor ini test inc xs -> "for" 
+      ++ paren Paren (joinBy "; " [translate conf ini, translate conf test, translate conf inc]) 
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
     Exclusive file stmt2     ->
       if file == fileType conf then translate conf stmt2 else ""
 
 instance Translatable Preprocessing where
-  translate conf prpr = case prpr of
+  translate _ prpr = case prpr of
     PrprInclude par na -> "#include " ++ paren par na
     PrprPragma  str    -> "#pragma " ++ str
 
@@ -73,30 +73,30 @@ instance Translatable Function where
 
 
 instance Translatable TypeRep where
-  translate conf (UnitType x)  = translate conf x
-  translate conf (PtrOf x)     = translate conf x ++ " *"
-  translate conf (RefOf x)     = translate conf x ++ " &"
-  translate conf (Const x)     = "const " ++ translate conf x 
+  translate conf (UnitType x) = translate conf x
+  translate conf (PtrOf x)    = translate conf x ++ " *"
+  translate conf (RefOf x)    = translate conf x ++ " &"
+  translate conf (Const x)    = "const " ++ translate conf x 
   translate conf 
     (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
-  translate conf UnknownType  = error "cannot translate unknown type."
+  translate _     UnknownType = error "cannot translate unknown type."
   
 instance Translatable Qualifier where  
-  translate conf CudaGlobal = "__global__"
-  translate conf CudaDevice = "__device__"
-  translate conf CudaHost   = "__host__"
-  translate conf CudaShared = "__shared__"
-  translate conf CudaConst  = "__constant__"
+  translate _ CudaGlobal = "__global__"
+  translate _ CudaDevice = "__device__"
+  translate _ CudaHost   = "__host__"
+  translate _ CudaShared = "__shared__"
+  translate _ CudaConst  = "__constant__"
 
 
 instance Translatable Dyn.TypeRep where  
-  translate conf x = 
+  translate _ x = 
     case msum $ map ($x) typeRepDB of
       Just str -> str
       Nothing  -> error $ "cannot translate Haskell type: " ++ show x
 
 instance Translatable Dyn.Dynamic where  
-  translate conf x = 
+  translate _ x = 
     case msum $ map ($x) dynamicDB of
       Just str -> str
       Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x

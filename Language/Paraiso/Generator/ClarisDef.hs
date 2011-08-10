@@ -15,13 +15,14 @@ module Language.Paraiso.Generator.ClarisDef (
   ) where
 
 import qualified Data.Dynamic as Dyn
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
-
 data Program 
   = Program 
-    { progName :: Name,
+    { language :: Native.Language,
+      progName :: Name,
       topLevel :: [Statement] 
     } 
   deriving (Show)

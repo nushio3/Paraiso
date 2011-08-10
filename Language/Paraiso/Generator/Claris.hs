@@ -17,6 +17,7 @@ import qualified Data.Text.IO as T
 import           Language.Paraiso.Generator 
 import           Language.Paraiso.Generator.ClarisDef 
 import           Language.Paraiso.Generator.ClarisTrans 
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name (nameStr)
 import           Language.Paraiso.Prelude
 import           System.Directory (createDirectoryIfMissing)
@@ -29,7 +30,10 @@ instance Generator Program where
       headerFn     = path </> headerFnBody
       cppFn        = path </> cppFnBody
       headerFnBody = nameStr prog ++ ".hpp"
-      cppFnBody    = nameStr prog ++ ".cpp"
+      cppFnBody    = nameStr prog ++ "." ++ sourceExt
+      sourceExt = case language prog0 of
+        Native.CPlusPlus -> "cpp"
+        Native.CUDA      -> "cu"
       
       prog = prog0{topLevel = tlm}
       tlm0  = topLevel prog0
