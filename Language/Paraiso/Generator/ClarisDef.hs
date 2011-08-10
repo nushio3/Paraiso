@@ -48,16 +48,6 @@ data Preprocessing
       pragmaText :: Text      
     }
   deriving (Eq, Show)    
-           
-data TypeRep 
-  = UnitType     Dyn.TypeRep
-  | PtrOf        TypeRep
-  | TemplateType Text [TypeRep]
-  | UnknownType
-  deriving (Eq, Show)    
-
-typeOf :: (Dyn.Typeable a) => a -> TypeRep
-typeOf = UnitType . Dyn.typeOf
 
 data Function 
   = Function 
@@ -81,18 +71,31 @@ function tr na = Function
     funcBody = []
   }
 
+data TypeRep 
+  = UnitType     Dyn.TypeRep
+  | PtrOf        TypeRep
+  | RefOf        TypeRep
+  | Const        TypeRep
+  | TemplateType Text [TypeRep]
+  | UnknownType
+  deriving (Eq, Show)    
+
+typeOf :: (Dyn.Typeable a) => a -> TypeRep
+typeOf = UnitType . Dyn.typeOf
+
 data Qualifier
-  = Global
-  | Device
-  | Host
-  | Constant
-  | Shared
+  = CudaGlobal
+  | CudaDevice
+  | CudaHost
+  | CudaShared
+  | CudaConst
   deriving (Eq, Show)                        
 
 data Statement 
   = StmtExpr Expr
   | StmtDecl Var 
-  | StmtDeclInit Var Expr
+  | StmtDeclCon Var Expr
+  | StmtDeclSub Var Expr
   | StmtReturn Expr
   | StmtWhile Expr [Statement]
   | StmtFor Statement Expr Expr [Statement]

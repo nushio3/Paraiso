@@ -69,7 +69,8 @@ instance Translatable Function where
 instance Translatable Statement where    
   translate conf (StmtExpr x)             = translate conf x
   translate conf (StmtDecl (Var typ nam)) = LL.unwords [translate conf typ, nameText nam]
-  translate conf (StmtDeclInit v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
+  translate conf (StmtDeclCon v x)       = translate conf (StmtDecl v) ++ paren Paren (translate conf x)
+  translate conf (StmtDeclSub v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
   translate conf (StmtReturn x)           = "return " ++ translate conf x
   translate conf (StmtWhile test xs )     = "while" 
     ++ paren Paren (translate conf test) 
@@ -79,12 +80,24 @@ instance Translatable Statement where
     ++ paren Brace (joinEndBy ";\n" $ map (translate conf) xs)
 
 instance Translatable TypeRep where
-  translate conf (UnitType x) = translate conf x
-  translate conf (PtrOf x)    = "*" ++ translate conf x
+  translate conf (UnitType x)  = translate conf x
+  translate conf (PtrOf x)     = translate conf x ++ " *"
+  translate conf (RefOf x)     = translate conf x ++ " &"
+  translate conf (Const x)     = "const " ++ translate conf x 
   translate conf 
     (TemplateType x ys)       = x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
   translate conf UnknownType  = error "cannot translate unknown type."
   
+instance Translatable Qualifier where  
+  translate conf CudaGlobal = "__global__"
+  translate conf CudaDevice = "__device__"
+  translate conf CudaHost = "__host__"
+  translate conf CudaShared = "__shared__"
+  translate conf CudaConst = "__constant__"
+  translate conf CudaConst = "__constant__"
+  
+
+
 instance Translatable Dyn.TypeRep where  
   translate conf x = 
     case msum $ map ($x) typeRepDB of
@@ -114,7 +127,7 @@ instance Translatable Expr where
         (Op2Infix op x y) -> LL.unwords [pt x, op, pt y]
         (Op3Infix op1 op2 x y z) -> LL.unwords [pt x, op1, pt y, op2, pt z]
         (ArrayAccess x y) -> pt x ++ paren Bracket (t y)
-        
+
 -- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [Dyn.TypeRep -> Maybe Text]
 typeRepDB = map fst symbolDB

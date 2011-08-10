@@ -33,20 +33,22 @@ sampleProgram x1 x2 =
     varY = C.Var tInt (mkName "y")
     varZ = C.Var tInt (mkName "z")
     
-    varXs = C.Var tV2Int (mkName "xs") 
-
+    varXs = C.Var tVecInt (mkName "xs") 
+    
     mainBody = 
-      [ C.StmtDecl   $ varXs ,
+      [ C.StmtDeclCon  varXs  (intImm 0),
         C.StmtFor 
-          (C.StmtDeclInit varI (C.toDyn (0::Int)))
+          (C.StmtDeclCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
-          [] , 
+
+          [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varXs) (C.VarExpr varI)) (C.VarExpr varI)
+          ] , 
         C.StmtExpr   $ cout << message << endl,
-        C.StmtReturn $ C.toDyn (0::Int) ]
+        C.StmtReturn $ intImm 0 ]
 
     calcBody = 
-      [C.StmtDeclInit varZ (C.toDyn(2::Int)),
+      [C.StmtDeclCon varZ (intImm 10),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 
@@ -60,12 +62,15 @@ sampleProgram x1 x2 =
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
 
+    intImm :: Int -> C.Expr
+    intImm = C.toDyn
+
     tInt :: C.TypeRep
     tInt = C.typeOf (undefined :: Int)
 
     tVecInt :: C.TypeRep
     tVecInt = C.TemplateType "std::vector" [tInt]
-    
+
     tV2Int :: C.TypeRep
     tV2Int = C.TemplateType "std::vector" [tVecInt]
 
