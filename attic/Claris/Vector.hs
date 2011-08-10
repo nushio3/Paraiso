@@ -10,22 +10,22 @@ import           Language.Paraiso.Prelude
 
 main :: IO ()
 main = do
-  _ <- generate (sampleProgram 4 8) "./" 
+  _ <- generate sampleProgram "./" 
   return ()
 
-sampleProgram :: Int -> Int -> C.Program
-sampleProgram x1 x2 = 
+sampleProgram :: C.Program
+sampleProgram = 
   C.Program {
     C.language = Native.CPlusPlus,
     C.progName = mkName "vector",
     C.topLevel = 
       [ include C.Chevron "iostream" ,
         include C.Chevron "vector" ,
-        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varN (intImm 256),
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varN (intImm 101),
         C.FuncDecl $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
-        C.FuncDecl $ (C.function tInt (mkName "calc"))
-          { C.funcArgs = [varX, varY] ,
+        C.FuncDecl $ (C.function tVoid (mkName "calc"))
+          { C.funcArgs = [varPX, varPY] ,
             C.funcBody = calcBody
           }
       ]
@@ -33,38 +33,49 @@ sampleProgram x1 x2 =
   where
     include p = C.Exclusive C.SourceFile . C.StmtPrpr . C.PrprInclude p
     
-    varI = C.Var tInt (mkName "i") 
-    varX = C.Var tInt (mkName "x") 
-    varY = C.Var tInt (mkName "y")
-    varZ = C.Var tInt (mkName "z")
+    varI  = C.Var tInt (mkName "i") 
+    varPX = C.Var (C.PtrOf tInt) (mkName "px") 
+    varPY = C.Var (C.PtrOf tInt) (mkName "py")
     
     varN = C.Var (C.Const tInt) (mkName "N")
     
     varXs = C.Var tVecInt (mkName "xs") 
+    varYs = C.Var tVecInt (mkName "ys") 
+    
+    rawPtr xs = C.Op1Prefix "&" $ C.ArrayAccess (C.VarExpr xs) (intImm 0)
     
     mainBody = 
-      [ C.StmtExpr $ C.VarDeclCon  varXs  (intImm 0),
+      [ C.StmtExpr $ C.VarDeclCon  varXs (C.VarExpr varN),
+        C.StmtExpr $ C.VarDeclCon  varYs (C.VarExpr varN),
         C.StmtFor 
           (C.VarDeclCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
-
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varXs) (C.VarExpr varI)) (C.VarExpr varI)
           ] , 
-        C.StmtExpr   $ cout << message << endl,
+        C.StmtExpr $ C.FuncCallUsr (mkName "calc") [rawPtr varXs, rawPtr varYs],
+        C.StmtFor 
+          (C.VarDeclCon varI (intImm 0))
+          (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varYs) (C.FuncCallStd "size" []) ))
+          (C.Op1Prefix "++" (C.VarExpr varI))
+          [ C.StmtExpr   $ cout << C.ArrayAccess (C.VarExpr varYs) (C.VarExpr varI) << endl
+          ] , 
         C.StmtReturn $ intImm 0 ]
 
     calcBody = 
-      [C.StmtExpr $ C.VarDeclSub varZ (intImm 10),
-       C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
-       $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
-       C.StmtReturn $ (C.VarExpr varZ) 
+      [ C.StmtFor 
+          (C.VarDeclCon varI (intImm 0))
+          (C.Op2Infix "<" (C.VarExpr varI) (C.VarExpr varN) )
+          (C.Op1Prefix "++" (C.VarExpr varI))
+          [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varPY) (C.VarExpr varI)) 
+            (C.Op2Infix "*" (C.ArrayAccess (C.VarExpr varPX) (C.VarExpr varI))
+                            (C.ArrayAccess (C.VarExpr varPX) (C.VarExpr varI)) )
+          ] , 
+       C.StmtReturn $ C.toDyn () 
       ]
 
     cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
     endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
-
-    message = C.FuncCallUsr (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
@@ -74,6 +85,9 @@ sampleProgram x1 x2 =
 
     tInt :: C.TypeRep
     tInt = C.typeOf (undefined :: Int)
+
+    tVoid :: C.TypeRep
+    tVoid = C.typeOf ()
 
     tVecInt :: C.TypeRep
     tVecInt = C.TemplateType "std::vector" [tInt]
