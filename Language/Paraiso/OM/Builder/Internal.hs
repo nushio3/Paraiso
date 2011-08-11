@@ -213,17 +213,17 @@ broadcast builder1 = do
   return (FromNode TLocal c1 n3)
 
 -- | Shift a 'TLocal' 'Value' with a constant vector.
-shift :: (Typeable c, Additive.C (v g)) => 
-         v g                          -- ^ The amount of shift  
-      -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
-      -> Builder v g a (Value TLocal c) -- ^ The shifted 'TLocal' 'Value' as a result.
+shift :: (Typeable c)
+  => v g                            -- ^ The amount of shift  
+  -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
+  -> Builder v g a (Value TLocal c) -- ^ The shifted 'TLocal' 'Value' as a result.
 shift vec builder1 = do
   val1 <- builder1
   let 
     type1 = toDyn val1
     c1 = Val.content val1
   n1 <- valueToNode val1
-  n2 <- addNodeE [n1] $ NInst $ Shift (Additive.negate vec)
+  n2 <- addNodeE [n1] $ NInst $ Shift vec
   n3 <- addNodeE [n2] $ NValue type1 
   return (FromNode TLocal c1 n3)
 
