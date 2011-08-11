@@ -1,4 +1,4 @@
-all: simple.out vector.out thrust.out
+all: simple.out vector.out thrust.out thrust_class.out 
 
 simple.out : simple.cpp
 	g++ -Wall -O3 simple.cpp -o simple.out 
@@ -19,16 +19,23 @@ vector.cpp : Vector
 Vector : Vector.hs
 	ghc -O3 --make -i../../ Vector.hs
 
-
-
-
-thrust.out : thrust.cpp
+thrust.out : thrust.cu
 	nvcc -O3 thrust.cu -o thrust.out 
 
-thrust.cpp : Thrust
+thrust.cu : Thrust
 	./Thrust
 
 Thrust : Thrust.hs
 	ghc -O3 --make -i../../ Thrust.hs
+
+thrust_class.out : thrust_class.cu
+	nvcc -O3 thrust_class.cu -o thrust_class.out 
+
+thrust_class.cu : ThrustClass
+	./ThrustClass
+
+ThrustClass : ThrustClass.hs
+	ghc -O3 --make -i../../ ThrustClass.hs
+
 
 

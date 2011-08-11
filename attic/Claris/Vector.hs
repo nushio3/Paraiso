@@ -49,14 +49,14 @@ sampleProgram =
         C.StmtExpr $ C.VarDefCon  varYs (C.VarExpr varN),
         C.StmtFor 
           (C.VarDefCon varI (intImm 0))
-          (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
+          (C.Op2Infix "<" (C.VarExpr varI) (C.MemberAccess (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varXs) (C.VarExpr varI)) (C.VarExpr varI)
           ] , 
         C.StmtExpr $ C.FuncCallUsr (mkName "calc") [rawPtr varXs, rawPtr varYs],
         C.StmtFor 
           (C.VarDefCon varI (intImm 0))
-          (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varYs) (C.FuncCallStd "size" []) ))
+          (C.Op2Infix "<" (C.VarExpr varI) (C.MemberAccess (C.VarExpr varYs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr   $ cout << C.ArrayAccess (C.VarExpr varYs) (C.VarExpr varI) << endl
           ] , 

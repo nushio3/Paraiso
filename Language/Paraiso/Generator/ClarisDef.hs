@@ -8,6 +8,7 @@ module Language.Paraiso.Generator.ClarisDef (
   Statement(..), 
   Preprocessing(..), 
   TypeRep(..), typeOf, toDyn,
+  Class(..), MemberDef(..), AccessModifier(..),
   Function(..), function, 
   Qualifier(..), 
   Var(..), 
@@ -33,15 +34,15 @@ data FileType
   | SourceFile 
   deriving (Eq, Show)
 
-
 data Statement 
-  = StmtPrpr Preprocessing
-  | UsingNamespace Name     
-  | StmtExpr Expr
+  = StmtPrpr Preprocessing 
+  | UsingNamespace Name    
+  | ClassDef Class
   | FuncDef Function
-  | StmtReturn Expr
+  | StmtExpr Expr
   | StmtWhile Expr [Statement]
   | StmtFor Expr Expr Expr [Statement]
+  | StmtReturn Expr
   | Exclusive FileType Statement
   deriving (Eq, Show)                    
 
@@ -49,6 +50,28 @@ data Preprocessing
   = PrprInclude Parenthesis Text
   | PrprPragma Text
   deriving (Eq, Show)    
+
+data Class 
+  = Class 
+    { className :: Name,
+      classMember :: [MemberDef]
+    }
+  deriving (Eq, Show)
+instance Nameable Class where name = className
+
+data MemberDef 
+  = MemberFunc
+    { memberAccess :: AccessModifier,
+      memberFunc :: Function
+    }
+  | MemberVar
+    { memberAccess :: AccessModifier, 
+      memberVar :: Var
+    }
+  deriving (Eq, Show)
+
+data AccessModifier = Private | Protected | Public
+  deriving (Eq, Show)
 
 data Function 
   = Function 
@@ -76,6 +99,7 @@ data TypeRep
   | Const        TypeRep
   | TemplateType Text [TypeRep]
   | QualifiedType [Qualifier] TypeRep
+  | ConstructorType -- | the type returned from constructor / destructor
   | UnknownType
   deriving (Eq, Show)    
 
@@ -103,7 +127,7 @@ data Expr
   | FuncCallUsr Name [Expr]
   | FuncCallStd Text [Expr]
   | CudaFuncCallUsr Name Expr Expr [Expr]
-  | Member Expr Expr
+  | MemberAccess Expr Expr
   | Op1Prefix Text Expr
   | Op1Postfix Text Expr
   | Op2Infix Text Expr Expr

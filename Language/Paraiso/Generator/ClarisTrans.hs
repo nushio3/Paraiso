@@ -37,9 +37,10 @@ instance Translatable Statement where
   translate conf stmt = case stmt of
     StmtPrpr   x             -> translate conf x ++ "\n"
     UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
-    FuncDef   x             -> translate conf x 
+    ClassDef  x              -> translate conf x 
+    FuncDef   x              -> translate conf x 
     StmtExpr x               -> translate conf x ++ ";"
-    StmtReturn x             -> "return " ++ translate conf x                 ++ ";"
+    StmtReturn x             -> "return " ++ translate conf x ++ ";"
     StmtWhile test xs        -> "while" 
       ++ paren Paren (translate conf test) 
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
@@ -54,6 +55,28 @@ instance Translatable Preprocessing where
     PrprInclude par na -> "#include " ++ paren par na
     PrprPragma  str    -> "#pragma " ++ str
 
+instance Translatable Class where
+  translate conf (Class na membs) = if fileType conf == HeaderFile then classDecl else classDef
+    where
+      t :: Translatable a => a -> Text
+      t = translate conf
+      
+      classDecl = "class " ++ nameText na ++ paren Brace (LL.unlines $ map memberDecl membs) ++ ";"
+      classDef  = joinBy "\n" $ map memberDef membs
+      
+      memberDecl x = case x of
+        MemberFunc ac f -> t ac ++ " " ++ t (FuncDef f)
+        MemberVar  ac y -> t ac ++ " " ++ t (StmtExpr (VarDef y))
+
+      memberDef x = case x of
+        MemberFunc _ f -> t (FuncDef f)
+        MemberVar _ _ -> ""
+
+instance Translatable AccessModifier where
+  translate _ Private   = "private:"
+  translate _ Protected = "protected:"
+  translate _ Public    = "public:"
+  
 instance Translatable Function where
   translate conf f = ret
     where
@@ -80,6 +103,7 @@ instance Translatable TypeRep where
     Const x            -> "const " ++ translate conf x 
     TemplateType x ys  -> x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
     QualifiedType qs x -> (joinEndBy " " $ map (translate conf) qs) ++ translate conf x
+    ConstructorType    -> ""
     UnknownType        -> error "cannot translate unknown type."
   
 instance Translatable Qualifier where  
@@ -119,7 +143,7 @@ instance Translatable Expr where
         CudaFuncCallUsr  f numBlock numThread args 
                                -> nameText f ++ paren Chevron3 (t numBlock ++ "," ++ t numThread) ++
                                   (paren Paren $ joinBy ", " $ map t args)
-        Member x y             -> pt x ++ "." ++ t y
+        MemberAccess x y       -> pt x ++ "." ++ t y
         Op1Prefix op x         -> op ++ pt x
         Op1Postfix op x        -> pt x ++ op
         Op2Infix op x y        -> LL.unwords [pt x, op, pt y]

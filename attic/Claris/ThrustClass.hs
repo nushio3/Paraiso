@@ -17,12 +17,15 @@ sampleProgram :: C.Program
 sampleProgram = 
   C.Program {
     C.language = Native.CUDA,
-    C.progName = mkName "thrust",
+    C.progName = mkName "thrust_class",
     C.topLevel = 
       [ include C.Chevron "iostream" ,
         include C.Chevron "vector" ,
         include C.Chevron "thrust/device_vector.h" ,
         include C.Chevron "thrust/host_vector.h" ,
+        C.ClassDef $ C.Class (mkName "myclass") 
+        [ C.MemberVar C.Public (C.Var tInt $ mkName "m_x")
+        ],
         C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varN (intImm 101),
         C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varNB (intImm 1),
         C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varNT (intImm 32),
@@ -53,9 +56,6 @@ sampleProgram =
     rawPtr xs = C.FuncCallStd "thrust::raw_pointer_cast" 
         [C.Op1Prefix "&*" $ C.MemberAccess (C.VarExpr xs) (C.FuncCallStd "begin" [])]
     
-    -- thrust::raw_pointer_cast(&*xs.begin()),
-
-
     mainBody = 
       [ C.StmtExpr $ C.VarDefCon  varHXs (C.VarExpr varN),
         C.StmtExpr $ C.VarDefCon  varHYs (C.VarExpr varN),
