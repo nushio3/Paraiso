@@ -24,7 +24,8 @@ sampleProgram =
         include C.Chevron "thrust/device_vector.h" ,
         include C.Chevron "thrust/host_vector.h" ,
         C.ClassDef $ C.Class (mkName "myclass") 
-        [ C.MemberVar C.Public (C.Var tInt $ mkName "m_x")
+        [ C.MemberVar  C.Public (C.Var tInt $ mkName "m_x") ,
+          C.MemberFunc C.Public (C.function tVoid (mkName "m_func"))
         ],
         C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varN (intImm 101),
         C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varNB (intImm 1),
