@@ -37,7 +37,7 @@ instance Translatable Statement where
   translate conf stmt = case stmt of
     StmtPrpr   x             -> translate conf x ++ "\n"
     UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
-    FuncDecl   x             -> translate conf x 
+    FuncDef   x             -> translate conf x 
     StmtExpr x               -> translate conf x ++ ";"
     StmtReturn x             -> "return " ++ translate conf x                 ++ ";"
     StmtWhile test xs        -> "while" 
@@ -62,13 +62,13 @@ instance Translatable Function where
         = LL.unwords
           [ translate conf (funcType f)
           , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . VarDecl) (funcArgs f)
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
           , ";"]
       funcDef 
         = LL.unwords
           [ translate conf (funcType f)
           , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . VarDecl) (funcArgs f)
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
           , paren Brace $ joinEndBy "\n" $ map (translate conf) $ funcBody f]
 
 
@@ -111,9 +111,9 @@ instance Translatable Expr where
       ret = case expr of
         Imm x                  -> t x
         VarExpr x              -> nameText x
-        VarDecl (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
-        VarDeclCon v x         -> translate conf (VarDecl v) ++ paren Paren (translate conf x) 
-        VarDeclSub v x         -> translate conf (VarDecl v) ++ " = " ++ translate conf x      
+        VarDef (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
+        VarDefCon v x         -> translate conf (VarDef v) ++ paren Paren (translate conf x) 
+        VarDefSub v x         -> translate conf (VarDef v) ++ " = " ++ translate conf x      
         FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
         FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args
         CudaFuncCallUsr  f numBlock numThread args 

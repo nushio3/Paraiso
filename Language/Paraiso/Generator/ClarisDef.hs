@@ -38,7 +38,7 @@ data Statement
   = StmtPrpr Preprocessing
   | UsingNamespace Name     
   | StmtExpr Expr
-  | FuncDecl Function
+  | FuncDef Function
   | StmtReturn Expr
   | StmtWhile Expr [Statement]
   | StmtFor Expr Expr Expr [Statement]
@@ -97,9 +97,9 @@ instance Nameable Var where name (Var _ x) = x
 data Expr
   = Imm Dyn.Dynamic 
   | VarExpr Var
-  | VarDecl Var 
-  | VarDeclCon Var Expr
-  | VarDeclSub Var Expr
+  | VarDef Var 
+  | VarDefCon Var Expr
+  | VarDefSub Var Expr
   | FuncCallUsr Name [Expr]
   | FuncCallStd Text [Expr]
   | CudaFuncCallUsr Name Expr Expr [Expr]

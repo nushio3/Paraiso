@@ -21,7 +21,7 @@ instance Nameable Program where name = progName
 
 data TopLevelElem 
   = PragmaDecl Pragma
-  | FuncDecl Function
+  | FuncDef Function
   | UsingNamespace Text
 
 data Pragma 

@@ -23,12 +23,12 @@ sampleProgram =
         include C.Chevron "vector" ,
         include C.Chevron "thrust/device_vector.h" ,
         include C.Chevron "thrust/host_vector.h" ,
-        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varN (intImm 101),
-        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varNB (intImm 1),
-        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varNT (intImm 32),
-        C.FuncDecl $ (C.function tInt (mkName "main"))
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varN (intImm 101),
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varNB (intImm 1),
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varNT (intImm 32),
+        C.FuncDef $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
-        C.FuncDecl $ (C.function (C.QualifiedType [C.CudaGlobal] tVoid) (mkName "calc"))
+        C.FuncDef $ (C.function (C.QualifiedType [C.CudaGlobal] tVoid) (mkName "calc"))
           { C.funcArgs = [varPX, varPY] ,
             C.funcBody = calcBody
           }
@@ -57,12 +57,12 @@ sampleProgram =
 
 
     mainBody = 
-      [ C.StmtExpr $ C.VarDeclCon  varHXs (C.VarExpr varN),
-        C.StmtExpr $ C.VarDeclCon  varHYs (C.VarExpr varN),
-        C.StmtExpr $ C.VarDeclCon  varDXs (C.VarExpr varN),
-        C.StmtExpr $ C.VarDeclCon  varDYs (C.VarExpr varN),
+      [ C.StmtExpr $ C.VarDefCon  varHXs (C.VarExpr varN),
+        C.StmtExpr $ C.VarDefCon  varHYs (C.VarExpr varN),
+        C.StmtExpr $ C.VarDefCon  varDXs (C.VarExpr varN),
+        C.StmtExpr $ C.VarDefCon  varDYs (C.VarExpr varN),
         C.StmtFor 
-          (C.VarDeclCon varI (intImm 0))
+          (C.VarDefCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varHXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varHXs) (C.VarExpr varI)) (C.VarExpr varI)
@@ -72,7 +72,7 @@ sampleProgram =
           [rawPtr varDXs, rawPtr varDYs],
         C.StmtExpr $ C.Op2Infix "=" (C.VarExpr varHYs) (C.VarExpr varDYs) ,
         C.StmtFor 
-          (C.VarDeclCon varI (intImm 0))
+          (C.VarDefCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varHYs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr   $ cout << C.ArrayAccess (C.VarExpr varHYs) (C.VarExpr varI) << endl
@@ -81,7 +81,7 @@ sampleProgram =
 
     calcBody = 
       [ C.StmtFor 
-          (C.VarDeclCon varI threadIdxX)
+          (C.VarDefCon varI threadIdxX)
           (C.Op2Infix "<" (C.VarExpr varI) (C.VarExpr varN) )
           (C.Op2Infix "+=" (C.VarExpr varI) blockDimX)
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varPY) (C.VarExpr varI)) 

@@ -22,7 +22,7 @@ instance Translatable Program where
 instance Translatable TopLevelElem where  
   translate tl = case tl of
     PragmaDecl x -> translate x 
-    FuncDecl   x -> translate x 
+    FuncDef   x -> translate x 
     UsingNamespace x -> "using namespace " ++ x ++ ";"
 
 instance Translatable Pragma where

@@ -21,10 +21,10 @@ sampleProgram =
     C.topLevel = 
       [ include C.Chevron "iostream" ,
         include C.Chevron "vector" ,
-        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDeclSub varN (intImm 101),
-        C.FuncDecl $ (C.function tInt (mkName "main"))
+        C.Exclusive C.SourceFile $ C.StmtExpr $ C.VarDefSub varN (intImm 101),
+        C.FuncDef $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
-        C.FuncDecl $ (C.function tVoid (mkName "calc"))
+        C.FuncDef $ (C.function tVoid (mkName "calc"))
           { C.funcArgs = [varPX, varPY] ,
             C.funcBody = calcBody
           }
@@ -45,17 +45,17 @@ sampleProgram =
     rawPtr xs = C.Op1Prefix "&" $ C.ArrayAccess (C.VarExpr xs) (intImm 0)
     
     mainBody = 
-      [ C.StmtExpr $ C.VarDeclCon  varXs (C.VarExpr varN),
-        C.StmtExpr $ C.VarDeclCon  varYs (C.VarExpr varN),
+      [ C.StmtExpr $ C.VarDefCon  varXs (C.VarExpr varN),
+        C.StmtExpr $ C.VarDefCon  varYs (C.VarExpr varN),
         C.StmtFor 
-          (C.VarDeclCon varI (intImm 0))
+          (C.VarDefCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varXs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varXs) (C.VarExpr varI)) (C.VarExpr varI)
           ] , 
         C.StmtExpr $ C.FuncCallUsr (mkName "calc") [rawPtr varXs, rawPtr varYs],
         C.StmtFor 
-          (C.VarDeclCon varI (intImm 0))
+          (C.VarDefCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.Member (C.VarExpr varYs) (C.FuncCallStd "size" []) ))
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr   $ cout << C.ArrayAccess (C.VarExpr varYs) (C.VarExpr varI) << endl
@@ -64,7 +64,7 @@ sampleProgram =
 
     calcBody = 
       [ C.StmtFor 
-          (C.VarDeclCon varI (intImm 0))
+          (C.VarDefCon varI (intImm 0))
           (C.Op2Infix "<" (C.VarExpr varI) (C.VarExpr varN) )
           (C.Op1Prefix "++" (C.VarExpr varI))
           [ C.StmtExpr $ C.Op2Infix "=" (C.ArrayAccess (C.VarExpr varPY) (C.VarExpr varI)) 

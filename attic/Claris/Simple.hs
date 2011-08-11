@@ -20,9 +20,9 @@ sampleProgram x1 x2 =
     C.progName = mkName "simple",
     C.topLevel = 
       [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,
-        C.FuncDecl $ (C.function tInt (mkName "main"))
+        C.FuncDef $ (C.function tInt (mkName "main"))
           { C.funcBody= mainBody }, 
-        C.FuncDecl $ (C.function tInt (mkName "calc"))
+        C.FuncDef $ (C.function tInt (mkName "calc"))
           { C.funcArgs = [varX, varY] ,
             C.funcBody = calcBody
           }
@@ -37,7 +37,7 @@ sampleProgram x1 x2 =
        C.StmtReturn $ C.toDyn (0::Int) ]
     
     calcBody = 
-      [C.StmtExpr $ C.VarDeclSub varZ (C.Imm $ toDyn(2::Int)),
+      [C.StmtExpr $ C.VarDefSub varZ (C.Imm $ toDyn(2::Int)),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 
