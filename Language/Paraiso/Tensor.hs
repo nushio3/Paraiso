@@ -63,7 +63,7 @@ instance (Traversable n) => Traversable ((:~) n) where
   traverse f (x :~ y) = (:~) <$> traverse f x <*> f y
 instance (Applicative n, Traversable n) => Applicative ((:~) n) where
   pure x = pure x :~ x
-  (vf :~ f) <*> (vx :~ x) = (vf <*> vx :~ f x)
+  (vf :~ f) <*> (vx :~ x) = (vf <*> vx) :~ (f x)
 
 
 
@@ -109,18 +109,18 @@ instance (Vector v) => Vector ((:~) v) where
 -- | Vector whose components are additive is also additive.
 instance (Additive.C a) => Additive.C (Vec a) where
   zero = compose $ const Additive.zero
-  x+y  = compose (\i -> component i x + component i y)
-  x-y  = compose (\i -> component i x - component i y)
-  negate x = compose (\i -> negate $ component i x)
+  x+y  = compose (\i ->  x!i +  y!i)
+  x-y  = compose (\i ->  x!i -  y!i)
+  negate x = compose (\i -> negate $ x!i)
   
 instance (Vector v, Additive.C a) => Additive.C ((:~) v a) where
   zero = compose $ const Additive.zero
-  x+y  = compose (\i -> component i x + component i y)
-  x-y  = compose (\i -> component i x - component i y)
-  negate x = compose (\i -> negate $ component i x)
+  x+y  = compose (\i -> x!i + y!i)
+  x-y  = compose (\i -> x!i - y!i)
+  negate x = compose (\i -> negate $ x!i)
 
 -- | Tensor contraction. Create a 'Vector' from a function that maps 
--- axis to component, then sums over the axis and returns a
+-- axis to component, then sums over the axis and returns @a@.
 contract :: (Vector v, Additive.C a) => (Axis v -> a) -> a
 contract f = foldl (+) Additive.zero (compose f)
 

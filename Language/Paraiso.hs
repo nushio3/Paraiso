@@ -1,7 +1,8 @@
 {-# OPTIONS -Wall #-}
 
 -- | Paraiso main module.
--- I think adding this will expose source for run?
+-- This module will export a starter-kit modules and functions in the future,
+-- but is useless right now.
 
 module Language.Paraiso (run) where
 

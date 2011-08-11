@@ -1,7 +1,8 @@
 {-# OPTIONS -Wall #-}
 
--- | The 'Value' is flowing through the OM dataflow graph.
--- 'Value' carries the type and homogeneity information about the dataflow.
+-- | The 'DynValue' is stored in the OM dataflow graph type.
+-- 'DynValue' carries the type and homogeneity information in value.
+-- Therefore, 'DynValue' with various types can be stored in single container type such as graph.
 
 module Language.Paraiso.OM.DynValue
   (

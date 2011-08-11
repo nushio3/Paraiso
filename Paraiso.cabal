@@ -96,12 +96,17 @@ Build-type:          Simple
 -- Extra-source-files:  
 
 -- Constraint on the version of Cabal needed to build this package.
-Cabal-version:       >=1.6
+Cabal-version:       >=1.10
 
+
+flag test
+  description: Build the executable to run unit tests
+  default: True
 
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
+                       Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Allocation
@@ -138,7 +143,29 @@ Library
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
+
+  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing
+
+  if impl(ghc >= 7.0)
+    ghc-options:        -fspec-constr-count=25
+
+  Default-Language: Haskell2010
+
 source-repository head
     type:     git
     location: https://github.com/nushio3/Paraiso
     
+
+test-suite runtests
+    type: exitcode-stdio-1.0
+    build-depends: base >= 4.3.1 && < 4.4,
+                   test-framework,
+                   test-framework-quickcheck2,
+                   test-framework-hunit,
+                   HUnit,
+                   QuickCheck >= 2 && < 3
+    main-is: runtests.hs
+    
+    ghc-options:     -Wall -O3
+    Default-Language: Haskell2010
+

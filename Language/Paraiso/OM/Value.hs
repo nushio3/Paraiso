@@ -1,7 +1,8 @@
 {-# OPTIONS -Wall #-}
 
 -- | The 'Value' is flowing through the OM dataflow graph.
--- 'Value' carries the type and homogeneity information about the dataflow.
+-- 'Value' carries the type and homogeneity information about the dataflow as Type.
+-- Therefore, operation between 'Value' with wrong type will raise type errors.
 
 module Language.Paraiso.OM.Value
   (

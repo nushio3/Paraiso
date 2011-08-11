@@ -131,8 +131,10 @@ proceedSingle order dt dR cellF cellS = do
         (lp,rp) <- interpolate order i cellF
         hllc i lp rp
   wall <- sequence $ compose calcWall
-  cx <- addFlux dt dR wall (Axis 0) cellS
-  addFlux dt dR wall (Axis 1) cx
+  foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+  
+--  cx <- addFlux dt dR wall (Axis 0) cellS
+--  addFlux dt dR wall (Axis 1) cx
   
 addFlux :: BR -> Dim BR -> Dim (Hydro BR) -> Axis Dim -> Hydro BR -> B (Hydro BR)
 addFlux dt dR wall ex cell = do

@@ -1,4 +1,5 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes,
+  TypeSynonymInstances #-}
 {-# OPTIONS -Wall #-}
 -- | An extension module of building blocks. Contains booleans, comparison operations, branchings.
 
@@ -35,20 +36,26 @@ mkOp2B op builder1 builder2 = do
   return $ FromNode r1 True n01
 
 
-eq, ne, lt, le, gt, ge :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
-                          (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r Bool))
+type CompareOp =  (Vector v, Ring.C g, TRealm r, Typeable c) => 
+    (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r Bool))
 
 -- | Equal
+eq :: CompareOp
 eq = mkOp2B A.EQ
 -- | Not equal
+ne :: CompareOp
 ne = mkOp2B A.NE
 -- | Less than
+lt :: CompareOp
 lt = mkOp2B A.LT
 -- | Less than or equal to
+le :: CompareOp
 le = mkOp2B A.LE
 -- | Greater than
+gt :: CompareOp
 gt = mkOp2B A.GT
 -- | Greater than or equal to
+ge :: CompareOp
 ge = mkOp2B A.GE
 
 -- | selects either the second or the third argument based 

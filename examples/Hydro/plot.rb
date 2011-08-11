@@ -18,7 +18,7 @@ end
 
 ARGV.each{|fn|
   ofn = fn[0..-5] + '.png'
-  fn =~ /([0-9]+)/
+  fn =~ /([0-9]+)\./
   tstr = sprintf("%.1f",$1.to_f/10)
   gnuplot(tstr, fn, ofn)
 }

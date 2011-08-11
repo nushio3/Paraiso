@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, 
-  MultiParamTypeClasses, NoImplicitPrelude,
+  MultiParamTypeClasses, NoImplicitPrelude, PackageImports, 
   TypeFamilies #-}
 {-# OPTIONS -Wall #-}
--- | a generic code generator definition.
+-- | a code generator definition for single-core c++ program.
 module Language.Paraiso.Generator.Cpp
     (
      module Language.Paraiso.Generator,
@@ -11,8 +11,8 @@ module Language.Paraiso.Generator.Cpp
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import           Control.Monad.State (State)
-import qualified Control.Monad.State as State
+import           "mtl" Control.Monad.State (State)
+import qualified "mtl" Control.Monad.State as State
 import           Data.Dynamic (Dynamic, Typeable, TypeRep, fromDynamic, typeOf)
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.List as List
