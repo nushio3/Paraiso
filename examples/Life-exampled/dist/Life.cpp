@@ -1,4 +1,5 @@
 #include "Life.hpp"
+using namespace std;
 
 void Life::init () {
 std::vector<int> a67(size());
@@ -143,6 +144,42 @@ generation() = a74;
 
 for (int i = 0 ; i < size() ; ++i) {
 cell()[i] = a67[i];
+
+}
+
+
+return;
+}
+
+void Life::shift_x () {
+std::vector<int> a1(size());
+
+for (int i = 0 ; i < size() ; ++i) {
+a1[i] = cell()[i];
+
+}
+
+for (int i = 0 ; i < size() ; ++i) {
+const int a3_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
+cell()[i] = a3_0_0;
+
+}
+
+
+return;
+}
+
+void Life::shift_y () {
+std::vector<int> a1(size());
+
+for (int i = 0 ; i < size() ; ++i) {
+a1[i] = cell()[i];
+
+}
+
+for (int i = 0 ; i < size() ; ++i) {
+const int a3_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
+cell()[i] = a3_0_0;
 
 }
 

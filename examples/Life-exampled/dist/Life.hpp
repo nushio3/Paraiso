@@ -1,5 +1,6 @@
-#include <vector>
+#include <algorithm>
 #include <cmath>
+#include <vector>
 
 
 class Life{
@@ -27,5 +28,7 @@ public:
 Life ( int size0,int size1 ): size0_(size0),size1_(size1),cell_(size()){}
 void init ();
 void proceed ();
+void shift_x ();
+void shift_y ();
 
 };

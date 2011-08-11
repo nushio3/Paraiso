@@ -150,4 +150,14 @@ POM {pomName = Name "Life", setup = Setup {staticValues = [Named (Name "populati
 73:NInst (Arith Add) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,74)]
 74:NValue (DynValue {realm = Global, typeRep = Int}) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,75)]
 75:NInst (Store (Name "generation")) (CppStrategy {allocStrategy = Auto})->[]
-76:NInst (Store (Name "cell")) (CppStrategy {allocStrategy = Auto})->[]}]}
+76:NInst (Store (Name "cell")) (CppStrategy {allocStrategy = Auto})->[]},Kernel {kernelName = Name "shift_x", dataflow = 
+0:NInst (Load (Name "cell")) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,1)]
+1:NValue (DynValue {realm = Local, typeRep = Int}) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,2)]
+2:NInst (Shift ((Vec :~ -1) :~ 0)) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,3)]
+3:NValue (DynValue {realm = Local, typeRep = Int}) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,4)]
+4:NInst (Store (Name "cell")) (CppStrategy {allocStrategy = Auto})->[]},Kernel {kernelName = Name "shift_y", dataflow = 
+0:NInst (Load (Name "cell")) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,1)]
+1:NValue (DynValue {realm = Local, typeRep = Int}) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,2)]
+2:NInst (Shift ((Vec :~ 0) :~ -1)) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,3)]
+3:NValue (DynValue {realm = Local, typeRep = Int}) (CppStrategy {allocStrategy = Auto})->[(EOrd 0,4)]
+4:NInst (Store (Name "cell")) (CppStrategy {allocStrategy = Auto})->[]}]}
