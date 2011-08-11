@@ -146,6 +146,7 @@ Library
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
+                       repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12
   -- Modules not exported by this package.
   -- Other-modules:       
@@ -179,6 +180,7 @@ test-suite runtests
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
+                       repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12,
 
                        test-framework,
