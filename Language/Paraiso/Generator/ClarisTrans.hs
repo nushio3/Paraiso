@@ -4,7 +4,8 @@ RankNTypes #-}
 
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Generator.ClarisTrans (      
-  Translatable(..), paren, joinBy, joinEndBy, headerFile, sourceFile
+  Translatable(..), paren, joinBy, joinEndBy, 
+  headerFile, sourceFile, Context
   ) where
 
 import qualified Data.Dynamic as Dyn
@@ -20,14 +21,21 @@ class Translatable a where
 
 data Context 
   = Context 
-    { fileType :: FileType
+    { fileType :: FileType,
+      namespace :: [Namespace] -- inner scopes are in head of the list
     }
+  deriving (Eq, Show)    
+    
+data Namespace = ClassSpace Class
+  deriving (Eq, Show)
+instance Nameable Namespace where 
+  name (ClassSpace x) = name x
 
 headerFile :: Context
-headerFile = Context {fileType = HeaderFile}
+headerFile = Context {fileType = HeaderFile, namespace = []}
 
 sourceFile :: Context
-sourceFile = Context {fileType = SourceFile}
+sourceFile = Context {fileType = SourceFile, namespace = []}
 
 
 instance Translatable Program where
@@ -56,10 +64,12 @@ instance Translatable Preprocessing where
     PrprPragma  str    -> "#pragma " ++ str
 
 instance Translatable Class where
-  translate conf (Class na membs) = if fileType conf == HeaderFile then classDecl else classDef
+  translate conf me@(Class na membs) = if fileType conf == HeaderFile then classDecl else classDef
     where
       t :: Translatable a => a -> Text
       t = translate conf
+      
+      conf' = conf{namespace = ClassSpace me : namespace conf}
       
       classDecl = "class " ++ nameText na ++ paren Brace (LL.unlines $ map memberDecl membs) ++ ";"
       classDef  = joinBy "\n" $ map memberDef membs
@@ -69,7 +79,7 @@ instance Translatable Class where
         MemberVar  ac y -> t ac ++ " " ++ t (StmtExpr (VarDef y))
 
       memberDef x = case x of
-        MemberFunc _ f -> t (FuncDef f)
+        MemberFunc _ f -> translate conf' (FuncDef f)
         MemberVar _ _ -> ""
 
 instance Translatable AccessModifier where
@@ -84,16 +94,16 @@ instance Translatable Function where
       funcDecl
         = LL.unwords
           [ translate conf (funcType f)
-          , nameText f
+          , funcName'
           , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
           , ";"]
       funcDef 
         = LL.unwords
           [ translate conf (funcType f)
-          , nameText f
+          , funcName'
           , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
           , paren Brace $ joinEndBy "\n" $ map (translate conf) $ funcBody f]
-
+      funcName' = joinBy "::" $ reverse $ nameText f : map nameText (namespace conf)
 
 instance Translatable TypeRep where
   translate conf trp = case trp of
