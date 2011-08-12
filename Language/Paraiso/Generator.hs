@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, NoImplicitPrelude #-}
+{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 -- | a general code generator definition.
 module Language.Paraiso.Generator
@@ -6,8 +6,12 @@ module Language.Paraiso.Generator
      Generator(..)
     ) where
 
-import           Language.Paraiso.Prelude
 import qualified Language.Paraiso.Generator.Native as Native
+import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.ClarisTrans as C
+import           Language.Paraiso.Name
+import           Language.Paraiso.Prelude
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
@@ -33,3 +37,29 @@ class Generator src where
       let absfn = dir </> fn
       T.writeFile absfn con
       return (absfn, con)
+
+
+
+
+instance Generator C.Program where
+  generate setup prog0 = 
+    [ (headerFn, C.translate C.headerFile prog),
+      (cppFn   , C.translate C.sourceFile prog)
+    ]
+    where
+      headerFn :: FilePath
+      headerFn  = nameStr prog ++ ".hpp"
+      cppFn     = nameStr prog ++ "." ++ sourceExt
+      sourceExt = case Native.language setup of
+        Native.CPlusPlus -> "cpp"
+        Native.CUDA      -> "cu"
+      
+      prog = prog0{C.topLevel = tlm}
+      tlm0  = C.topLevel prog0
+      
+      pragmaOnce = C.Exclusive C.HeaderFile $ C.StmtPrpr $ C.PrprPragma "once"
+      myHeader   = C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Quotation2 $ T.pack headerFn
+      
+      tlm = addIfMissing pragmaOnce $ addIfMissing myHeader $ tlm0
+      
+      addIfMissing x xs = if x `elem` xs then xs else x:xs

@@ -6,6 +6,7 @@ module Test.Paraiso.ClarisSimple (
 
 import           Data.Dynamic
 import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.ClarisTrans as C
 import           Language.Paraiso.Name      (mkName)
 import           Language.Paraiso.Prelude
 import           Test.Framework             (Test, testGroup)

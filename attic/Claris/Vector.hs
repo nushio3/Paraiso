@@ -1,7 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
-import           Data.Dynamic
 import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Claris as C
 import qualified Language.Paraiso.Generator.Native as Native

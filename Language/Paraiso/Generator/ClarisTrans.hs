@@ -12,7 +12,7 @@ import qualified Data.Dynamic as Dyn
 import qualified Data.List as L
 import qualified Data.ListLike as LL
 import qualified Data.ListLike.String as LL
-import           Language.Paraiso.Generator.ClarisDef
+import           Language.Paraiso.Generator.Claris
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
