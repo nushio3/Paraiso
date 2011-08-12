@@ -116,6 +116,9 @@ Library
                        Language.Paraiso.Generator.Claris
                        Language.Paraiso.Generator.ClarisTrans
                        Language.Paraiso.Generator.Native
+                       Language.Paraiso.Generator.OMTrans
+                       Language.Paraiso.Generator.Plan
+                       Language.Paraiso.Generator.PlanTrans
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
                        Language.Paraiso.OM

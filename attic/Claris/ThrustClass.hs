@@ -15,8 +15,8 @@ main = do
 
 sampleProgram :: C.Program
 sampleProgram = 
-  C.Program {
-    C.progName = mkName "thrust_class",
+  C.Program 
+  { C.progName = mkName "thrust_class",
     C.topLevel = 
       [ include C.Chevron "iostream" ,
         include C.Chevron "vector" ,
