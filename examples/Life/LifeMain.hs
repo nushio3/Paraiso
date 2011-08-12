@@ -7,6 +7,8 @@ import           Data.Typeable
 import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation as Anot
 import           Language.Paraiso.Name
+import           Language.Paraiso.Generator (generateIO)
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
 import           Language.Paraiso.OM.DynValue 
@@ -131,14 +133,19 @@ myOM =
      ]
               
 
+genSetup :: Native.Setup
+genSetup = Native.defaultSetup { Native.directory = "./dist/" }
+
 main :: IO ()
 main = do
   -- output the intermediate state.
   writeFile "output/OM.txt" $ show myOM ++ "\n"
   
-  -- one day, you will be able to generate the library again....
-  -- generate Cpp pom "dist"
- 
+  -- generate the library 
+  _ <- generateIO genSetup myOM
+  
+  return ()
+  
 
 
   
