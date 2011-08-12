@@ -13,24 +13,22 @@ module Language.Paraiso.Generator.Claris (
   ) where
 
 import qualified Data.Text    as T
-import qualified Data.Text.IO as T
 import           Language.Paraiso.Generator 
 import           Language.Paraiso.Generator.ClarisDef 
 import           Language.Paraiso.Generator.ClarisTrans 
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name (nameStr)
 import           Language.Paraiso.Prelude
-import           System.Directory (createDirectoryIfMissing)
-import           System.FilePath  ((</>))
 
 instance Generator Program where
-  generate prog0 path = do
-    let 
+  generate _ prog0 = 
+    [ (headerFn, translate headerFile prog),
+      (cppFn   , translate sourceFile prog)
+    ]
+    where
       headerFn :: FilePath
-      headerFn     = path </> headerFnBody
-      cppFn        = path </> cppFnBody
-      headerFnBody = nameStr prog ++ ".hpp"
-      cppFnBody    = nameStr prog ++ "." ++ sourceExt
+      headerFn  = nameStr prog ++ ".hpp"
+      cppFn     = nameStr prog ++ "." ++ sourceExt
       sourceExt = case language prog0 of
         Native.CPlusPlus -> "cpp"
         Native.CUDA      -> "cu"
@@ -39,13 +37,8 @@ instance Generator Program where
       tlm0  = topLevel prog0
       
       pragmaOnce = Exclusive HeaderFile $ StmtPrpr $ PrprPragma "once"
-      myHeader   = Exclusive SourceFile $ StmtPrpr $ PrprInclude Quotation2 $ T.pack headerFnBody
+      myHeader   = Exclusive SourceFile $ StmtPrpr $ PrprInclude Quotation2 $ T.pack headerFn
       
       tlm = addIfMissing pragmaOnce $ addIfMissing myHeader $ tlm0
       
       addIfMissing x xs = if x `elem` xs then xs else x:xs
-      
-    createDirectoryIfMissing True path
-    T.writeFile headerFn $ translate headerFile prog
-    T.writeFile cppFn    $ translate sourceFile prog
-    return [headerFn, cppFn]
