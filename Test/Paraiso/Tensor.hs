@@ -5,7 +5,6 @@ module Test.Paraiso.Tensor
      testTensor
     )where
 
-import Algebra.Additive (zero, negate)
 import Language.Paraiso.Prelude
 import Language.Paraiso.Tensor
 import Test.Paraiso.Adaptor     (testResult)
