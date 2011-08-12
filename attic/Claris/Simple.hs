@@ -1,8 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
-import           Data.Dynamic
-import           Language.Paraiso.Generator (generate)
+import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Claris as C
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
@@ -10,13 +9,13 @@ import           Language.Paraiso.Prelude
 
 main :: IO ()
 main = do
-  _ <- generate (sampleProgram 8 5) "./" 
+  _ <- generateIO Native.defaultSetup{Native.language = Native.CPlusPlus} $ 
+       sampleProgram 8 5
   return ()
 
 sampleProgram :: Int -> Int -> C.Program
 sampleProgram x1 x2 = 
   C.Program {
-    C.language = Native.CPlusPlus,    
     C.progName = mkName "simple",
     C.topLevel = 
       [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,
@@ -37,7 +36,7 @@ sampleProgram x1 x2 =
        C.StmtReturn $ C.toDyn (0::Int) ]
     
     calcBody = 
-      [C.StmtExpr $ C.VarDefSub varZ (C.Imm $ toDyn(2::Int)),
+      [C.StmtExpr $ C.VarDefSub varZ (C.toDyn(2::Int)),
        C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
        $ C.Op2Infix "*" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 

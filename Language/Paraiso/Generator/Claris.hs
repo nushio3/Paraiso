@@ -21,7 +21,7 @@ import           Language.Paraiso.Name (nameStr)
 import           Language.Paraiso.Prelude
 
 instance Generator Program where
-  generate _ prog0 = 
+  generate setup prog0 = 
     [ (headerFn, translate headerFile prog),
       (cppFn   , translate sourceFile prog)
     ]
@@ -29,7 +29,7 @@ instance Generator Program where
       headerFn :: FilePath
       headerFn  = nameStr prog ++ ".hpp"
       cppFn     = nameStr prog ++ "." ++ sourceExt
-      sourceExt = case language prog0 of
+      sourceExt = case Native.language setup of
         Native.CPlusPlus -> "cpp"
         Native.CUDA      -> "cu"
       

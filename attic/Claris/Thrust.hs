@@ -1,8 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
-import           Data.Dynamic
-import           Language.Paraiso.Generator (generate)
+import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Claris as C
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
@@ -10,13 +9,13 @@ import           Language.Paraiso.Prelude
 
 main :: IO ()
 main = do
-  _ <- generate sampleProgram "./" 
+  _ <- generateIO Native.defaultSetup{Native.language = Native.CUDA} $ 
+       sampleProgram 
   return ()
 
 sampleProgram :: C.Program
 sampleProgram = 
   C.Program {
-    C.language = Native.CUDA,
     C.progName = mkName "thrust",
     C.topLevel = 
       [ include C.Chevron "iostream" ,

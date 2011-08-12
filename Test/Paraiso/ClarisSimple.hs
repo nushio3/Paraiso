@@ -6,7 +6,6 @@ module Test.Paraiso.ClarisSimple (
 
 import           Data.Dynamic
 import qualified Language.Paraiso.Generator.Claris as C
-import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name      (mkName)
 import           Language.Paraiso.Prelude
 import           Test.Framework             (Test, testGroup)
@@ -45,7 +44,6 @@ testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
 adderProgram :: Int -> Int -> C.Program
 adderProgram x1 x2 = 
   C.Program {
-    C.language = Native.CPlusPlus,    
     C.progName = mkName "simple",
     C.topLevel = 
       [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,

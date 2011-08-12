@@ -116,6 +116,7 @@ Library
                        Language.Paraiso.Generator.Claris
                        Language.Paraiso.Generator.ClarisDef
                        Language.Paraiso.Generator.ClarisTrans
+                       Language.Paraiso.Generator.Native
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
                        Language.Paraiso.OM
@@ -154,10 +155,8 @@ Library
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
 
-  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing -threaded
+  ghc-options:    -O3 -Wall   -fspec-constr-count=25
 
-  if impl(ghc >= 7.0)
-    ghc-options:        -fspec-constr-count=25
 
   Default-Language: Haskell2010
 
@@ -190,6 +189,6 @@ test-suite runtests
                        QuickCheck >= 2 && < 3
     main-is: runtests.hs
     
-    ghc-options:     -Wall -O3  -threaded
+    ghc-options:     -Wall -O3  -fspec-constr-count=25
     Default-Language: Haskell2010
 
