@@ -6,13 +6,17 @@ module Language.Paraiso.Generator
      Generator(..)
     ) where
 
-import qualified Language.Paraiso.Generator.Native as Native
-import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.Claris      as C
 import qualified Language.Paraiso.Generator.ClarisTrans as C
+import qualified Language.Paraiso.Generator.Native      as Native
+import qualified Language.Paraiso.Generator.OMTrans     as OM
+import qualified Language.Paraiso.Generator.Plan        as Plan
+import qualified Language.Paraiso.Generator.PlanTrans   as Plan
 import           Language.Paraiso.Name
+import qualified Language.Paraiso.OM                    as OM
 import           Language.Paraiso.Prelude
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import qualified Data.Text                              as T
+import qualified Data.Text.IO                           as T
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
 
@@ -38,9 +42,6 @@ class Generator src where
       T.writeFile absfn con
       return (absfn, con)
 
-
-
-
 instance Generator C.Program where
   generate setup prog0 = 
     [ (headerFn, C.translate C.headerFile prog),
@@ -63,3 +64,10 @@ instance Generator C.Program where
       tlm = addIfMissing pragmaOnce $ addIfMissing myHeader $ tlm0
       
       addIfMissing x xs = if x `elem` xs then xs else x:xs
+
+instance Generator (Plan.Plan v g a) where
+  generate setup plan = generate setup $ Plan.translate setup plan
+  
+--                  H  H
+instance Generator (OM.OM v g a) where  
+  generate setup om = generate setup $ OM.translate om
