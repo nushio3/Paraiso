@@ -47,7 +47,7 @@ data Setup (vector :: * -> *) gauge anot =
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM perfor a block of calculations on OM.
-data  Kernel vector gauge anot = 
+data Kernel vector gauge anot = 
   Kernel {
     kernelName :: Name,
     dataflow :: Graph vector gauge anot
@@ -107,10 +107,10 @@ newtype StaticIdx = StaticIdx { fromStaticIdx :: Int}
 instance Show StaticIdx where
   show (StaticIdx x) = "static[" ++ show x ++ "]"
 
-data Inst vector gauge  
+data Inst vector gauge 
   = Imm Dynamic 
-  | Load StaticIdx 
-  | Store StaticIdx 
+  | Load StaticIdx
+  | Store StaticIdx
   | Reduce R.Operator 
   | Broadcast 
   | Shift (vector gauge) 
