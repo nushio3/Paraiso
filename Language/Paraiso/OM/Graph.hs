@@ -19,7 +19,7 @@ LANGUAGE ExistentialQuantification,  KindSignatures,
 
 module Language.Paraiso.OM.Graph
     (
-     Setup(..), Kernel(..), Graph, nmap, getA,
+     Setup(..), Kernel(..), Graph, nmap, imap, getA,
      Node(..), Edge(..),
      StaticIdx(..),
      Inst(..),
@@ -69,6 +69,10 @@ nmap f = let
     nmap' f0 (NInst  x a0) = (NInst  x $ f0 a0) 
   in FGL.nmap (nmap' f)
 
+
+-- | Map the 'Graph' annotation from one type to another, while referring to the node indices.
+imap :: (FGL.Node -> a -> b) -> Graph v g a -> Graph v g b
+imap f graph = FGL.mkGraph (map (\(i,a) -> f i a) $ FGL.labNodes graph) (FGL.labEdges graph)
 
 -- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
