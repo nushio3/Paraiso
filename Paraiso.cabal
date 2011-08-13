@@ -107,12 +107,12 @@ Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
                        Language.Paraiso.Annotation
+                       Language.Paraiso.Annotation.Allocation
                        Language.Paraiso.Annotation.Balloon
                        Language.Paraiso.Annotation.Comment
                        Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
-                       Language.Paraiso.Generator.Allocation
                        Language.Paraiso.Generator.Claris
                        Language.Paraiso.Generator.ClarisTrans
                        Language.Paraiso.Generator.Native
@@ -131,6 +131,7 @@ Library
                        Language.Paraiso.OM.Realm
                        Language.Paraiso.OM.Reduce
                        Language.Paraiso.OM.Value
+                       Language.Paraiso.Optimization
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude
