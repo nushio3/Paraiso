@@ -150,7 +150,8 @@ Library
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
                        repa                  >= 2.1.1  && < 2.2,
-                       text                  >= 0.11.1 && < 0.12
+                       text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2
   -- Modules not exported by this package.
   -- Other-modules:       
   
@@ -183,6 +184,7 @@ test-suite runtests
                        random                >= 1.0.0  && < 1.1,
                        repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2,
 
                        test-framework,
                        test-framework-quickcheck2,

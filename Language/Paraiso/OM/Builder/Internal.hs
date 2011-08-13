@@ -31,6 +31,7 @@ import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
+import qualified Data.Vector  as V
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
@@ -136,18 +137,19 @@ valueToNode val = do
 
 -- | look up the 'Named' 'DynValue' with the correct name and type 
 -- is included in the 'staticValues' of the 'BuilderState'
-lookUpStatic :: Named DynValue -> B ()
+lookUpStatic :: Named DynValue -> B StaticIdx
 lookUpStatic (Named name0 type0)= do
   st <- State.get 
   let
-      vs :: [Named DynValue]
+      vs :: V.Vector (Named DynValue)
       vs = staticValues $ setup st
-      matches = filter ((==name0).name) vs
-      (Named _ type1) = head matches
-  when (length matches == 0) $ fail ("no name found: " ++ nameStr name0)
-  when (length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
+      matches = V.filter (\(i,v)-> name v==name0) $ V.imap (\i v->(i,v)) vs
+      (ret, Named _ type1) = V.head matches
+  when (V.length matches == 0) $ fail ("no name found: " ++ nameStr name0)
+  when (V.length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
   when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
                                 " actual: " ++ nameStr name0 ++ "::" ++ show type0)
+  return $ StaticIdx ret
 
 -- | Load from a static value.
 load :: (TRealm r, Typeable c) => 
@@ -159,8 +161,8 @@ load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
       nv = Named name0 type0
-  lookUpStatic nv
-  n0 <- addNodeE []   $ NInst  (Load name0) 
+  idx <- lookUpStatic nv
+  n0 <- addNodeE []   $ NInst  (Load idx)
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode r0 c0 n1)
 
@@ -174,9 +176,9 @@ store name0 builder0 = do
   let 
       type0 = toDyn val0
       nv = Named name0 type0
-  lookUpStatic nv
+  idx <- lookUpStatic nv
   n0 <- valueToNode val0
-  _ <- addNodeE [n0] $ NInst (Store name0) 
+  _ <- addNodeE [n0] $ NInst (Store idx) 
   return ()
 
 
