@@ -1,4 +1,5 @@
 #include "Life.hpp"
+using namespace std;
 
 void Life::init () {
 std::vector<int> a67(size());
@@ -48,7 +49,12 @@ cell()[i] = a67[i];
 
 }
 
-a70 = 0/*Reduce madayanen*/;
+int reduce_69 = a67[0];
+for (int i = 1 ; i < size(); ++i) {
+reduce_69 = (reduce_69 + a67[i]);
+}
+
+a70 = reduce_69;
 
 
 population() = a70;
@@ -81,21 +87,21 @@ a3 = generation();
 
 
 for (int i = 0 ; i < size() ; ++i) {
-const int a5_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
-const int a7_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
-const int a9_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
-const int a11_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
-const int a13_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
-const int a15_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
-const int a17_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
-const int a19_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
+const int a5_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
+const int a7_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
+const int a9_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 1 + size1())%size1()))];
+const int a11_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
+const int a13_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
+const int a15_0_0 = a1[((((i) % size0()) + 1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
+const int a17_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
+const int a19_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
 const int a21_0_0 = (a5_0_0 + a7_0_0);
-const int a23_0_0 = (a9_0_0 + a21_0_0);
-const int a25_0_0 = (a11_0_0 + a23_0_0);
-const int a27_0_0 = (a13_0_0 + a25_0_0);
-const int a29_0_0 = (a15_0_0 + a27_0_0);
-const int a31_0_0 = (a17_0_0 + a29_0_0);
-const int a33_0_0 = (a19_0_0 + a31_0_0);
+const int a23_0_0 = (a21_0_0 + a9_0_0);
+const int a25_0_0 = (a23_0_0 + a11_0_0);
+const int a27_0_0 = (a25_0_0 + a13_0_0);
+const int a29_0_0 = (a27_0_0 + a15_0_0);
+const int a31_0_0 = (a29_0_0 + a17_0_0);
+const int a33_0_0 = (a31_0_0 + a19_0_0);
 const int a35_0_0 = 0;
 const bool a37_0_0 = (a1[i] == a35_0_0);
 const int a39_0_0 = 3;
@@ -116,7 +122,12 @@ a67[i] = (a61_0_0 ? a63_0_0 : a65_0_0);
 
 }
 
-a69 = 0/*Reduce madayanen*/;
+int reduce_68 = a67[0];
+for (int i = 1 ; i < size(); ++i) {
+reduce_68 = (reduce_68 + a67[i]);
+}
+
+a69 = reduce_68;
 
 
 population() = a69;
@@ -133,6 +144,42 @@ generation() = a74;
 
 for (int i = 0 ; i < size() ; ++i) {
 cell()[i] = a67[i];
+
+}
+
+
+return;
+}
+
+void Life::shift_x () {
+std::vector<int> a1(size());
+
+for (int i = 0 ; i < size() ; ++i) {
+a1[i] = cell()[i];
+
+}
+
+for (int i = 0 ; i < size() ; ++i) {
+const int a3_0_0 = a1[((((i) % size0()) + -1 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + 0 + size1())%size1()))];
+cell()[i] = a3_0_0;
+
+}
+
+
+return;
+}
+
+void Life::shift_y () {
+std::vector<int> a1(size());
+
+for (int i = 0 ; i < size() ; ++i) {
+a1[i] = cell()[i];
+
+}
+
+for (int i = 0 ; i < size() ; ++i) {
+const int a3_0_0 = a1[((((i) % size0()) + 0 + size0())%size0()) + size0() * (((((i / size0()) % size1()) + -1 + size1())%size1()))];
+cell()[i] = a3_0_0;
 
 }
 

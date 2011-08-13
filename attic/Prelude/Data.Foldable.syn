@@ -1,0 +1,37 @@
+#
+
+    * fold :: Monoid m => t m -> m
+    * foldMap :: Monoid m => (a -> m) -> t a -> m
+    * foldr :: (a -> b -> b) -> b -> t a -> b
+    * foldl :: (a -> b -> a) -> a -> t b -> a
+    * foldr1 :: (a -> a -> a) -> t a -> a
+    * foldl1 :: (a -> a -> a) -> t a -> a
+
+# foldr' :: Foldable t => (a -> b -> b) -> b -> t a -> b
+# foldl' :: Foldable t => (a -> b -> a) -> a -> t b -> a
+# foldrM :: (Foldable t, Monad m) => (a -> b -> m b) -> b -> t a -> m b
+# foldlM :: (Foldable t, Monad m) => (a -> b -> m a) -> a -> t b -> m a
+# traverse_ :: (Foldable t, Applicative f) => (a -> f b) -> t a -> f ()
+# for_ :: (Foldable t, Applicative f) => t a -> (a -> f b) -> f ()
+# sequenceA_ :: (Foldable t, Applicative f) => t (f a) -> f ()
+# asum :: (Foldable t, Alternative f) => t (f a) -> f a
+# mapM_ :: (Foldable t, Monad m) => (a -> m b) -> t a -> m ()
+# forM_ :: (Foldable t, Monad m) => t a -> (a -> m b) -> m ()
+# sequence_ :: (Foldable t, Monad m) => t (m a) -> m ()
+# msum :: (Foldable t, MonadPlus m) => t (m a) -> m a
+# toList :: Foldable t => t a -> [a]
+# concat :: Foldable t => t [a] -> [a]
+# concatMap :: Foldable t => (a -> [b]) -> t a -> [b]
+# and :: Foldable t => t Bool -> Bool
+# or :: Foldable t => t Bool -> Bool
+# any :: Foldable t => (a -> Bool) -> t a -> Bool
+# all :: Foldable t => (a -> Bool) -> t a -> Bool
+# sum :: (Foldable t, Num a) => t a -> a
+# product :: (Foldable t, Num a) => t a -> a
+# maximum :: (Foldable t, Ord a) => t a -> a
+# maximumBy :: Foldable t => (a -> a -> Ordering) -> t a -> a
+# minimum :: (Foldable t, Ord a) => t a -> a
+# minimumBy :: Foldable t => (a -> a -> Ordering) -> t a -> a
+# elem :: (Foldable t, Eq a) => a -> t a -> Bool
+# notElem :: (Foldable t, Eq a) => a -> t a -> Bool
+# find :: Foldable t => (a -> Bool) -> t a -> Maybe a

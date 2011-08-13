@@ -32,6 +32,10 @@ data Operator =
   LE |
   GT |
   GE |
+  Max |
+  Min |
+  Abs |
+  Signum |
   Select |
   -- | x^y where y is an integer
   Ipow |
@@ -41,6 +45,15 @@ data Operator =
   Msub |
   Nmadd |
   Nmsub |
+  Sqrt |
+  Exp |
+  Log |
+  Sin |
+  Cos |
+  Tan |
+  Asin |
+  Acos |
+  Atan |
   Sincos 
   deriving (P.Eq, P.Ord, P.Show, P.Read)
 
@@ -61,6 +74,10 @@ instance Arity Operator where
     LE -> (2,1)
     GT -> (2,1)
     GE -> (2,1)
+    Max -> (2,1)
+    Min -> (2,1)
+    Abs -> (1,1)
+    Signum -> (1,1)
     Select -> (3,1)
     Ipow -> (2,1)
     Pow -> (2,1)
@@ -68,5 +85,14 @@ instance Arity Operator where
     Msub -> (3,1)
     Nmadd -> (3,1)
     Nmsub -> (3,1)
+    Sqrt -> (1,1)
+    Exp -> (1,1)
+    Log -> (1,1)
+    Sin -> (1,1)
+    Cos -> (1,1)
+    Tan -> (1,1)
+    Asin -> (1,1)
+    Acos -> (1,1)
+    Atan -> (1,1)
     Sincos -> (1,2)
 
