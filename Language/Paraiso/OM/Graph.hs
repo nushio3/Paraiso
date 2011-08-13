@@ -72,7 +72,10 @@ nmap f = let
 
 -- | Map the 'Graph' annotation from one type to another, while referring to the node indices.
 imap :: (FGL.Node -> a -> b) -> Graph v g a -> Graph v g b
-imap f graph = FGL.mkGraph (map (\(i,a) -> f i a) $ FGL.labNodes graph) (FGL.labEdges graph)
+imap f graph = FGL.mkGraph (map (\(i,a) -> (i,update i a)) $ FGL.labNodes graph) (FGL.labEdges graph)
+  where
+    update i (NValue x a0) = (NValue x $ f i a0) 
+    update i (NInst  x a0) = (NInst  x $ f i a0) 
 
 -- | The 'Node' for the dataflow 'Graph' of the Orthotope machine.
 -- The dataflow graph is a 2-part graph consisting of 'NValue' and 'NInst' nodes.
