@@ -3,6 +3,8 @@
 
 module Main(main) where
 
+import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.Name
@@ -14,6 +16,7 @@ import           Language.Paraiso.OM.DynValue
 import           Language.Paraiso.OM
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
+import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
@@ -121,7 +124,7 @@ genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 main :: IO ()
 main = do
   -- output the intermediate state.
-  writeFile "output/OM.txt" $ show myOM ++ "\n"
+  T.writeFile "output/OM.txt" $ prettyPrint myOM ++ "\n"
   
   -- generate the library 
   _ <- generateIO genSetup myOM
