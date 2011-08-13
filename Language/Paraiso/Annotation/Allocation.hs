@@ -9,7 +9,7 @@ module Language.Paraiso.Annotation.Allocation (
 
 import Data.Dynamic
 import Language.Paraiso.Prelude
-0
+
 data Allocation 
   = Manifest 
   | Delayed 
