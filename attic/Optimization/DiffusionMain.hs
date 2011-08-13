@@ -17,18 +17,19 @@ import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
+type Real = Double
 
 -- a dynamic representation for a local static value (an array)
 doubleDV :: DynValue
-doubleDV = DynValue{realm = Rlm.Local, typeRep = typeOf (0::Double)}
+doubleDV = DynValue{realm = Rlm.Local, typeRep = typeOf (0::Real)}
 
 -- a dynamic representation for a global static value (a single-point variable)
 doubleGDV :: DynValue
-doubleGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Double)}
+doubleGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Real)}
 
 -- a dynamic representation for a global static value (a single-point variable)
 intGDV :: DynValue
-intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Double)}
+intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 
 
 -- the list of static variables for this machine
@@ -60,7 +61,7 @@ bind = fmap return
 buildProceed :: Builder Vec3 Int Annotation ()
 buildProceed = do
   -- load a Local variable called "cell."
-  cell <- bind $ load Rlm.TLocal  (undefined::Double) $ mkName "cell"
+  cell <- bind $ load Rlm.TLocal  (undefined::Real) $ mkName "cell"
   
   -- load a Global variable called "generation."
   gen  <- bind $ load Rlm.TGlobal (undefined::Int) $ mkName "generation"
@@ -73,7 +74,7 @@ buildProceed = do
   num <- bind $ foldl1 (+) neighbours
   
   -- create the new cell state based on the judgement.
-  newCell <- bind $ num * (0.16666666)
+  newCell <- bind $ num * 6
   
   -- count the number of alive cells and store it into "population."
   store (mkName "sum") $ reduce Reduce.Sum newCell
@@ -94,11 +95,11 @@ buildInit = do
   alive <- bind $ foldl1 (||) [agree coord point | point <- r5mino ]
   
   -- create the initial cell state based on the judgement.
-  cell  <- bind $ select alive (10000::BuilderOf Rlm.TLocal Double) 0
+  cell  <- bind $ select alive (10000::BuilderOf Rlm.TLocal Real) 0
   
   -- store the initial states.
   store (mkName "cell") $ cell
-  store (mkName "population") $ reduce Reduce.Sum cell
+  store (mkName "sum") $ reduce Reduce.Sum cell
   store (mkName "generation") $ (0::BuilderOf Rlm.TGlobal Int) 
   
   where
@@ -108,7 +109,7 @@ buildInit = do
 -- compose the machine.
 myOM :: OM Vec3 Int Annotation
 myOM = 
-  makeOM (mkName "Life") [] lifeVars
+  makeOM (mkName "diffusion") [] lifeVars
     [(mkName "init"   , buildInit),
      (mkName "proceed", buildProceed)
      ]

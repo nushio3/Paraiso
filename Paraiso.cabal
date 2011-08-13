@@ -129,6 +129,7 @@ Library
                        Language.Paraiso.OM.Builder.Internal
                        Language.Paraiso.OM.DynValue
                        Language.Paraiso.OM.Graph
+                       Language.Paraiso.OM.PrettyPrint
                        Language.Paraiso.OM.Realm
                        Language.Paraiso.OM.Reduce
                        Language.Paraiso.OM.Value

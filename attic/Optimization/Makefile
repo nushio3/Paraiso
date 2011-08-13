@@ -1,9 +1,6 @@
-all: diffusionMain.out
+all: dist/diffusion.cpp
 
-diffusionMain.out : diffusionMain.cpp
-	g++ -Wall -O3 diffusionMain.cpp -o diffusionMain.out 
-
-diffusionMain.cpp : DiffusionMain
+dist/diffusion.cpp : DiffusionMain
 	./DiffusionMain
 
 DiffusionMain : DiffusionMain.hs

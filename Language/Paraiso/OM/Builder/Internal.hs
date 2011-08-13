@@ -32,6 +32,7 @@ import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
 import qualified Data.Vector  as V
+import           Debug.Trace
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
@@ -144,10 +145,11 @@ lookUpStatic (Named name0 type0)= do
       vs :: V.Vector (Named DynValue)
       vs = staticValues $ setup st
       matches = V.filter (\(i,v)-> name v==name0) $ V.imap (\i v->(i,v)) vs
-      (ret, Named _ type1) = V.head matches
-  when (V.length matches == 0) $ fail ("no name found: " ++ nameStr name0)
-  when (V.length matches > 1) $ fail ("multiple match found:" ++ nameStr name0)
-  when (type0 /= type1) $ fail ("type mismatch; expected: " ++ show type1 ++ "; " ++
+      (ret, Named _ type1) = if V.length matches /= 1 
+                             then error (show (V.length matches)++" match found for '" ++ nameStr name0 ++ 
+                                         "' in " ++ show vs)
+                             else V.head matches  
+  when (type0 /= type1) $ error ("type mismatch; expected: " ++ show type1 ++ "; " ++
                                 " actual: " ++ nameStr name0 ++ "::" ++ show type0)
   return $ StaticIdx ret
 
