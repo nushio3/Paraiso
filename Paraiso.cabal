@@ -135,6 +135,7 @@ Library
                        Language.Paraiso.Optimization
                        Language.Paraiso.Optimization.DecideAllocation
                        Language.Paraiso.Optimization.Graph
+                       Language.Paraiso.Optimization.Identity
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude

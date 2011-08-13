@@ -7,16 +7,16 @@ UndecidableInstances #-}
 
 module Language.Paraiso.Annotation.Boundary
     (
-     Valid(..)
+     Valid(..), Pegged(..)
     ) where
 
 import Data.Dynamic
-import Language.Paraiso.Interval
 import Language.Paraiso.Prelude
-import Language.Paraiso.PiSystem
-import Language.Paraiso.Tensor
 
-
-data Valid a = Valid a deriving (Eq, Show, Typeable)
+-- | a type that represents valid region of computation.
+newtype Valid a = Valid a deriving (Eq, Show, Typeable)
                
-
+-- | the displacement around either side of the boundary.
+data Pegged a = LowerBoundary a | UpperBoundary a
+              deriving (Eq, Ord, Show, Typeable)
+                       
