@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances,
-  MultiParamTypeClasses, NoImplicitPrelude, StandaloneDeriving, 
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+ FunctionalDependencies, KindSignatures,
+  MultiParamTypeClasses, NoImplicitPrelude,
   TypeOperators, UndecidableInstances  #-} 
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
@@ -21,6 +22,7 @@ module Language.Paraiso.Tensor
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
+import           Data.Typeable
 import           Language.Paraiso.Failure
 import           Language.Paraiso.Prelude
 
@@ -30,20 +32,22 @@ infixl 9 !
 v ! i  = component i v   
 
 -- | data constructor for 0-dimensional tensor.
-data Vec a = Vec 
-infixl 3 :~
+data Vec a 
+  = Vec 
+  deriving (Eq, Ord, Show, Read, Typeable)
+
 -- | data constructor for constructing n+1-dimensional tensor
 -- from n-dimensional tensor.
-data n :~ a = (n a) :~ a
+data (n :: * -> * ) :~ a 
+  = (n a) :~ a 
+  deriving (Eq, Ord, Show, Read)
+infixl 3 :~
 
-deriving instance (Eq a) => Eq (Vec a)
-deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
-deriving instance (Ord a) => Ord (Vec a)
-deriving instance (Ord a, Ord (n a)) => Ord (n :~ a)
-deriving instance (Show a) => Show (Vec a)
-deriving instance (Show a, Show (n a)) => Show (n :~ a)
-deriving instance (Read a) => Read (Vec a)
-deriving instance (Read a, Read (n a)) => Read (n :~ a)
+
+instance (Typeable a, Typeable (n a)) => Typeable (n :~ a) where
+  typeOf (vx :~ x) = 
+    mkTyConApp (mkTyCon "Language.Paraiso.Tensor.:~") 
+      [typeOf vx, typeOf x]
 
 instance Foldable Vec where
   foldMap = foldMapDefault
@@ -80,7 +84,7 @@ class (Traversable v) => Vector v where
                 Axis v -- ^the axis of the component you want
                 -> v a -- ^the target vector 
                 -> f a -- ^the component, obtained within a 'Failure' monad
-                
+
   -- | Get a component. This computation may result in a runtime error,
   -- though, as long as the 'Axis' is generated from library functions
   -- such as 'compose', there will be no error.
@@ -91,7 +95,7 @@ class (Traversable v) => Vector v where
   -- | Create a 'Vector' from a function that maps 
   -- axis to components.
   compose :: (Axis v -> a) -> v a
-  
+
 instance Vector Vec where
   componentF axis Vec 
     = failureString $ "axis out of bound: " ++ show axis
@@ -112,7 +116,7 @@ instance (Additive.C a) => Additive.C (Vec a) where
   x+y  = compose (\i ->  x!i +  y!i)
   x-y  = compose (\i ->  x!i -  y!i)
   negate x = compose (\i -> negate $ x!i)
-  
+
 instance (Vector v, Additive.C a) => Additive.C ((:~) v a) where
   zero = compose $ const Additive.zero
   x+y  = compose (\i -> x!i + y!i)
@@ -134,7 +138,7 @@ class  (Vector v, Ring.C a) => VectorRing v a where
   -- | pure but unsafe version means of obtaining a 'unitVector'
   unitVector :: Axis v -> v a
   unitVector = unsafePerformFailure . unitVectorF
-    
+
 instance (Ring.C a) => VectorRing Vec a where
   unitVectorF axis
       = failureString $ "axis out of bound: " ++ show axis
