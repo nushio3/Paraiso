@@ -45,7 +45,7 @@ data Setup (vector :: * -> *) gauge anot =
   } deriving (Eq, Show)
 
 -- | A 'Kernel' for OM perfor a block of calculations on OM.
-data  Kernel vector gauge anot = 
+data Kernel vector gauge anot = 
   Kernel {
     kernelName :: Name,
     dataflow :: Graph vector gauge anot
@@ -97,15 +97,15 @@ instance Functor (Node v g) where
   fmap f (NValue x y) =  (NValue x (f y))  
   fmap f (NInst  x y) =  (NInst  x (f y))  
 
-data Inst vector gauge = 
-  Imm Dynamic |
-  Load Name |
-  Store Name |
-  Reduce R.Operator |
-  Broadcast |
-  Shift (vector gauge) |
-  LoadIndex (Axis vector) |
-  Arith A.Operator 
+data Inst vector gauge 
+  = Imm Dynamic 
+  | Load Name 
+  | Store Name 
+  | Reduce R.Operator 
+  | Broadcast 
+  | Shift (vector gauge) 
+  | LoadIndex (Axis vector) 
+  | Arith A.Operator 
         deriving (Show)
 
 instance Arity (Inst vector gauge) where
