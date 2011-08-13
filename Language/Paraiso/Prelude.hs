@@ -1,8 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, NoMonomorphismRestriction, RankNTypes #-}
 {-# OPTIONS -Wall #-}
-{- | 
-   Redefine some items from the standard Prelude.
--}
+-- | an extension of the standard Prelude for paraiso.
 
 module Language.Paraiso.Prelude
   (

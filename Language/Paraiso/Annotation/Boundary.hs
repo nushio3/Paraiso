@@ -7,7 +7,7 @@ UndecidableInstances #-}
 
 module Language.Paraiso.Annotation.Boundary
     (
-     Valid(..), Pegged(..)
+     Valid(..), NearBoundary(..)
     ) where
 
 import Data.Dynamic
@@ -17,6 +17,6 @@ import Language.Paraiso.Prelude
 newtype Valid a = Valid a deriving (Eq, Show, Typeable)
                
 -- | the displacement around either side of the boundary.
-data Pegged a = LowerBoundary a | UpperBoundary a
+data NearBoundary a = NegaInfinity | LowerBoundary a | UpperBoundary a | PosiInfinity
               deriving (Eq, Ord, Show, Typeable)
                        

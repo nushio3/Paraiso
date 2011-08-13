@@ -5,21 +5,23 @@ module Language.Paraiso.Optimization.DecideAllocation (
   decideAllocation
   ) where
 
-import qualified Data.Graph.Inductive        as FGL
+import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe 
-import qualified Data.Vector                 as V
-import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation            as Anot
 import           Language.Paraiso.Annotation.Allocation as Alloc
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.OM.Graph
-import           Language.Paraiso.OM.DynValue as DVal
-import           Language.Paraiso.OM.Realm    as Realm
+import           Language.Paraiso.OM.DynValue           as DVal
+import           Language.Paraiso.OM.Realm              as Realm
 import           Language.Paraiso.Optimization.Graph
 
 decideAllocation :: Optimization
-decideAllocation graph = flip imap graph (\i -> Anot.set (alloc i))
+decideAllocation graph = imap update graph 
   where
-    alloc i =
+    update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
+    update i a = Anot.set (anot i) a
+
+    anot i =
       if isGlobal || afterLoad || beforeStore 
          || beforeReduce || afterReduce 
          || (False &&( beforeShift && afterShift))

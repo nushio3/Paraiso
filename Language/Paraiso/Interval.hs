@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, IncoherentInstances #-}
 {- | an 'Interval' is a pair of 'lower' and 'upper', 
    representing some interval in ordered system.
    The lower bound is inclusive and the upper bound is exclusive:
