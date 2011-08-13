@@ -5,12 +5,12 @@ module Main(main) where
 
 import           Data.Typeable
 import           Language.Paraiso.Annotation (Annotation)
-import qualified Language.Paraiso.Annotation as Anot
 import           Language.Paraiso.Name
+import           Language.Paraiso.Generator (generateIO)
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean
 import           Language.Paraiso.OM.DynValue 
-import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
@@ -28,13 +28,11 @@ intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 
 
 -- the list of static variables for this machine
-lifeSetup :: Setup Vec2 Int Annotation
-lifeSetup = Setup vars $ Anot.add (42::Int) []
-  where
-    vars =
-      [Named (Name "population") intGDV] ++
-      [Named (Name "generation") intGDV] ++
-      [Named (Name "cell") intDV] 
+lifeVars :: [Named DynValue]
+lifeVars =
+      [Named (mkName "population") intGDV] ++
+      [Named (mkName "generation") intGDV] ++
+      [Named (mkName "cell") intDV] 
 
 
 -- adjacency vectors in Conway's game of Life
@@ -57,10 +55,10 @@ bind = fmap return
 buildProceed :: Builder Vec2 Int Annotation ()
 buildProceed = do
   -- load a Local variable called "cell."
-  cell <- bind $ load Rlm.TLocal  (undefined::Int) $ Name "cell"
+  cell <- bind $ load Rlm.TLocal  (undefined::Int) $ mkName "cell"
   
   -- load a Global variable called "generation."
-  gen  <- bind $ load Rlm.TGlobal (undefined::Int) $ Name "generation"
+  gen  <- bind $ load Rlm.TGlobal (undefined::Int) $ mkName "generation"
   
   -- create a list of cell patterns, each shifted by an element of adjVects.
   neighbours <- fmap (map return) $
@@ -78,13 +76,13 @@ buildProceed = do
   newCell <- bind $ select isAlive (1::BuilderOf Rlm.TLocal Int) 0
   
   -- count the number of alive cells and store it into "population."
-  store (Name "population") $ reduce Reduce.Sum newCell
+  store (mkName "population") $ reduce Reduce.Sum newCell
   
   -- increment the generation.
-  store (Name "generation") $ gen + 1
+  store (mkName "generation") $ gen + 1
   
   -- store the new cell state.
-  store (Name "cell") $ newCell
+  store (mkName "cell") $ newCell
 
 
 buildInit :: Builder Vec2 Int  Annotation ()
@@ -99,9 +97,9 @@ buildInit = do
   cell  <- bind $ select alive (1::BuilderOf Rlm.TLocal Int) 0
   
   -- store the initial states.
-  store (Name "cell") $ cell
-  store (Name "population") $ reduce Reduce.Sum cell
-  store (Name "generation") $ (0::BuilderOf Rlm.TGlobal Int) 
+  store (mkName "cell") $ cell
+  store (mkName "population") $ reduce Reduce.Sum cell
+  store (mkName "generation") $ (0::BuilderOf Rlm.TGlobal Int) 
   
   where
     agree coord point = 
@@ -109,36 +107,41 @@ buildInit = do
 
 buildShiftX :: Builder Vec2 Int  Annotation  ()
 buildShiftX = do
-  store (Name "cell") $  
+  store (mkName "cell") $  
     shift (Vec :~ 1 :~ 0) $
-    load Rlm.TLocal  (undefined::Int) $ Name "cell"
+    load Rlm.TLocal  (undefined::Int) $ mkName "cell"
 
 buildShiftY :: Builder Vec2 Int  Annotation  ()
 buildShiftY = do
-  store (Name "cell") $  
+  store (mkName "cell") $  
     shift (Vec :~ 0 :~ 1) $
-    load Rlm.TLocal  (undefined::Int) $ Name "cell"
+    load Rlm.TLocal  (undefined::Int) $ mkName "cell"
 
 
 -- compose the machine.
 myOM :: OM Vec2 Int Annotation
 myOM = 
-  makeOM (Name "Life")  lifeSetup
-    [(Name "init"   , buildInit),
-     (Name "proceed", buildProceed),
-     (Name "shift_x", buildShiftX),
-     (Name "shift_y", buildShiftY)
+  makeOM (mkName "Life") [] lifeVars
+    [(mkName "init"   , buildInit),
+     (mkName "proceed", buildProceed),
+     (mkName "shift_x", buildShiftX),
+     (mkName "shift_y", buildShiftY)
      ]
               
+
+genSetup :: Native.Setup
+genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
 main :: IO ()
 main = do
   -- output the intermediate state.
   writeFile "output/OM.txt" $ show myOM ++ "\n"
   
-  -- one day, you will be able to generate the library again....
-  -- generate Cpp pom "dist"
- 
+  -- generate the library 
+  _ <- generateIO genSetup myOM
+  
+  return ()
+  
 
 
   

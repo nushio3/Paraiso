@@ -21,10 +21,12 @@ module Language.Paraiso.OM.Graph
     (
      Setup(..), Kernel(..), Graph, nmap, getA,
      Node(..), Edge(..),
+     StaticIdx(..),
      Inst(..),
     )where
 
-import Data.Dynamic
+import           Data.Dynamic
+import qualified Data.Vector as V
 import qualified Data.Graph.Inductive as FGL
 import Language.Paraiso.Name
 import Language.Paraiso.OM.Arithmetic as A
@@ -39,7 +41,7 @@ data Setup (vector :: * -> *) gauge anot =
   Setup {
     -- | The list of static orthotopes 
     --  (its identifier, Realm and Type carried in the form of 'NamedValue')
-    staticValues :: [Named DynValue], 
+    staticValues :: V.Vector (Named DynValue), 
     -- | The machine-global annotations
     globalAnnotation :: anot          
   } deriving (Eq, Show)
@@ -97,16 +99,20 @@ instance Functor (Node v g) where
   fmap f (NValue x y) =  (NValue x (f y))  
   fmap f (NInst  x y) =  (NInst  x (f y))  
 
+newtype StaticIdx = StaticIdx { fromStaticIdx :: Int}
+instance Show StaticIdx where
+  show (StaticIdx x) = "static[" ++ show x ++ "]"
+
 data Inst vector gauge 
   = Imm Dynamic 
-  | Load Name 
-  | Store Name 
+  | Load StaticIdx
+  | Store StaticIdx
   | Reduce R.Operator 
   | Broadcast 
   | Shift (vector gauge) 
   | LoadIndex (Axis vector) 
   | Arith A.Operator 
-        deriving (Show)
+  deriving (Show)
 
 instance Arity (Inst vector gauge) where
   arity a = case a of

@@ -6,8 +6,9 @@ module Test.Paraiso.ClarisUtil (
 
 import           Control.Concurrent         (forkIO)
 import qualified Data.ListLike as LL
-import           Language.Paraiso.Generator (generate)
+import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Prelude
 import           System.FilePath            ((</>))
 import           System.IO                  (hGetLine, hIsEOF, Handle)
@@ -24,9 +25,10 @@ evaluate prog = unsafePerformIO $ do
   let path :: FilePath
       path = "/tmp/" ++ (show :: Int -> String) key 
       exeFn = path </> "dragon.out" -- roar!
-  files <- generate prog path
+      setup = Native.defaultSetup{ Native.directory = path }
+  files <- generateIO setup prog 
   let cppFn :: FilePath
-      cppFn = head $ filter (LL.isSuffixOf ".cpp") files
+      cppFn = head $ filter (LL.isSuffixOf ".cpp") $ map fst $ files
   _ <- system $ unwords [Option.cppc, "-O3",  cppFn, "-I", path,  "-o",  exeFn]
   (_, Just hout, _, handle) <- createProcess (shell exeFn) {std_out = CreatePipe}
   ret <- fmap (read :: String -> Int) $ hGetLine hout

@@ -6,6 +6,7 @@ module Test.Paraiso.ClarisSimple (
 
 import           Data.Dynamic
 import qualified Language.Paraiso.Generator.Claris as C
+import qualified Language.Paraiso.Generator.ClarisTrans as C
 import           Language.Paraiso.Name      (mkName)
 import           Language.Paraiso.Prelude
 import           Test.Framework             (Test, testGroup)
@@ -25,17 +26,18 @@ test = testGroup "simple program generated from Claris" tests
 
 data AdderQuiz = AdderQuiz {adderQuizAns :: Int, adderProg :: C.Program, progText :: Text} deriving Show
 instance Arbitrary AdderQuiz where
-  arbitrary = flip fmap arbitrary $
-              (\(x',y') -> 
-                let [x,y] = map (`div` 65536) [x', y'] 
-                    prog = adderProgram x y
-                in
-                 AdderQuiz{ 
-                   adderProg    = prog,
-                   adderQuizAns = x+y,
-                   progText     = C.translate C.sourceFile prog
-                   }
-              ) 
+  arbitrary = 
+    flip fmap arbitrary $
+    \(x',y') -> 
+      let [x,y] = map (`mod` 65536) [x', y'] 
+          prog = adderProgram x y
+      in
+       AdderQuiz { 
+         adderProg    = prog,
+         adderQuizAns = x+y,
+         progText     = C.translate C.sourceFile prog
+         }
+               
 
 testQuiz :: AdderQuiz -> Bool
 testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
@@ -43,27 +45,40 @@ testQuiz (AdderQuiz ans prog _) = ans == evaluate prog
 adderProgram :: Int -> Int -> C.Program
 adderProgram x1 x2 = 
   C.Program {
-    C.progName = mkName "hello",
+    C.progName = mkName "simple",
     C.topLevel = 
-      [C.PrprInst $ C.Include C.SourceFile C.Chevron "iostream",
-       C.FuncDecl $ (C.function tInt (mkName "main")){C.funcBody = body}]
+      [ C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Chevron "iostream" ,
+        C.FuncDef $ (C.function tInt (mkName "main"))
+          { C.funcBody= mainBody }, 
+        C.FuncDef $ (C.function tInt (mkName "calc"))
+          { C.funcArgs = [varX, varY] ,
+            C.funcBody = calcBody
+          }
+      ]
     }
   where
-    body = 
-      [C.StmtExpr coutExpr,
-       C.StmtReturn $ C.Imm $ toDyn (0::Int) ]
-      
-    coutExpr = cout << message << endl
-
-    cout = C.VarExpr $ C.Var C.unknownType $ mkName "std::cout"
-    endl = C.VarExpr $ C.Var C.unknownType $ mkName "std::endl"
+    varX = C.Var tInt (mkName "x") 
+    varY = C.Var tInt (mkName "y")
+    varZ = C.Var tInt (mkName "z")
+    mainBody = 
+      [C.StmtExpr   $ cout << message << endl,
+       C.StmtReturn $ C.toDyn (0::Int) ]
     
-    message = C.Op2Infix "+" (C.Imm $ toDyn x1) (C.Imm $ toDyn x2)
+    calcBody = 
+      [C.StmtExpr $ C.VarDefSub varZ (C.Imm $ toDyn(0::Int)),
+       C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
+       $ C.Op2Infix "+" (C.VarExpr varX) (C.VarExpr varY),
+       C.StmtReturn $ (C.VarExpr varZ) 
+      ]
+
+    cout = C.VarExpr $ C.Var C.UnknownType $ mkName "std::cout"
+    endl = C.VarExpr $ C.Var C.UnknownType $ mkName "std::endl"
+
+    message = C.FuncCallUsr (mkName "calc") [C.toDyn x1, C.toDyn x2]
 
     infixl 1 <<
     (<<) = C.Op2Infix "<<"
 
-
-    tInt :: TypeRep
-    tInt = typeOf (undefined :: Int)
+    tInt :: C.TypeRep
+    tInt = C.typeOf (undefined :: Int)
     

@@ -18,7 +18,7 @@ helloWorld =
     progName = "hello",
     topLevel = 
       [PragmaDecl $ PragmaInclude "iostream" False Chevron,
-       FuncDecl $ Function "main" [] tInt [] body]
+       FuncDef $ Function "main" [] tInt [] body]
     }
   where
     body = 

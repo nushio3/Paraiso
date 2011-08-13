@@ -114,8 +114,11 @@ Library
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Allocation
                        Language.Paraiso.Generator.Claris
-                       Language.Paraiso.Generator.ClarisDef
                        Language.Paraiso.Generator.ClarisTrans
+                       Language.Paraiso.Generator.Native
+                       Language.Paraiso.Generator.OMTrans
+                       Language.Paraiso.Generator.Plan
+                       Language.Paraiso.Generator.PlanTrans
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
                        Language.Paraiso.OM
@@ -134,7 +137,7 @@ Library
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
-  Build-depends:       base                  >= 4.3.1  && < 4.4,
+  Build-depends:       base                  == 4.*,
                        containers            >= 0.4.0  && < 0.5,
                        control-monad-failure >= 0.7.0  && < 0.8,
                        directory             >= 1.1.0  && < 1.2,
@@ -146,17 +149,17 @@ Library
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
-                       text                  >= 0.11.1 && < 0.12
+                       repa                  >= 2.1.1  && < 2.2,
+                       text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2
   -- Modules not exported by this package.
   -- Other-modules:       
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
 
-  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing -threaded
+  ghc-options:    -O3 -Wall   -fspec-constr-count=25
 
-  if impl(ghc >= 7.0)
-    ghc-options:        -fspec-constr-count=25
 
   Default-Language: Haskell2010
 
@@ -167,7 +170,7 @@ source-repository head
 
 test-suite runtests
     type: exitcode-stdio-1.0
-    build-depends:     base >= 4.3.1 && < 4.4,
+    build-depends:     base                  == 4.*,
                        containers            >= 0.4.0  && < 0.5,
                        control-monad-failure >= 0.7.0  && < 0.8,
                        directory             >= 1.1.0  && < 1.2,
@@ -179,7 +182,9 @@ test-suite runtests
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
+                       repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2,
 
                        test-framework,
                        test-framework-quickcheck2,
@@ -188,6 +193,6 @@ test-suite runtests
                        QuickCheck >= 2 && < 3
     main-is: runtests.hs
     
-    ghc-options:     -Wall -O3  -threaded
+    ghc-options:     -Wall -O3  -fspec-constr-count=25
     Default-Language: Haskell2010
 

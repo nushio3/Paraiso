@@ -4,14 +4,15 @@ RankNTypes #-}
 
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Generator.ClarisTrans (      
-  Translatable(..), paren, joinBy, joinEndBy, headerFile, sourceFile
+  Translatable(..), paren, joinBy, joinEndBy, 
+  headerFile, sourceFile, Context
   ) where
 
-import           Data.Dynamic
+import qualified Data.Dynamic as Dyn
 import qualified Data.List as L
 import qualified Data.ListLike as LL
 import qualified Data.ListLike.String as LL
-import           Language.Paraiso.Generator.ClarisDef
+import           Language.Paraiso.Generator.Claris
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
@@ -20,35 +21,72 @@ class Translatable a where
 
 data Context 
   = Context 
-    { fileType :: FileType
+    { fileType :: FileType,
+      namespace :: [Namespace] -- inner scopes are in head of the list
     }
+  deriving (Eq, Show)    
+    
+data Namespace = ClassSpace Class
+  deriving (Eq, Show)
+instance Nameable Namespace where 
+  name (ClassSpace x) = name x
 
 headerFile :: Context
-headerFile = Context {fileType = HeaderFile}
+headerFile = Context {fileType = HeaderFile, namespace = []}
 
 sourceFile :: Context
-sourceFile = Context {fileType = SourceFile}
+sourceFile = Context {fileType = SourceFile, namespace = []}
 
 
 instance Translatable Program where
   translate conf Program{topLevel = xs} = LL.unlines $ map (translate conf) xs
 
-instance Translatable TopLevelElem where  
-  translate conf tl = case tl of
-    PrprInst   x -> translate conf x 
-    FuncDecl   x -> translate conf x 
-    UsingNamespace x -> "using namespace " ++ nameText x ++ ";"
+instance Translatable Statement where    
+  translate conf stmt = case stmt of
+    StmtPrpr   x             -> translate conf x ++ "\n"
+    UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
+    ClassDef  x              -> translate conf x 
+    FuncDef   x              -> translate conf x 
+    StmtExpr x               -> translate conf x ++ ";"
+    StmtReturn x             -> "return " ++ translate conf x ++ ";"
+    StmtWhile test xs        -> "while" 
+      ++ paren Paren (translate conf test) 
+      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
+    StmtFor ini test inc xs -> "for" 
+      ++ paren Paren (joinBy "; " [translate conf ini, translate conf test, translate conf inc]) 
+      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
+    Exclusive file stmt2     ->
+      if file == fileType conf then translate conf stmt2 else ""
 
 instance Translatable Preprocessing where
-  translate conf prpr@Include{}
-    | fileType conf == prprFileType prpr = str
-    | otherwise                          = ""
-      where 
-        str = "#include " ++ paren (includeParen prpr) (includeFileName prpr)
-  translate conf prpr@Pragma{}
-    | fileType conf == prprFileType prpr = "#pragma " ++ pragmaText prpr
-    | otherwise                          = ""
+  translate _ prpr = case prpr of
+    PrprInclude par na -> "#include " ++ paren par na
+    PrprPragma  str    -> "#pragma " ++ str
 
+instance Translatable Class where
+  translate conf me@(Class na membs) = if fileType conf == HeaderFile then classDecl else classDef
+    where
+      t :: Translatable a => a -> Text
+      t = translate conf
+      
+      conf' = conf{namespace = ClassSpace me : namespace conf}
+      
+      classDecl = "class " ++ nameText na ++ paren Brace (LL.unlines $ map memberDecl membs) ++ ";"
+      classDef  = joinBy "\n" $ map memberDef membs
+      
+      memberDecl x = case x of
+        MemberFunc ac f -> t ac ++ " " ++ t (FuncDef f)
+        MemberVar  ac y -> t ac ++ " " ++ t (StmtExpr (VarDef y))
+
+      memberDef x = case x of
+        MemberFunc _ f -> translate conf' (FuncDef f)
+        MemberVar _ _ -> ""
+
+instance Translatable AccessModifier where
+  translate _ Private   = "private:"
+  translate _ Protected = "protected:"
+  translate _ Public    = "public:"
+  
 instance Translatable Function where
   translate conf f = ret
     where
@@ -56,59 +94,82 @@ instance Translatable Function where
       funcDecl
         = LL.unwords
           [ translate conf (funcType f)
-          , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
+          , funcName'
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
           , ";"]
       funcDef 
         = LL.unwords
           [ translate conf (funcType f)
-          , nameText f
-          , paren Paren $ joinBy ", " $ map (translate conf . StmtDecl) (funcArgs f)
-          , paren Brace $ joinEndBy ";\n" $ map (translate conf) $ funcBody f]
+          , funcName'
+          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
+          , paren Brace $ joinEndBy "\n" $ map (translate conf) $ funcBody f]
+      funcName' = joinBy "::" $ reverse $ nameText f : map nameText (namespace conf)
 
-instance Translatable Statement where    
-  translate conf (StmtExpr x)             = translate conf x
-  translate conf (StmtDecl (Var typ nam)) = LL.unwords [translate conf typ, nameText nam]
-  translate conf (StmtDeclInit v x)       = translate conf (StmtDecl v) ++ " = " ++ translate conf x
-  translate conf (StmtReturn x)           = "return " ++ translate conf x
-  translate conf StmtLoop                 = "todo"
+instance Translatable TypeRep where
+  translate conf trp = case trp of
+    UnitType x         -> translate conf x
+    PtrOf x            -> translate conf x ++ " *"
+    RefOf x            -> translate conf x ++ " &"
+    Const x            -> "const " ++ translate conf x 
+    TemplateType x ys  -> x ++ paren Chevron (joinBy ", " $ map (translate conf) ys) ++ " "
+    QualifiedType qs x -> (joinEndBy " " $ map (translate conf) qs) ++ translate conf x
+    ConstructorType    -> ""
+    UnknownType        -> error "cannot translate unknown type."
+  
+instance Translatable Qualifier where  
+  translate _ CudaGlobal = "__global__"
+  translate _ CudaDevice = "__device__"
+  translate _ CudaHost   = "__host__"
+  translate _ CudaShared = "__shared__"
+  translate _ CudaConst  = "__constant__"
 
-instance Translatable TypeRep where  
-  translate conf x = 
+
+instance Translatable Dyn.TypeRep where  
+  translate _ x = 
     case msum $ map ($x) typeRepDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate conf type: " ++ show x
+      Nothing  -> error $ "cannot translate Haskell type: " ++ show x
 
-instance Translatable Dynamic where  
-  translate conf x = 
+instance Translatable Dyn.Dynamic where  
+  translate _ x = 
     case msum $ map ($x) dynamicDB of
       Just str -> str
-      Nothing  -> error $ "cannot translate conf immediate of type: " ++ show x
+      Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
 
 instance Translatable Expr where
-  translate conf expr = paren Paren ret
+  translate conf expr = ret
     where
+      pt  = paren Paren . translate conf
+      t :: Translatable a => a -> Text
+      t   = translate conf
       ret = case expr of
-        (Imm x) -> translate conf x
-        (VarExpr x) -> nameText x
-        (FuncCallUser f args)    -> (nameText f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
-        (FuncCallBuiltin f args) -> (f++) $ paren Paren $ joinBy ", " $ map (translate conf) args
-        (Op1Prefix op x) -> op ++ translate conf x
-        (Op1Postfix op x) -> translate conf x ++ op
-        (Op2Infix op x y) -> LL.unwords [translate conf x, op, translate conf y]
-        (Op3Infix op1 op2 x y z) -> LL.unwords [translate conf x, op1, translate conf y, op2, translate conf z]
-        
-        
+        Imm x                  -> t x
+        VarExpr x              -> nameText x
+        VarDef (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
+        VarDefCon v x         -> translate conf (VarDef v) ++ paren Paren (translate conf x) 
+        VarDefSub v x         -> translate conf (VarDef v) ++ " = " ++ translate conf x      
+        FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
+        FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args
+        CudaFuncCallUsr  f numBlock numThread args 
+                               -> nameText f ++ paren Chevron3 (t numBlock ++ "," ++ t numThread) ++
+                                  (paren Paren $ joinBy ", " $ map t args)
+        MemberAccess x y       -> pt x ++ "." ++ t y
+        Op1Prefix op x         -> op ++ pt x
+        Op1Postfix op x        -> pt x ++ op
+        Op2Infix op x y        -> LL.unwords [pt x, op, pt y]
+        Op3Infix op1 op2 x y z -> LL.unwords [pt x, op1, pt y, op2, pt z]
+        ArrayAccess x y        -> pt x ++ paren Bracket (t y)
+
 -- | The databeses for Haskell -> Cpp type name translations.
-typeRepDB:: [TypeRep -> Maybe Text]
+typeRepDB:: [Dyn.TypeRep -> Maybe Text]
 typeRepDB = map fst symbolDB
 
 -- | The databeses for Haskell -> Cpp immediate values translations.
-dynamicDB:: [Dynamic -> Maybe Text]
+dynamicDB:: [Dyn.Dynamic -> Maybe Text]
 dynamicDB = map snd symbolDB
 
 -- | The united database for translating Haskell types and immediate values to Cpp
-symbolDB:: [(TypeRep -> Maybe Text, Dynamic -> Maybe Text)]
+symbolDB:: [(Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)]
 symbolDB = [ 
   add "void"          (\() -> ""),
   add "bool"          (\x->if x then "true" else "false"),
@@ -120,14 +181,14 @@ symbolDB = [
   add "std::string"   (showT::Text->Text)
        ]  
   where
-    add ::  (Typeable a) => Text -> (a->Text) 
-        -> (TypeRep -> Maybe Text,Dynamic -> Maybe Text)
+    add ::  (Dyn.Typeable a) => Text -> (a->Text) 
+        -> (Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)
     add = add' undefined
-    add' :: (Typeable a) => a -> Text -> (a->Text) 
-        -> (TypeRep -> Maybe Text,Dynamic -> Maybe Text)
+    add' :: (Dyn.Typeable a) => a -> Text -> (a->Text) 
+        -> (Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)
     add' dummy typename f = 
-      (\tr -> if tr==typeOf dummy then Just typename else Nothing,
-       fmap f . fromDynamic)
+      (\tr -> if tr == Dyn.typeOf dummy then Just typename else Nothing,
+       fmap f . Dyn.fromDynamic)
 
 
 -- | an parenthesizer for lazy person.

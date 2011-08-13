@@ -5,7 +5,6 @@ module Test.Paraiso.Claris (
 
 import           Test.Framework            (Test, testGroup)       
 import qualified Test.Paraiso.ClarisSimple
-import           Test.QuickCheck
 
 testClaris :: Test
 testClaris = testGroup "Claris" 

@@ -5,37 +5,37 @@ module Language.Paraiso.OM
     OM(..), makeOM
   ) where
 
+import qualified Data.Vector as V
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM.Builder (Builder, buildKernel)
 import           Language.Paraiso.OM.Graph
+import           Language.Paraiso.OM.DynValue (DynValue)
 import           NumericPrelude
 
 -- | POM is Primordial Orthotope Machine.
-data OM vector gauge anot = 
-  OM {
-    omName :: Name,
-    setup :: Setup vector gauge anot,
-    kernels :: [Kernel vector gauge anot]
-  } 
-    deriving (Show)
+data OM vector gauge anot 
+  = OM 
+    { omName :: Name,
+      setup :: Setup vector gauge anot,
+      kernels :: V.Vector (Kernel vector gauge anot)
+    } 
+      deriving (Show)
 
 instance Nameable (OM v g a) where
   name = omName
 
 -- | create a POM easily and consistently.
 makeOM :: 
-  Name                     -- ^The machine name.
-  -> (Setup v g a)              -- ^The machine configuration.
+  Name                          -- ^The machine name.
+  -> a                          -- ^The annotation at the root level.
+  -> [Named DynValue]           -- ^The list of static variables.
   -> [(Name, Builder v g a ())] -- ^The list of pair of the kernel name and its builder.
-  -> OM v g a       -- ^The result.
-makeOM name0 setup0 kerns = 
-  OM {
-    omName = name0,
-    setup = setup0,
-    kernels = map (\(n,b) -> buildKernel setup0 n b) kerns
+  -> OM v g a                   -- ^The result.
+makeOM name0 a0 vars0 kerns 
+  = OM {
+    omName  = name0,
+    setup   = setup0,
+    kernels = V.fromList $ map (\(n,b) -> buildKernel setup0 n b) kerns
   }
-  
-
-
-
-
+  where
+    setup0 = Setup { staticValues = V.fromList vars0, globalAnnotation = a0 }
