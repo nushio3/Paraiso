@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
  FunctionalDependencies, KindSignatures,
-  MultiParamTypeClasses, NoImplicitPrelude, StandaloneDeriving, 
+  MultiParamTypeClasses, NoImplicitPrelude,
   TypeOperators, UndecidableInstances  #-} 
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
@@ -32,20 +32,17 @@ infixl 9 !
 v ! i  = component i v   
 
 -- | data constructor for 0-dimensional tensor.
-data Vec a = Vec deriving Typeable
-infixl 3 :~
+data Vec a 
+  = Vec 
+  deriving (Eq, Ord, Show, Read, Typeable)
+
 -- | data constructor for constructing n+1-dimensional tensor
 -- from n-dimensional tensor.
-data (n :: * -> * ) :~ a = (n a) :~ a 
+data (n :: * -> * ) :~ a 
+  = (n a) :~ a 
+  deriving (Eq, Ord, Show, Read)
+infixl 3 :~
 
-deriving instance (Eq a) => Eq (Vec a)
-deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
-deriving instance (Ord a) => Ord (Vec a)
-deriving instance (Ord a, Ord (n a)) => Ord (n :~ a)
-deriving instance (Show a) => Show (Vec a)
-deriving instance (Show a, Show (n a)) => Show (n :~ a)
-deriving instance (Read a) => Read (Vec a)
-deriving instance (Read a, Read (n a)) => Read (n :~ a)
 
 instance (Typeable a, Typeable (n a)) => Typeable (n :~ a) where
   typeOf (vx :~ x) = 
