@@ -17,8 +17,6 @@ import Language.Paraiso.PiSystem
 import Language.Paraiso.Tensor
 
 
-data Valid v g = Valid (v (Interval g))
+data Valid a = Valid a deriving (Eq, Show, Typeable)
                
-deriving instance (Eq (v (Interval g))) => Eq (Valid v g)
-deriving instance (Show (v (Interval g))) => Show (Valid v g)
--- deriving instance (Typeable (v (Interval g))) => Typeable (Valid v g)
+

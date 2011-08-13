@@ -52,7 +52,6 @@ instance (Typeable a, Typeable (n a)) => Typeable (n :~ a) where
     mkTyConApp (mkTyCon "Language.Paraiso.Tensor.:~") 
       [typeOf vx, typeOf x]
 
-
 instance Foldable Vec where
   foldMap = foldMapDefault
 instance Functor Vec where

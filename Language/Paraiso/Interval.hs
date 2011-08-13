@@ -1,4 +1,4 @@
-{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {- | an 'Interval' is a pair of 'lower' and 'upper', 
    representing some interval in ordered system.
    The lower bound is inclusive and the upper bound is exclusive:
@@ -11,7 +11,7 @@
 module Language.Paraiso.Interval (
                                   Interval(..)) where
 
-
+import Data.Typeable
 import Language.Paraiso.PiSystem as S
 import Prelude hiding (null)
 
@@ -20,6 +20,7 @@ data Interval a =
     Empty | 
     -- | a non-empty interval.
     Interval{lower::a, upper::a}
+    deriving (Eq, Show, Typeable)
 
 instance (Ord a) => PiSystem (Interval a) where
   empty = Empty
@@ -31,9 +32,6 @@ instance (Ord a) => PiSystem (Interval a) where
     let l = max l1 l2; u = min u1 u2; ret = Interval l u in
     if null ret then Empty else ret
 
-deriving instance (Eq a) => Eq (Interval a)                          
-deriving instance (Show a) => Show (Interval a)   
-deriving instance (Read a) => Read (Interval a)
 
 
 
