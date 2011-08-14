@@ -16,6 +16,7 @@ import           Language.Paraiso.Interval
 import           Language.Paraiso.OM
 import           Language.Paraiso.Optimization.BoundaryAnalysis
 import           Language.Paraiso.Optimization.DecideAllocation
+import           Language.Paraiso.Optimization.DependencyAnalysis
 import           Language.Paraiso.Optimization.Graph
 import           Language.Paraiso.Optimization.Identity
 import           Language.Paraiso.Prelude
@@ -27,7 +28,7 @@ optimize :: (Vector v,
              Typeable g) => 
             OptimizationLevel -> OM v g Annotation -> OM v g Annotation
 optimize level = case level of
-  O0 -> gmap identity . gmap boundaryAnalysis . gmap decideAllocation
+  O0 -> gmap identity . gmap dependencyAnalysis. gmap boundaryAnalysis . gmap decideAllocation
   _  -> optimize O0
 
 data OptimizationLevel 

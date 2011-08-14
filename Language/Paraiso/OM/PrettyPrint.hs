@@ -14,6 +14,7 @@ import qualified Data.ListLike.Text ()
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Anot
 import qualified Language.Paraiso.Annotation.Boundary as Anot
+import qualified Language.Paraiso.Annotation.Dependency as Anot
 import           Language.Paraiso.Interval
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
@@ -72,6 +73,7 @@ ppAnot1 anots = map ("  "++) $ concat cands
     cands = 
       [ map showT ((Anot.toList anots) :: [Anot.Allocation])
       , map ppValid ((Anot.toList anots) :: [Anot.Valid Int])
+      , map showT ((Anot.toList anots) :: [Anot.Dependency])
       ]
       
     ppValid (Anot.Valid xs) = LL.unwords $ map ppInterval xs
@@ -83,3 +85,4 @@ ppAnot1 anots = map ("  "++) $ concat cands
     ppNB (Anot.LowerBoundary x) = "[" ++ showT x
     ppNB (Anot.UpperBoundary x) = showT x ++ "]"
     ppNB Anot.PosiInfinity = "+inf]"
+    
