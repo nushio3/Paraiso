@@ -22,7 +22,6 @@ module Language.Paraiso.Tensor
 
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Ring as Ring
-import           Data.Typeable
 import           Language.Paraiso.Failure
 import           Language.Paraiso.Prelude
 
@@ -34,7 +33,7 @@ v ! i  = component i v
 -- | data constructor for 0-dimensional tensor.
 data Vec a 
   = Vec 
-  deriving (Eq, Ord, Show, Read, Typeable)
+  deriving (Eq, Ord, Show, Read)
 
 -- | data constructor for constructing n+1-dimensional tensor
 -- from n-dimensional tensor.
@@ -43,11 +42,6 @@ data (n :: * -> * ) :~ a
   deriving (Eq, Ord, Show, Read)
 infixl 3 :~
 
-
-instance (Typeable a, Typeable (n a)) => Typeable (n :~ a) where
-  typeOf (vx :~ x) = 
-    mkTyConApp (mkTyCon "Language.Paraiso.Tensor.:~") 
-      [typeOf vx, typeOf x]
 
 instance Foldable Vec where
   foldMap = foldMapDefault
