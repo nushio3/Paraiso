@@ -15,7 +15,7 @@ module Language.Paraiso.OM.Builder.Internal
      modifyG, getG, freeNode, addNode, addNodeE, valueToNode, lookUpStatic,
      load, store,
      reduce, broadcast,
-     shift, loadIndex,
+     shift, loadIndex,loadSize,
      imm, mkOp1, mkOp2
     ) where
 import qualified Algebra.Absolute as Absolute
@@ -32,7 +32,6 @@ import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
 import qualified Data.Vector  as V
-import           Debug.Trace
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.DynValue as DVal
@@ -144,7 +143,7 @@ lookUpStatic (Named name0 type0)= do
   let
       vs :: V.Vector (Named DynValue)
       vs = staticValues $ setup st
-      matches = V.filter (\(i,v)-> name v==name0) $ V.imap (\i v->(i,v)) vs
+      matches = V.filter (\(_,v)-> name v==name0) $ V.imap (\i v->(i,v)) vs
       (ret, Named _ type1) = if V.length matches /= 1 
                              then error (show (V.length matches)++" match found for '" ++ nameStr name0 ++ 
                                          "' in " ++ show vs)
@@ -241,6 +240,17 @@ loadIndex c0 axis = do
   n0 <- addNodeE []   $ NInst (LoadIndex axis)
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TLocal c0 n1)
+
+-- | Load the 'Axis' component of the mesh size, to a 'TGlobal' 'Value'.
+loadSize :: (Typeable c)
+            => c                            -- ^The 'Val.content' type.
+            -> Axis v                       -- ^ The axis for which the size is required
+            -> Builder v g a (Value TGlobal c) -- ^ The 'TGlobal' 'Value' that contains the size of the mesh in that direction.
+loadSize c0 axis = do
+  let type0 = mkDyn TLocal c0
+  n0 <- addNodeE []   $ NInst (LoadSize axis)
+  n1 <- addNodeE [n0] $ NValue type0 
+  return (FromNode TGlobal c0 n1)
 
 
 -- | Create an immediate 'Value' from a Haskell concrete value. 

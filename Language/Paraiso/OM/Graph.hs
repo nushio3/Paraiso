@@ -118,6 +118,7 @@ data Inst vector gauge
   | Broadcast 
   | Shift (vector gauge) 
   | LoadIndex (Axis vector) 
+  | LoadSize (Axis vector) 
   | Arith A.Operator 
   deriving (Show)
 
@@ -130,6 +131,7 @@ instance Arity (Inst vector gauge) where
     Broadcast -> (1,1)
     Shift _   -> (1,1)
     LoadIndex _ -> (0,1)
+    LoadSize _ -> (0,1)    
     Arith op  -> arity op
 
 

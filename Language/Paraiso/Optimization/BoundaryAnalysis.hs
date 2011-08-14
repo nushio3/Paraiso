@@ -41,7 +41,8 @@ boundaryAnalysis graph = imap update graph
       NInst (Reduce _)_    -> infinite
       NInst (Broadcast)_   -> infinite
       NInst (Shift v)_     -> full `intersection` shiftPreBy v 
-      NInst (LoadIndex _)_ -> full
+      NInst (LoadIndex _)_ -> infinite
+      NInst (LoadSize _)_  -> infinite
       NInst (Arith _)_     -> mergedAnot
       where
         self0 = FGL.lab graph i

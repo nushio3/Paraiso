@@ -11,8 +11,6 @@ module Language.Paraiso.Optimization (
 import qualified Algebra.Additive            as Additive
 import           Data.Typeable
 import           Language.Paraiso.Annotation
-import           Language.Paraiso.Annotation.Boundary
-import           Language.Paraiso.Interval
 import           Language.Paraiso.OM
 import           Language.Paraiso.Optimization.BoundaryAnalysis
 import           Language.Paraiso.Optimization.DecideAllocation
