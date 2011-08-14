@@ -24,7 +24,7 @@ import           Language.Paraiso.Tensor (Vector)
 optimize :: (Vector v, 
              Additive.C g, 
              Ord g, 
-             Typeable (v (Interval (NearBoundary g)))) => 
+             Typeable g) => 
             OptimizationLevel -> OM v g Annotation -> OM v g Annotation
 optimize level = case level of
   O0 -> gmap identity . gmap boundaryAnalysis . gmap decideAllocation

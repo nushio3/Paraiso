@@ -20,12 +20,12 @@ import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
 -- | an optimization that changes nothing.
-boundaryAnalysis :: (Vector v, Additive.C g, Ord g, Typeable (v (Interval (NearBoundary g))))
+boundaryAnalysis :: (Vector v, Additive.C g, Ord g, Typeable g)
                     => Graph v g Anot.Annotation -> Graph v g Anot.Annotation
 boundaryAnalysis graph = imap update graph 
   where
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
-    update i a = Anot.set (Valid $ anot i) a
+    update i a = Anot.set (anot i) a
 
     anot i = memoAnot V.! i
 
@@ -41,7 +41,7 @@ boundaryAnalysis graph = imap update graph
       NInst (Reduce _)_    -> infinite
       NInst (Broadcast)_   -> infinite
       NInst (Shift v)_     -> full `intersection` shiftPreBy v 
-      NInst (LoadIndex _)_ -> preAnot
+      NInst (LoadIndex _)_ -> full
       NInst (Arith _)_     -> mergedAnot
       where
         self0 = FGL.lab graph i
@@ -54,8 +54,8 @@ boundaryAnalysis graph = imap update graph
           DVal.DynValue Realm.Global _ -> True
           _                            -> False
 
-        full = fullValid graph
-        infinite = infiniteValid graph
+        full = Valid $ toList $ fullValid graph
+        infinite = Valid $ toList $ infiniteValid graph
 
         preAnot = case FGL.pre graph i of         
           [i'] -> anot i'
@@ -65,7 +65,7 @@ boundaryAnalysis graph = imap update graph
           [] -> error $ "arith node[" ++ show i ++ "] has 0 pre"
           xs -> foldl1 intersection $ map anot $ xs
 
-        shiftPreBy v = compose $ \j -> shiftIntervalBy (v!j) (preAnot ! j)
+        shiftPreBy v = Valid $ zipWith shiftIntervalBy (toList v) ((\(Valid x)->x) preAnot)
 
         shiftIntervalBy x (Interval x1 x2) = Interval (add x x1) (add x x2)
         shiftIntervalBy _ Empty            = error "empty interval raised!"
@@ -79,5 +79,5 @@ boundaryAnalysis graph = imap update graph
 fullValid :: (Vector v, Additive.C g) => Graph v g a -> v (Interval (NearBoundary g))
 fullValid _ = compose (\_ -> Interval (LowerBoundary Additive.zero) (UpperBoundary Additive.zero))
 
-infiniteValid :: (Vector v, Additive.C g) => Graph v g a -> v (Interval (NearBoundary g))
+infiniteValid :: (Vector v, Additive.C g, Typeable g) => Graph v g a -> v (Interval (NearBoundary g))
 infiniteValid _ = compose (\_ -> Interval NegaInfinity PosiInfinity)

@@ -3,11 +3,9 @@
 
 module Main(main) where
 
-import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import qualified Language.Paraiso.Annotation as Anot
-import qualified Language.Paraiso.Annotation.Allocation as Anot
 import           Language.Paraiso.Name
 import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
@@ -123,17 +121,11 @@ myOM = optimize O3 $
 genSetup :: Native.Setup
 genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
-ppAnot :: Anot.Annotation -> [T.Text]
-ppAnot anots = map ("  "++) $ concat cands
-  where
-    cands = 
-      [ map showT ((Anot.toList anots) :: [Anot.Allocation])
-      ]
 
 main :: IO ()
 main = do
   -- output the intermediate state.
-  T.writeFile "output/OM.txt" $ prettyPrintA ppAnot $ myOM
+  T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
   
   -- generate the library 
   _ <- generateIO genSetup myOM
