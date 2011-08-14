@@ -105,13 +105,15 @@ data TypeRep
   | Const        TypeRep
   | TemplateType Text [TypeRep]
   | QualifiedType [Qualifier] TypeRep
-  | ConstructorType -- | the type returned from constructor / destructor
+  | ConstructorType                    -- ^the type returned from constructor / destructor  
   | UnknownType
   deriving (Eq, Show)    
 
 typeOf :: (Dyn.Typeable a) => a -> TypeRep
 typeOf = UnitType . Dyn.typeOf
 
+
+-- | [CUDA extension] 
 data Qualifier
   = CudaGlobal
   | CudaDevice

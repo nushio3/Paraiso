@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, NoMonomorphismRestriction, RankNTypes #-}
 {-# OPTIONS -Wall #-}
+{-# OPTIONS_HADDOCK hide #-}
 -- | an extension of the standard Prelude for paraiso.
 
 module Language.Paraiso.Prelude
@@ -42,7 +43,7 @@ infixr 5  ++
 (++) :: forall full item .
         Data.ListLike.Base.ListLike full item =>
         full -> full -> full
-                                                                     
+
 (++) = append
 
 class Boolean b where
