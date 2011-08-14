@@ -1,7 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Optimization.DependencyAnalysis (
-  dependencyAnalysis
+  writeGrouping
   ) where
 
 import qualified Data.Vector                 as V
@@ -11,9 +11,43 @@ import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Depend
 import           Language.Paraiso.Prelude
+import           Language.Paraiso.OM
+import qualified Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.Graph
+import qualified Language.Paraiso.OM.Realm as Realm
 import           Language.Paraiso.Optimization.Graph
 
+-- | Give unique numbering to each groups in the entire OM 
+--   in preparation for code generation
+writeGrouping :: OM v g Anot.Annotation -> OM v g Anot.Annotation
+writeGrouping om0 = om { kernels = kernelsRet}
+  where
+    om = gmap dependencyAnalysis om0
+    kernels0 = kernels om
+    graphs0 = V.map dataflow $ kernels0
+    graphsSize = V.length graphs0
+    
+    -- | how many kernel groups are included in i'th graph?
+    groupCount = flip V.map graphs0
+      (\graph -> (1+) $ maximum $ (-1 : ) $ concat $
+                 map (map Depend.getKernelGroupID . a2k . getA) $ 
+                 map snd $ FGL.labNodes graph)
+    
+    a2k :: Anot.Annotation -> [Depend.KernelWriteGroup]
+    a2k a = case Anot.toMaybe a of
+      Just kwg -> [kwg]
+      Nothing  -> [] -- non-manifest nodes does not contain Group
+        
+    graphsRet = V.generate graphsSize (\i -> renumber i $ graphs0 V.! i)
+ 
+    kernelsRet = flip V.imap kernels0
+      (\i kern -> kern { dataflow = graphsRet V.! i})
+    
+    renumber idx graph = 
+      let diff = V.sum$ V.take idx groupCount in
+      flip nmap graph $
+        Anot.map (Depend.OMWriteGroup . (diff+) . Depend.getKernelGroupID)
+      
 -- | an optimization that changes nothing.
 dependencyAnalysis :: Optimization
 dependencyAnalysis graph = imap update graph 
@@ -62,7 +96,6 @@ dependencyAnalysis graph = imap update graph
           where
             pres = takeWhile (<idx) manifestNodes
             coPres = filter (coexist idx) pres
-            
     
     -- whether two nodes can be written simultaneously in one kernel.
     coexist :: FGL.Node -> FGL.Node -> Bool
@@ -74,8 +107,10 @@ dependencyAnalysis graph = imap update graph
       | otherwise  = not dependent' && sameShape
       where
         dependent' = indirectMatrixWrite V.! idx V.! (idxToSidx V.! jdx)
-        sameShape  = error "TODO"
-                      
+        sameShape  = 
+          (idxToRealm V.! idx) == (idxToRealm V.! jdx) &&
+          (idxToValid V.! idx) == (idxToValid V.! jdx)
+        
     -- the allocation setting of each node.
     idxToAlloc :: V.Vector Alloc.Allocation
     idxToAlloc = V.fromList $
@@ -94,6 +129,14 @@ dependencyAnalysis graph = imap update graph
         f' (Just x) = x
         f' Nothing  = error "boundaryAnalysis must be done after decideAllocation"
 
+    -- the OM node for each index
+    idxToRealm :: V.Vector Realm.Realm
+    idxToRealm = V.generate idxSize inner
+      where
+        inner idx = case FGL.lab graph idx of
+          Just (NValue (DVal.DynValue r _)_) -> r
+          Just _                             -> error "realm required for non-Value node"
+          Nothing                            -> error "indexing mismatch"
 
     -- the list of indices of Manifest nodes in ascending order.
     manifestNodes :: [FGL.Node]

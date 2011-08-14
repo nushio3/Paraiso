@@ -26,7 +26,7 @@ optimize :: (Vector v,
              Typeable g) => 
             OptimizationLevel -> OM v g Annotation -> OM v g Annotation
 optimize level = case level of
-  O0 -> gmap identity . gmap dependencyAnalysis. gmap boundaryAnalysis . gmap decideAllocation
+  O0 -> gmap identity . writeGrouping . gmap boundaryAnalysis . gmap decideAllocation
   _  -> optimize O0
 
 data OptimizationLevel 

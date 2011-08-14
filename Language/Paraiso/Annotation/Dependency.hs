@@ -32,12 +32,12 @@ newtype Indirect
 -- | Write grouping, continuously numbered from [0 ..] .
 -- The numbering starts from 0 for each kerenel in a Orthotope Machine.
 data KernelWriteGroup
-  = KernelWriteGroup Int
+  = KernelWriteGroup {getKernelGroupID :: Int}
   deriving (Eq, Show, Typeable)
 
 -- | Write grouping, continuously numbered from [0 ..] .
 -- The numbering is unique in one Orthotope Machine.
 data OMWriteGroup
-  = OMWriteGroup Int
+  = OMWriteGroup {getOMGroupID :: Int}
   deriving (Eq, Show, Typeable)
 
