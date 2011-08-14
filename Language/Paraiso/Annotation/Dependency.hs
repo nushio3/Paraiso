@@ -5,13 +5,21 @@
 -- that can safely be accessed simultaneously
 
 module Language.Paraiso.Annotation.Dependency (
+  Dependency(..),
   KernelWriteGroup(..), 
   OMWriteGroup(..)
   ) where
 
-import Data.Dynamic
-import Language.Paraiso.Prelude
 
+import           Data.Dynamic
+import qualified Data.Graph.Inductive as FGL
+import           Language.Paraiso.Prelude
+
+-- | The list of Manifest or Existing nodes that this node depends on
+newtype Dependency
+  = Dependency [FGL.Node]
+  deriving (Eq, Show, Typeable)
+           
 -- | Write grouping, continuously numbered from [0 ..] .
 -- The numbering starts from 0 for each kerenel in a Orthotope Machine.
 data KernelWriteGroup
