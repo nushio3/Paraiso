@@ -12,9 +12,9 @@ import qualified Data.Vector as V
 import qualified Data.ListLike.String as LL
 import qualified Data.ListLike.Text ()
 import qualified Language.Paraiso.Annotation as Anot
-import qualified Language.Paraiso.Annotation.Allocation as Anot
-import qualified Language.Paraiso.Annotation.Boundary as Anot
-import qualified Language.Paraiso.Annotation.Dependency as Anot
+import qualified Language.Paraiso.Annotation.Allocation as Alloc
+import qualified Language.Paraiso.Annotation.Boundary   as Boundary
+import qualified Language.Paraiso.Annotation.Dependency as Depend
 import           Language.Paraiso.Interval
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
@@ -71,18 +71,19 @@ ppAnot1 :: Anot.Annotation -> [T.Text]
 ppAnot1 anots = map ("  "++) $ concat cands
   where
     cands = 
-      [ map showT ((Anot.toList anots) :: [Anot.Allocation])
-      , map ppValid ((Anot.toList anots) :: [Anot.Valid Int])
-      , map showT ((Anot.toList anots) :: [Anot.Dependency])
+      [ map showT ((Anot.toList anots) ::  [Alloc.Allocation])
+      , map ppValid ((Anot.toList anots) ::[Boundary.Valid Int])
+      , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Direct])
+      , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Indirect])
       ]
       
-    ppValid (Anot.Valid xs) = LL.unwords $ map ppInterval xs
+    ppValid (Boundary.Valid xs) = LL.unwords $ map ppInterval xs
     ppInterval (Interval x y) 
       = ppNB x ++ ".." ++ ppNB y
     ppInterval Empty = "[empty]" 
     
-    ppNB Anot.NegaInfinity = "[-inf"    
-    ppNB (Anot.LowerBoundary x) = "[" ++ showT x
-    ppNB (Anot.UpperBoundary x) = showT x ++ "]"
-    ppNB Anot.PosiInfinity = "+inf]"
+    ppNB (Boundary.NegaInfinity)    = "[-inf"    
+    ppNB (Boundary.LowerBoundary x) = "[" ++ showT x
+    ppNB (Boundary.UpperBoundary x) = showT x ++ "]"
+    ppNB (Boundary.PosiInfinity)    = "+inf]"
     
