@@ -6,7 +6,8 @@ module Main(main) where
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Typeable
-import           Language.Paraiso.Annotation (Annotation)
+import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation.Allocation as Anot
 import           Language.Paraiso.Name
 import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
@@ -17,6 +18,7 @@ import           Language.Paraiso.OM
 import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.PrettyPrint
+import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
@@ -61,7 +63,7 @@ bind = fmap return
     
        
        
-buildProceed :: Builder Vec3 Int Annotation ()
+buildProceed :: Builder Vec3 Int Anot.Annotation ()
 buildProceed = do
   -- load a Local variable called "cell."
   cell <- bind $ load Rlm.TLocal  (undefined::Real) $ mkName "cell"
@@ -89,7 +91,7 @@ buildProceed = do
   store (mkName "cell") $ newCell
 
 
-buildInit :: Builder Vec3 Int  Annotation ()
+buildInit :: Builder Vec3 Int  Anot.Annotation ()
 buildInit = do
   -- create the current coordinate vector.
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
@@ -110,21 +112,28 @@ buildInit = do
       foldl1 (&&) $ compose (\i -> coord!i `eq` imm (point!i))
 
 -- compose the machine.
-myOM :: OM Vec3 Int Annotation
-myOM = 
+myOM :: OM Vec3 Int Anot.Annotation
+myOM = optimize O3 $ 
   makeOM (mkName "diffusion") [] lifeVars
-    [(mkName "init"   , buildInit),
-     (mkName "proceed", buildProceed)
-     ]
+    [ (mkName "init"   , buildInit),
+      (mkName "proceed", buildProceed)
+    ]
               
 
 genSetup :: Native.Setup
 genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
+ppAnot :: Anot.Annotation -> [T.Text]
+ppAnot anots = map ("  "++) $ concat cands
+  where
+    cands = 
+      [ map showT ((Anot.toList anots) :: [Anot.Allocation])
+      ]
+
 main :: IO ()
 main = do
   -- output the intermediate state.
-  T.writeFile "output/OM.txt" $ prettyPrint myOM ++ "\n"
+  T.writeFile "output/OM.txt" $ prettyPrintA ppAnot $ myOM
   
   -- generate the library 
   _ <- generateIO genSetup myOM

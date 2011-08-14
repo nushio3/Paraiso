@@ -11,6 +11,7 @@ import Data.Dynamic
 import Language.Paraiso.Prelude
 
 data Allocation 
-  = Manifest 
-  | Delayed 
+  = Existing -- ^ This entity is already allocated as a static variable.
+  | Manifest -- ^ Allocate additional memory for this entity. 
+  | Delayed  -- ^ Do not allocate, re-compute it whenever if needed.
   deriving (Eq, Show, Typeable)
