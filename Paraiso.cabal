@@ -111,7 +111,7 @@ Library
                        Language.Paraiso.Annotation.Balloon
                        Language.Paraiso.Annotation.Boundary
                        Language.Paraiso.Annotation.Comment
-                       Language.Paraiso.Annotation.Grouping
+                       Language.Paraiso.Annotation.Dependency
                        Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator

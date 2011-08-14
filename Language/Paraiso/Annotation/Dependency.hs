@@ -1,9 +1,10 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
--- | An 'Annotation' that labels certain group of Manifest nodes
+-- | An 'Annotation' that describes the dependency of the nodes
+-- and labels certain group of Manifest nodes
 -- that can safely be accessed simultaneously
 
-module Language.Paraiso.Annotation.Grouping (
+module Language.Paraiso.Annotation.Dependency (
   KernelWriteGroup(..), 
   OMWriteGroup(..)
   ) where

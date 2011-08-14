@@ -8,6 +8,7 @@ import qualified Data.Vector                 as V
 import qualified Data.Graph.Inductive        as FGL
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Anot
+import qualified Language.Paraiso.Annotation.Dependency as Anot
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.Optimization.Graph
@@ -33,7 +34,8 @@ writeGrouping graph = imap update graph
         Nothing -> error $ "Node index [" ++ show idx ++ "] missing."
         Just nd -> case (Anot.toMaybe $ getA nd) of
           Just Anot.Manifest -> True
-          Just _             -> False
+          Just Anot.Existing -> True
+          Just Anot.Delayed  -> False
           Nothing            -> error "writeGrouping must be done after decideAllocation"
           
 
