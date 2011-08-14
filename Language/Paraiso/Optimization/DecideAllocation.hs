@@ -22,11 +22,12 @@ decideAllocation graph = imap update graph
     update i a = Anot.set (anot i) a
 
     anot i 
-      | afterLoad                 = Alloc.Existing
-      | isGlobal || beforeStore || beforeReduce || afterReduce 
-                                  = Alloc.Manifest
-      | beforeShift || afterShift = Alloc.Delayed
-      | otherwise                 = Alloc.Delayed
+      | afterLoad = Alloc.Existing
+      | beforeStore || beforeReduce || afterReduce || beforeBroadcast
+                  = Alloc.Manifest
+      | (isGlobal || beforeShift || afterShift ) && False -- warehouse
+                  = Alloc.Delayed
+      | otherwise = Alloc.Delayed
         where
           self0 = FGL.lab graph i
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph i) 
@@ -46,7 +47,9 @@ decideAllocation graph = imap update graph
           afterReduce = case pre0 of
             Just (NInst (Reduce _) _) -> True
             _                         -> False
-
+          beforeBroadcast = case suc0 of
+            Just (NInst (Broadcast) _) -> True
+            _                          -> False
           beforeShift = case suc0 of
             Just (NInst (Shift _) _) -> True
             _                        -> False

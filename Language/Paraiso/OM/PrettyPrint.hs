@@ -75,6 +75,7 @@ ppAnot1 anots = map ("  "++) $ concat cands
       , map ppValid ((Anot.toList anots) ::[Boundary.Valid Int])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Direct])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Indirect])
+      , map showT ((Anot.toList anots) ::  [Depend.KernelWriteGroup])        
       ]
       
     ppValid (Boundary.Valid xs) = LL.unwords $ map ppInterval xs
