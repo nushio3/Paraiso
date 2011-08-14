@@ -111,6 +111,7 @@ Library
                        Language.Paraiso.Annotation.Balloon
                        Language.Paraiso.Annotation.Boundary
                        Language.Paraiso.Annotation.Comment
+                       Language.Paraiso.Annotation.Grouping
                        Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
@@ -138,6 +139,7 @@ Library
                        Language.Paraiso.Optimization.DecideAllocation
                        Language.Paraiso.Optimization.Graph
                        Language.Paraiso.Optimization.Identity
+                       Language.Paraiso.Optimization.WriteGrouping
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude
