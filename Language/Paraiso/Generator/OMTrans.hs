@@ -6,6 +6,8 @@ module Language.Paraiso.Generator.OMTrans (
   ) where
 
 import qualified Data.Graph.Inductive as FGL
+import           Data.List (nub, sort)
+import           Data.Maybe (catMaybes)
 import qualified Data.Vector as V
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
@@ -79,8 +81,7 @@ translate setup omBeforeOptimize = ret
       V.map Dep.getOMGroupID $
       omWriteGroup
       
-      
-      
+
     generateSubKernel groupIdx = 
       mkSubKernel groupIdx $
       V.ifilter (\i _ -> omWriteGroup V.! i == Dep.OMWriteGroup groupIdx) $
@@ -90,5 +91,96 @@ translate setup omBeforeOptimize = ret
       Plan.SubKernelRef 
       { Plan.subKernelParen = ret,
         Plan.kernelIdx  = (tKernelIdx $ myNodes V.! 0),
-        Plan.outputIdxs = V.map tNodeIdx myNodes
+        Plan.outputIdxs = V.map tNodeIdx myNodes,
+        Plan.inputIdxs  = inputs 
+                          -- TODO --
       }
+      where
+        inputs :: V.Vector FGL.Node
+        inputs =
+          V.fromList $
+          sort $
+          nub $ 
+          concat $
+          map (\(Dep.Direct xs) -> xs) $
+          depDirects
+        depDirects :: [Dep.Direct]
+        depDirects = 
+          catMaybes $
+          V.toList $
+          V.map (Anot.toMaybe . OM.getA . tNode) myNodes
+
+
+
+
+
+
+
+
+
+
+
+{-
+
+      -------------
+    /               \       \\ *** Exception: Prelude.undefined //
+  /     _,'      `._  \              ______
+ /    ( (X) )  ( (X) ) \            | |-   - 
+ |        (__/\__)      |           | | |   |
+ \         |rt++|      /            | | |   |
+  \        `----'     /             | | |  _| 
+    '               '               | | | |  \
+  /                    \            | | | |   |
+ |    |                  \          | | | |   |
+ \    -'''''''~       -'''''''~     |_|-  |   |
+  \ ___(`)(`)`))     (`.(`)(`)`))        /_____\
+
+
+
+
+
+
+
+         -------------
+       /               \    
+     /                   \           ______
+    /                     \         \ |-   - 
+    |                      |         \| | |   |
+    \                     /        __  | | |   |
+     \   _ -- -- -- -- -- -- --  /    \\\ | |  _| 
+       '               '           ,_  ||| | | |  \
+      /      -- -- -- -- -- -- --.__ ..  | | |     |
+     |                   \            | | |   |
+                    -'''''''~        /_|-  |   |
+                   (`.(`)(`)`))          /_____\
+
+
+
+
+
+
+
+
+
+
+             |
+       \     |     /
+    ----\----|--- /
+  /      \   |   /\     
+-- __       ___      \               ______
+/     --  /     \ - -- -- -- -- -- -| |-   - 
+|        |  ,           .           | | |   |
+ \        \_ \_  ,--- -- -- -- -- --| | |   |
+  \                   /             | | |  _| 
+    '               '               | | | |  \
+  /                    \            | | | |   |
+ |    |                  \          | | | |   |
+ \    -'''''''~       -'''''''~     |_|-  |   |
+  \ ___(`)(`)`))     (`.(`)(`)`))        /_____\
+
+
+
+
+
+
+-}
