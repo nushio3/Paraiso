@@ -15,6 +15,7 @@ import qualified Language.Paraiso.Annotation.Dependency  as Dep
 import qualified Language.Paraiso.Generator.Plan as Plan
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
+import qualified Language.Paraiso.ListSet as Set
 import qualified Language.Paraiso.OM as OM
 import qualified Language.Paraiso.OM.Graph as OM
 import qualified Language.Paraiso.Optimization as Opt
@@ -98,11 +99,9 @@ translate setup omBeforeOptimize = ret
       where
         inputs :: V.Vector FGL.Node
         inputs =
-          V.fromList $
-          sort $
-          nub $ 
-          concat $
-          map (\(Dep.Direct xs) -> xs) $
+          V.fromList $ Set.toList $
+          Set.unionAll $
+          map (\(Dep.Direct xs) -> Set.fromList xs) $
           depDirects
         depDirects :: [Dep.Direct]
         depDirects = 
@@ -139,17 +138,16 @@ translate setup omBeforeOptimize = ret
 
 
 
-
-
-         -------------
-       /               \    
-     /                   \           ______
-    /                     \         \ |-   - 
-    |                      |         \| | |   |
-    \                     /        __  | | |   |
-     \   _ -- -- -- -- -- -- --  /    \\\ | |  _| 
-       '               '           ,_  ||| | | |  \
-      /      -- -- -- -- -- -- --.__ ..  | | |     |
+                                                   /
+         -------------                                  .
+       /               \                         /    /
+     /                   \           ______         /
+    /                     \         \ |-   -               _ -
+    |                      |         \| | |   |        _ - 
+    \                     /        __  | | |   |     
+     \   _ -- -- -- -- -- -- --  /    \\\ | |  _|                 _ .
+       '                .          ,_  ||| | | |  \       __  ---
+      /      -- -- -- -- -- -- --.__ ..  | | |   |
      |                   \            | | |   |
                     -'''''''~        /_|-  |   |
                    (`.(`)(`)`))          /_____\
@@ -162,14 +160,14 @@ translate setup omBeforeOptimize = ret
 
 
 
-
-             |
-       \     |     /
+     .       '
+             |      '
+       \           /
     ----\----|--- /
   /      \   |   /\     
 -- __       ___      \               ______
 /     --  /     \ - -- -- -- -- -- -| |-   - 
-|        |  ,           .           | | |   |
+|        |  ,          ,            | | |   |
  \        \_ \_  ,--- -- -- -- -- --| | |   |
   \                   /             | | |  _| 
     '               '               | | | |  \
