@@ -59,7 +59,7 @@ instance Generator C.Program where
       
       prog = prog0{C.topLevel = tlm}
       tlm0  = C.topLevel prog0
-      
+
       pragmaOnce = C.Exclusive C.HeaderFile $ C.StmtPrpr $ C.PrprPragma "once"
       myHeader   = C.Exclusive C.SourceFile $ C.StmtPrpr $ C.PrprInclude C.Quotation2 $ T.pack headerFn
       
@@ -67,10 +67,9 @@ instance Generator C.Program where
       
       addIfMissing x xs = if x `elem` xs then xs else x:xs
 
+
 instance (Opt.Ready v g) => Generator (Plan.Plan v g Anot.Annotation) where
   generate setup plan = generate setup $ Plan.translate setup plan
   
---                                     H  H
 instance (Opt.Ready v g) => Generator (OM.OM v g Anot.Annotation) where 
---                                     H
   generate setup om = generate setup $ OM.translate setup om
