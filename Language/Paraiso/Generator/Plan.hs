@@ -38,31 +38,14 @@ data SubKernelRef v g a
   = SubKernelRef
     { subKernelParen :: Plan v g a,
       kernelIdx  :: Int,
-      inputIdxs  :: [FGL.Node],
-      outputIdxs :: [FGL.Node]
+      inputIdxs  :: V.Vector FGL.Node,
+      calcIdxs   :: V.Vector FGL.Node,
+      outputIdxs :: V.Vector FGL.Node
     }
     
 instance Referrer (SubKernelRef v g a) (Plan v g a) where
   parent = subKernelParen
  
-dataflow :: SubKernelRef v g a -> OM.Graph v g a
-dataflow ref = OM.dataflow $ (kernels $ parent ref) V.! (kernelIdx ref)
-    
-labNodesIn :: SubKernelRef v g a -> [FGL.LNode (OM.Node v g a)]
-labNodesIn ref = 
-  flip map (inputIdxs ref) $
-  \idx -> case FGL.lab (dataflow ref) idx of
-    Just x  -> (idx, x)
-    Nothing -> error $ "node [" ++ show idx ++ "] does not exist in kernel [" ++ show (kernelIdx ref) ++ "]"
-                   
-labNodesOut :: SubKernelRef v g a -> [FGL.LNode (OM.Node v g a)]
-labNodesOut ref = 
-  flip map (outputIdxs ref) $
-  \idx -> case FGL.lab (dataflow ref) idx of
-    Just x  -> (idx, x)
-    Nothing -> error $ "node [" ++ show idx ++ "] does not exist in kernel [" ++ show (kernelIdx ref) ++ "]"
-
-
 -- | refers to the storage required in the plan
 data StorageRef v g a
   = StaticRef (Plan v g a) Int -- ^ (StatigRef plan i) = i'th static variable in the plan
@@ -71,6 +54,32 @@ data StorageRef v g a
 instance Referrer (StorageRef v g a) (Plan v g a) where
   parent (StaticRef p _)      = p
   parent (ManifestRef p _ _ ) = p
+
+
+dataflow :: SubKernelRef v g a -> OM.Graph v g a
+dataflow ref = OM.dataflow $ (kernels $ parent ref) V.! (kernelIdx ref)
+    
+labNodesIn :: SubKernelRef v g a -> V.Vector(FGL.LNode (OM.Node v g a))
+labNodesIn ref = 
+  flip V.map (inputIdxs ref) $
+  \idx -> case FGL.lab (dataflow ref) idx of
+    Just x  -> (idx, x)
+    Nothing -> error $ "node [" ++ show idx ++ "] does not exist in kernel [" ++ show (kernelIdx ref) ++ "]"
+                   
+labNodesCalc :: SubKernelRef v g a -> V.Vector(FGL.LNode (OM.Node v g a))
+labNodesCalc ref = 
+  flip V.map (calcIdxs ref) $
+  \idx -> case FGL.lab (dataflow ref) idx of
+    Just x  -> (idx, x)
+    Nothing -> error $ "node [" ++ show idx ++ "] does not exist in kernel [" ++ show (kernelIdx ref) ++ "]"
+
+
+labNodesOut :: SubKernelRef v g a -> V.Vector(FGL.LNode (OM.Node v g a))
+labNodesOut ref = 
+  flip V.map (outputIdxs ref) $
+  \idx -> case FGL.lab (dataflow ref) idx of
+    Just x  -> (idx, x)
+    Nothing -> error $ "node [" ++ show idx ++ "] does not exist in kernel [" ++ show (kernelIdx ref) ++ "]"
   
 -- | get the DynValue description for current storage referrence.  
 storageType :: StorageRef v g a -> DVal.DynValue

@@ -55,21 +55,23 @@ dependencyAnalysis graph = imap update graph
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
     update i = setGroup i .  (Anot.set $ dependencyList i) . (Anot.set $ indirectList i) 
     
-    dependencyList idx = 
-      Depend.Direct $
+    dependencyList idx = -- a node wite index idx
+      Depend.Direct $    -- depends directly
       V.toList $
-      V.map fst $
-      V.filter snd $
+      V.map fst $        -- on the nodes with jdx where
+      V.filter snd $     -- 'True' is written at
       V.imap (\sidx dep -> (sidxToIdx V.! sidx, dep)) $
-      dependMatrixWrite V.! idx
-    
-    indirectList idx = 
-      Depend.Indirect $
+      dependMatrixWrite V.! idx -- dependMatrixWrite ! idx ! sidx
+      -- where  staticIndexs jdx = sidx in
+      
+    indirectList idx =  -- a node wite index idx
+      Depend.Indirect $ -- depends indirectly
       V.toList $
-      V.map fst $
-      V.filter snd $
+      V.map fst $       -- on the nodes with jdx where
+      V.filter snd $    -- 'True' is written at
       V.imap (\sidx dep -> (sidxToIdx V.! sidx, dep)) $
-      indirectMatrixWrite V.! idx
+      indirectMatrixWrite V.! idx -- dependMatrixWrite ! idx ! sidx
+      -- where  staticIndexs jdx = sidx in
 
     setGroup idx = 
       case idxToAlloc V.! idx of

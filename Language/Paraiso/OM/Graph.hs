@@ -28,12 +28,12 @@ module Language.Paraiso.OM.Graph
 import           Data.Dynamic
 import qualified Data.Vector as V
 import qualified Data.Graph.Inductive as FGL
-import Language.Paraiso.Name
-import Language.Paraiso.OM.Arithmetic as A
-import Language.Paraiso.OM.Reduce as R
-import Language.Paraiso.OM.DynValue
-import Language.Paraiso.Tensor
-import NumericPrelude
+import           Language.Paraiso.Name
+import           Language.Paraiso.OM.Arithmetic as A
+import           Language.Paraiso.OM.Reduce as R
+import           Language.Paraiso.OM.DynValue
+import           Language.Paraiso.Tensor
+import           NumericPrelude
 
 
 -- | An OM Setup, a set of information needed before you start building a 'Kernel'.

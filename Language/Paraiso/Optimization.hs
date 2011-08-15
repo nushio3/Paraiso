@@ -22,11 +22,13 @@ import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor (Vector)
 
 
--- | indicates that the pair (v, g) is ready to service full optimizations.
+-- | (Ready v g) indicates that the pair (v, g) has all the instances 
+--   to receive full optimization services.
 class (Vector v, 
        Additive.C g, 
        Ord g, 
-       Typeable g) 
+       Typeable g,
+       Show (v g)) 
       => Ready (v :: * -> *) (g :: *)
 
 optimize :: (Ready v g)            
@@ -39,7 +41,7 @@ optimize level = case level of
   _  -> optimize O0
 
 data Level 
-  = O0 
+  = O0 -- perform mandatory code analysis
   | O1
   | O2
   | O3
