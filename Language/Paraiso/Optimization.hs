@@ -1,11 +1,12 @@
-{-# LANGUAGE KindSignatures, NoImplicitPrelude, RankNTypes #-}
+{-# LANGUAGE FlexibleInstances, KindSignatures, MultiParamTypeClasses, NoImplicitPrelude, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 
 -- | tipycal optimization menu
 
 module Language.Paraiso.Optimization (
   optimize,
-  OptimizationLevel(..)
+  Level(..),
+  Ready
   ) where
 
 import qualified Algebra.Additive            as Additive
@@ -20,16 +21,24 @@ import           Language.Paraiso.Optimization.Identity
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor (Vector)
 
-optimize :: (Vector v, 
-             Additive.C g, 
-             Ord g, 
-             Typeable g) => 
-            OptimizationLevel -> OM v g Annotation -> OM v g Annotation
+
+-- | indicates that the pair (v, g) is ready to service full optimizations.
+class (Vector v, 
+       Additive.C g, 
+       Ord g, 
+       Typeable g) 
+      => Ready (v :: * -> *) (g :: *)
+
+optimize :: (Ready v g)            
+            => Level 
+            -> OM v g Annotation 
+            -> OM v g Annotation
+            
 optimize level = case level of
   O0 -> gmap identity . writeGrouping . gmap boundaryAnalysis . gmap decideAllocation
   _  -> optimize O0
 
-data OptimizationLevel 
+data Level 
   = O0 
   | O1
   | O2

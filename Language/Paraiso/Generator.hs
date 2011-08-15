@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE  FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 -- | a general code generator definition.
 module Language.Paraiso.Generator
@@ -6,6 +6,7 @@ module Language.Paraiso.Generator
      Generator(..)
     ) where
 
+import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Generator.Claris      as C
 import qualified Language.Paraiso.Generator.ClarisTrans as C
 import qualified Language.Paraiso.Generator.Native      as Native
@@ -14,6 +15,7 @@ import qualified Language.Paraiso.Generator.Plan        as Plan
 import qualified Language.Paraiso.Generator.PlanTrans   as Plan
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM                    as OM
+import qualified Language.Paraiso.Optimization          as Opt
 import           Language.Paraiso.Prelude
 import qualified Data.Text                              as T
 import qualified Data.Text.IO                           as T
@@ -65,9 +67,10 @@ instance Generator C.Program where
       
       addIfMissing x xs = if x `elem` xs then xs else x:xs
 
-instance Generator (Plan.Plan v g a) where
+instance (Opt.Ready v g) => Generator (Plan.Plan v g Anot.Annotation) where
   generate setup plan = generate setup $ Plan.translate setup plan
   
---                  H  H
-instance Generator (OM.OM v g a) where  
-  generate setup om = generate setup $ OM.translate om
+--                                     H  H
+instance (Opt.Ready v g) => Generator (OM.OM v g Anot.Annotation) where 
+--                                     H
+  generate setup om = generate setup $ OM.translate setup om
