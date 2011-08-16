@@ -86,14 +86,15 @@ translate setup omBeforeOptimize = ret
 
 
     generateSubKernel groupIdx = 
-      mkSubKernel $
+      mkSubKernel groupIdx $
       V.ifilter (\i _ -> omWriteGroup V.! i == Dep.OMWriteGroup groupIdx) $
       manifestNodes 
 
-    mkSubKernel myNodes =
+    mkSubKernel groupIdx myNodes =
       Plan.SubKernelRef 
       { Plan.subKernelParen = ret,
         Plan.kernelIdx  = (tKernelIdx $ myNodes V.! 0),
+        Plan.omWriteGroupIdx = groupIdx,
         Plan.outputIdxs = V.map tNodeIdx myNodes,
         Plan.inputIdxs  = inputs ,
         Plan.calcIdxs = calcs,

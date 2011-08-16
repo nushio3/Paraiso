@@ -1,4 +1,4 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, NoImplicitPrelude #-}
+{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 -- | Taking the optimized OM as the input,
@@ -47,14 +47,18 @@ class Referrer a b | a->b where
 -- | subroutines that executes portion of a calculations for certain kernel
 data SubKernelRef v g a
   = SubKernelRef
-    { subKernelParen :: Plan v g a,
-      kernelIdx  :: Int,
-      inputIdxs  :: V.Vector FGL.Node,
-      calcIdxs   :: V.Vector FGL.Node,
-      outputIdxs :: V.Vector FGL.Node,
-      subKernelRealm :: Realm.Realm,
-      subKernelValid :: Boundary.Valid g
+    { subKernelParen  :: Plan v g a,
+      kernelIdx       :: Int,
+      omWriteGroupIdx :: Int,      
+      inputIdxs       :: V.Vector FGL.Node,
+      calcIdxs        :: V.Vector FGL.Node,
+      outputIdxs      :: V.Vector FGL.Node,
+      subKernelRealm  :: Realm.Realm,
+      subKernelValid  :: Boundary.Valid g
     }
+
+instance Nameable (SubKernelRef v g a) where
+  name x = mkName $ nameText (parent x) ++ "_sub_" ++ showT (omWriteGroupIdx x)
 
 instance Referrer (SubKernelRef v g a) (Plan v g a) where
   parent = subKernelParen
