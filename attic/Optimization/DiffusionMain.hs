@@ -121,6 +121,11 @@ myOM = optimize O3 $
 genSetup :: Native.Setup
 genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
+genSetup2 :: Native.Setup
+genSetup2 = Native.defaultSetup { Native.language = Native.CUDA, 
+                                  Native.directory = "./dist2/" }
+
+
 main :: IO ()
 main = do
   -- output the intermediate state.
@@ -128,6 +133,7 @@ main = do
   
   -- generate the library 
   _ <- generateIO genSetup myOM
+  _ <- generateIO genSetup2 myOM  
   
   return ()
   
