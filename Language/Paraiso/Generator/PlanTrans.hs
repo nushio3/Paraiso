@@ -28,3 +28,7 @@ translate setup plan =
     tVoid = C.typeOf ()
     
     subKernelFuncs = V.toList $ V.map makeFunc $ Plan.subKernels plan
+    
+    
+    
+    

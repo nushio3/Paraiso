@@ -11,9 +11,9 @@
 module Language.Paraiso.Generator.Plan (
   Plan(..),
 
-  SubKernelRef(..), StorageRef(..),
+  SubKernelRef(..), StorageRef(..), StorageIdx(..),
 
-  dataflow, labNodesIn, labNodesOut,
+  dataflow, labNodesIn, labNodesOut, labNodesCalc,
   storageType                  
   ) where
 
@@ -47,7 +47,7 @@ class Referrer a b | a->b where
 -- | subroutines that executes portion of a calculations for certain kernel
 data SubKernelRef v g a
   = SubKernelRef
-    { subKernelParen  :: Plan v g a,
+    { subKernelParent :: Plan v g a,
       kernelIdx       :: Int,
       omWriteGroupIdx :: Int,      
       inputIdxs       :: V.Vector FGL.Node,
@@ -57,20 +57,25 @@ data SubKernelRef v g a
       subKernelValid  :: Boundary.Valid g
     }
 
+instance Referrer (SubKernelRef v g a) (Plan v g a) where
+  parent = subKernelParent
 instance Nameable (SubKernelRef v g a) where
   name x = mkName $ nameText (parent x) ++ "_sub_" ++ showT (omWriteGroupIdx x)
 
-instance Referrer (SubKernelRef v g a) (Plan v g a) where
-  parent = subKernelParen
-
 -- | refers to a storage required in the plan
 data StorageRef v g a
-  = StaticRef (Plan v g a) Int -- ^ (StatigRef plan i) = i'th static variable in the plan
-  | ManifestRef (Plan v g a) Int FGL.Node -- ^ (ManifestRef plan i j) = j'th node of the i'th kernel in the plan
+  = StorageRef
+  { storageRefParent :: Plan v g a,
+    storageIdx       :: StorageIdx,
+    storageDynValue  :: DVal.DynValue
+  }
+
+data StorageIdx 
+  = StaticRef   Int -- ^ (StatigRef plan i) = i'th static variable in the plan
+  | ManifestRef Int FGL.Node -- ^ (ManifestRef plan i j) = j'th node of the i'th kernel in the plan
 
 instance Referrer (StorageRef v g a) (Plan v g a) where
-  parent (StaticRef p _)      = p
-  parent (ManifestRef p _ _ ) = p
+  parent = storageRefParent
 
 
 dataflow :: SubKernelRef v g a -> OM.Graph v g a
@@ -102,9 +107,17 @@ labNodesOut ref =
 
 -- | get the DynValue description for a storage referrence.  
 storageType :: StorageRef v g a -> DVal.DynValue
-storageType (StaticRef p i) = namee $ (OM.staticValues $ setup p) V.! i
-storageType (ManifestRef p i j) = case FGL.lab (OM.dataflow $ kernels p V.! i) j of
-  Just (OM.NValue x _) -> x
-  Just _               -> error $ "node [" ++ show j ++ "] in kernel [" ++ show i ++ "] is not a Value node" 
-  Nothing              -> error $ "node [" ++ show j ++ "] does not exist in kernel [" ++ show i ++ "]"
+storageType 
+  StorageRef {
+    storageRefParent = p,
+    storageIdx       = StaticRef i
+    } = namee $ (OM.staticValues $ setup p) V.! i
+storageType 
+  StorageRef {
+    storageRefParent = p,
+    storageIdx       = ManifestRef i j
+    } = case FGL.lab (OM.dataflow $ kernels p V.! i) j of
+    Just (OM.NValue x _) -> x
+    Just _               -> error $ "node [" ++ show j ++ "] in kernel [" ++ show i ++ "] is not a Value node" 
+    Nothing              -> error $ "node [" ++ show j ++ "] does not exist in kernel [" ++ show i ++ "]"
 

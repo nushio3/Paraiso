@@ -49,11 +49,21 @@ translate setup omBeforeOptimize = ret
     subKernels = V.generate subKernelSize generateSubKernel
 
     staticRefs = 
-      V.imap (\idx _ -> Plan.StaticRef ret idx) $
+      V.imap (\idx sVar -> 
+               Plan.StorageRef { 
+                 Plan.storageRefParent = ret,
+                 Plan.storageIdx       = Plan.StaticRef idx,
+                 Plan.storageDynValue  = namee sVar
+               } ) $
       OM.staticValues $ OM.setup om
 
     manifestRefs = 
-      V.map (\(Triplet kidx idx _) -> Plan.ManifestRef ret kidx idx) $
+      V.map (\(Triplet kidx idx nd) -> 
+              Plan.StorageRef {
+                Plan.storageRefParent = ret,
+                Plan.storageIdx       = Plan.ManifestRef kidx idx,
+                Plan.storageDynValue  = getDynValue nd
+              } ) $
       manifestNodes 
 
     manifestNodes = -- the vector of (kernelID, nodeID, node) of      
@@ -76,6 +86,12 @@ translate setup omBeforeOptimize = ret
           Just omg@(Dep.OMWriteGroup _) -> omg
           Nothing -> error $ "OMWriteGroup missing : " ++ show tri
 
+    getRealm (OM.NValue dv _) = DVal.realm dv
+    getRealm _                = error $ "invalid request for Realm; probably a non-Value node is marked as Manifest"
+    getDynValue (OM.NValue dv _) = dv
+    getDynValue _                = error $ "invalid request for DVal; probably a non-Value node is marked as Manifest"
+
+
     subKernelSize = 
       (1 +) $ 
       maximum $ 
@@ -92,14 +108,14 @@ translate setup omBeforeOptimize = ret
 
     mkSubKernel groupIdx myNodes =
       Plan.SubKernelRef 
-      { Plan.subKernelParen = ret,
-        Plan.kernelIdx  = (tKernelIdx $ myNodes V.! 0),
+      { Plan.subKernelParent = ret,
+        Plan.kernelIdx       = (tKernelIdx $ myNodes V.! 0),
         Plan.omWriteGroupIdx = groupIdx,
-        Plan.outputIdxs = V.map tNodeIdx myNodes,
-        Plan.inputIdxs  = inputs ,
-        Plan.calcIdxs = calcs,
-        Plan.subKernelRealm = skRealm,
-        Plan.subKernelValid = skValid om
+        Plan.outputIdxs      = V.map tNodeIdx myNodes,
+        Plan.inputIdxs       = inputs ,
+        Plan.calcIdxs        = calcs,
+        Plan.subKernelRealm  = skRealm,
+        Plan.subKernelValid  = skValid om
       }
       where
         inputs :: V.Vector FGL.Node
@@ -132,9 +148,6 @@ translate setup omBeforeOptimize = ret
           assertAllSame $
           map (getRealm . tNode) $
           V.toList myNodes
-
-        getRealm (OM.NValue dv _) = DVal.realm dv
-        getRealm _                = error $ "non-Value node is marked as Manifest"
         
         skValid :: (Opt.Ready v g) => OM.OM v g Anot.Annotation -> Boundary.Valid g
         skValid _ =
