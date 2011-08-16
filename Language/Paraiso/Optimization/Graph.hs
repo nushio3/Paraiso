@@ -23,6 +23,7 @@ class (Tensor.Vector v,
        Additive.C g, 
        Ord g, 
        Typeable g,
+       Show g,
        Show (v g)) 
       => Ready (v :: * -> *) (g :: *)
 
@@ -30,6 +31,7 @@ instance (Tensor.Vector v,
           Additive.C g, 
           Ord g, 
           Typeable g,
+          Show g,
           Show (v g)) 
          => Ready (v :: * -> *) (g :: *)
 

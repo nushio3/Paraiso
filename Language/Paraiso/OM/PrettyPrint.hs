@@ -20,19 +20,19 @@ import           Language.Paraiso.Interval
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Graph
+import           Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
 
 -- | pretty print the OM, neglecting any annotations.
-prettyPrint :: (Vector v, Show (v g)) => OM v g a -> T.Text
+prettyPrint :: Opt.Ready v g => OM v g a -> T.Text
 prettyPrint = prettyPrintA (const []) 
 
 -- | pretty print the OM, using a default printing for annotation.
-prettyPrintA1 :: (Vector v, Show (v g)) => OM v g Anot.Annotation -> T.Text
-prettyPrintA1 = prettyPrintA ppAnot1
+prettyPrintA1 :: Opt.Ready v g => OM v g Anot.Annotation -> T.Text
+prettyPrintA1 om = prettyPrintA (ppAnot1 om) om
 
 -- | pretty print the OM with your choice of prettyprinter for annotation.
-prettyPrintA :: (Vector v, Show (v g)) => (a -> [T.Text]) -> OM v g a -> T.Text
+prettyPrintA :: Opt.Ready v g => (a -> [T.Text]) -> OM v g a -> T.Text
 prettyPrintA ppAnot om 
   = LL.unlines 
     [ "OM name: " ++ nameText om,
@@ -68,12 +68,13 @@ prettyPrintA ppAnot om
       EOrd x -> "(" ++ showT x ++ ")" ++ showT i
 
 
-ppAnot1 :: Anot.Annotation -> [T.Text]
-ppAnot1 anots = map ("  "++) $ concat cands
+
+ppAnot1 :: Opt.Ready v g => OM v g Anot.Annotation -> Anot.Annotation -> [T.Text]
+ppAnot1 om anots = map ("  "++) $ concat cands
   where
     cands = 
       [ map showT ((Anot.toList anots) ::  [Alloc.Allocation])
-      , map ppValid ((Anot.toList anots) ::[Boundary.Valid Int])
+      , map ppValid (toValidList om anots)      
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Direct])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Indirect])
       , map (("Depend.Calc "++) . ppDC) ((Anot.toList anots) ::  [Depend.Calc])
@@ -81,6 +82,9 @@ ppAnot1 anots = map ("  "++) $ concat cands
       , map showT ((Anot.toList anots) ::  [Depend.OMWriteGroup])                
       ]
       
+    toValidList :: Opt.Ready v g => OM v g Anot.Annotation -> Anot.Annotation -> [Boundary.Valid g]      
+    toValidList _ = Anot.toList
+                   
     ppValid (Boundary.Valid xs) = LL.unwords $ map ppInterval xs
     ppInterval (Interval x y) 
       = ppNB x ++ ".." ++ ppNB y
