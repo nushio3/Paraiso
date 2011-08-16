@@ -11,6 +11,7 @@ import qualified Data.Set                               as Set
 import qualified Data.Vector                            as V
 import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
+import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Dep
 import qualified Language.Paraiso.Generator.Plan        as Plan
 import qualified Language.Paraiso.Generator.Native      as Native
@@ -97,7 +98,7 @@ translate setup omBeforeOptimize = ret
         Plan.inputIdxs  = inputs ,
         Plan.calcIdxs = calcs,
         Plan.subKernelRealm = skRealm,
-        Plan.subKernelValid = undefined
+        Plan.subKernelValid = skValid om
       }
       where
         inputs :: V.Vector FGL.Node
@@ -134,10 +135,11 @@ translate setup omBeforeOptimize = ret
         getRealm (OM.NValue dv _) = DVal.realm dv
         getRealm _                = error $ "non-Value node is marked as Manifest"
         
-        
-        skValid =
+        skValid :: (Opt.Ready v g) => OM.OM v g Anot.Annotation -> Boundary.Valid g
+        skValid _ =
           assertAllSame $
-          map (Anot.toList . getA . tNode) $
+          concat $
+          map (Anot.toList . OM.getA . tNode) $
           V.toList myNodes          
     
 -- | check if all the elements are the same and returns it
