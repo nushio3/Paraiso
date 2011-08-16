@@ -1,8 +1,8 @@
-all: dist/diffusion.cpp
+all: ghc dist/diffusion.cpp
 
 dist/diffusion.cpp : DiffusionMain
 	./DiffusionMain
 
-DiffusionMain : DiffusionMain.hs
+ghc : DiffusionMain.hs
 	ghc -O3 --make -i../../ DiffusionMain.hs
 
