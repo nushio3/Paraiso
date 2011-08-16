@@ -53,7 +53,7 @@ data SubKernelRef v g a
       calcIdxs   :: V.Vector FGL.Node,
       outputIdxs :: V.Vector FGL.Node,
       subKernelRealm :: Realm.Realm,
-      subKernelBoundary :: Boundary.Valid g
+      subKernelValid :: Boundary.Valid g
     }
 
 instance Referrer (SubKernelRef v g a) (Plan v g a) where

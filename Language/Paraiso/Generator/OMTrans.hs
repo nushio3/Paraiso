@@ -16,7 +16,9 @@ import qualified Language.Paraiso.Generator.Plan        as Plan
 import qualified Language.Paraiso.Generator.Native      as Native
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM                    as OM
+import qualified Language.Paraiso.OM.DynValue           as DVal
 import qualified Language.Paraiso.OM.Graph              as OM
+import qualified Language.Paraiso.OM.Realm              as Realm
 import qualified Language.Paraiso.Optimization          as Opt
 import           Language.Paraiso.Prelude
 
@@ -93,7 +95,9 @@ translate setup omBeforeOptimize = ret
         Plan.kernelIdx  = (tKernelIdx $ myNodes V.! 0),
         Plan.outputIdxs = V.map tNodeIdx myNodes,
         Plan.inputIdxs  = inputs ,
-        Plan.calcIdxs = calcs
+        Plan.calcIdxs = calcs,
+        Plan.subKernelRealm = skRealm,
+        Plan.subKernelValid = undefined
       }
       where
         inputs :: V.Vector FGL.Node
@@ -121,8 +125,29 @@ translate setup omBeforeOptimize = ret
           V.toList $
           V.map (Anot.toMaybe . OM.getA . tNode) myNodes
         
-    
+        skRealm :: Realm.Realm
+        skRealm = 
+          assertAllSame $
+          map (getRealm . tNode) $
+          V.toList myNodes
 
+        getRealm (OM.NValue dv _) = DVal.realm dv
+        getRealm _                = error $ "non-Value node is marked as Manifest"
+        
+        
+        skValid =
+          assertAllSame $
+          map (Anot.toList . getA . tNode) $
+          V.toList myNodes          
+    
+-- | check if all the elements are the same and returns it
+assertAllSame :: Eq a => [a] -> a
+assertAllSame xs = case xs of
+  []     -> error "no elements!"
+  (x:ys) -> if all (==x) ys then x
+            else error "elements are different. mismatch."
+    
+    
 
 {-
 
