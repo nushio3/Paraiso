@@ -6,6 +6,7 @@
 
 module Language.Paraiso.Annotation.Dependency (
   Direct(..),
+  Calc(..),
   Indirect(..),
   KernelWriteGroup(..), 
   OMWriteGroup(..)
@@ -14,10 +15,11 @@ module Language.Paraiso.Annotation.Dependency (
 
 import           Data.Dynamic
 import qualified Data.Graph.Inductive as FGL
+import qualified Data.Set as Set
 import           Language.Paraiso.Prelude
 
 -- | The list of Manifest or Existing nodes that this node directly depends on.
--- A directly depends on B if you need to read B to calculate A
+-- A directly depends on B if you need to read B in subroutine you calculate A
 newtype Direct
   = Direct [FGL.Node]
   deriving (Eq, Show, Typeable)
@@ -27,6 +29,13 @@ newtype Direct
 newtype Indirect
   = Indirect [FGL.Node]
   deriving (Eq, Show, Typeable)
+
+-- | The list of All nodes that this node directly depends on
+-- A directly depends on B if you need to calculate B in subroutine you calculate A
+newtype Calc
+  = Calc (Set.Set FGL.Node)
+  deriving (Eq, Show, Typeable)
+
 
 
 -- | Write grouping, continuously numbered from [0 ..] .

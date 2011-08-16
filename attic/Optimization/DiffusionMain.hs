@@ -1,4 +1,4 @@
-{-# LANGUAGE  NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
@@ -121,6 +121,7 @@ myOM = optimize O3 $
 genSetup :: Native.Setup
 genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
+instance Ready ((:~) Vec2) Int
 
 main :: IO ()
 main = do

@@ -4,18 +4,19 @@ module Language.Paraiso.Optimization.DependencyAnalysis (
   writeGrouping
   ) where
 
-import qualified Data.Vector                 as V
-import qualified Data.Graph.Inductive        as FGL
-import qualified Language.Paraiso.Annotation as Anot
+import qualified Data.Graph.Inductive                   as FGL
+import qualified Data.Set                               as Set
+import qualified Data.Vector                            as V
+import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Depend
-import           Language.Paraiso.Prelude
 import           Language.Paraiso.OM
-import qualified Language.Paraiso.OM.DynValue as DVal
+import qualified Language.Paraiso.OM.DynValue           as DVal
 import           Language.Paraiso.OM.Graph
-import qualified Language.Paraiso.OM.Realm as Realm
+import qualified Language.Paraiso.OM.Realm              as Realm
 import           Language.Paraiso.Optimization.Graph
+import           Language.Paraiso.Prelude
 
 -- | Give unique numbering to each groups in the entire OM 
 --   in preparation for code generation
@@ -53,7 +54,7 @@ dependencyAnalysis :: Optimization
 dependencyAnalysis graph = imap update graph 
   where
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
-    update i = setGroup i .  (Anot.set $ dependencyList i) . (Anot.set $ indirectList i) 
+    update i = setGroup i . (Anot.set $ calcList i) . (Anot.set $ dependencyList i) . (Anot.set $ indirectList i) 
     
     dependencyList idx = -- a node wite index idx
       Depend.Direct $    -- depends directly
@@ -72,6 +73,11 @@ dependencyAnalysis graph = imap update graph
       V.imap (\sidx dep -> (sidxToIdx V.! sidx, dep)) $
       indirectMatrixWrite V.! idx -- dependMatrixWrite ! idx ! sidx
       -- where  staticIndexs jdx = sidx in
+
+    calcList idx = -- a set of node idxs needed within subroutine that calculate node idx
+      Depend.Calc $
+      calcMatrixWrite V.! idx 
+
 
     setGroup idx = 
       case idxToAlloc V.! idx of
@@ -215,3 +221,20 @@ dependencyAnalysis graph = imap update graph
       | V.length va /= sidxSize = error "wrong size contamination in dependMatrix"
       | V.length vb /= sidxSize = error "wrong size contamination in dependMatrix" 
       | otherwise               = V.zipWith (||) va vb
+    
+
+
+    -- The every noe touched in the kernel to calculate the node
+    calcMatrixRead :: V.Vector (Set.Set FGL.Node)
+    calcMatrixRead = V.generate idxSize calcRowRead
+    
+    calcMatrixWrite :: V.Vector (Set.Set FGL.Node)
+    calcMatrixWrite = V.generate idxSize calcRowWrite
+
+    calcRowWrite idx = Set.unions $ map (calcMatrixRead V.!) $ FGL.pre graph idx
+    
+    calcRowRead idx
+      -- strict nodes depends only on itself
+      | isStrict V.! idx = Set.fromList [idx]
+      -- a non-manifest node indirects on its predecessors
+      | otherwise        = Set.union (Set.fromList [idx]) $ calcMatrixWrite V.! idx

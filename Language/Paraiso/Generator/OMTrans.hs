@@ -5,20 +5,19 @@ module Language.Paraiso.Generator.OMTrans (
   translate
   ) where
 
-import qualified Data.Graph.Inductive as FGL
-import           Data.List (nub, sort)
+import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe (catMaybes)
-import qualified Data.Vector as V
-import qualified Language.Paraiso.Annotation as Anot
+import qualified Data.Set                               as Set
+import qualified Data.Vector                            as V
+import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
-import qualified Language.Paraiso.Annotation.Dependency  as Dep
-import qualified Language.Paraiso.Generator.Plan as Plan
-import qualified Language.Paraiso.Generator.Native as Native
+import qualified Language.Paraiso.Annotation.Dependency as Dep
+import qualified Language.Paraiso.Generator.Plan        as Plan
+import qualified Language.Paraiso.Generator.Native      as Native
 import           Language.Paraiso.Name
-import qualified Language.Paraiso.ListSet as Set
-import qualified Language.Paraiso.OM as OM
-import qualified Language.Paraiso.OM.Graph as OM
-import qualified Language.Paraiso.Optimization as Opt
+import qualified Language.Paraiso.OM                    as OM
+import qualified Language.Paraiso.OM.Graph              as OM
+import qualified Language.Paraiso.Optimization          as Opt
 import           Language.Paraiso.Prelude
 
 
@@ -40,12 +39,12 @@ translate setup omBeforeOptimize = ret
         Plan.storages   = storages,
         Plan.subKernels = subKernels
       }
-    
+
     om = Opt.optimize (Native.optLevel setup) omBeforeOptimize
 
     storages = staticRefs V.++ manifestRefs 
     subKernels = V.generate subKernelSize generateSubKernel
-    
+
     staticRefs = 
       V.imap (\idx _ -> Plan.StaticRef ret idx) $
       OM.staticValues $ OM.setup om
@@ -53,7 +52,7 @@ translate setup omBeforeOptimize = ret
     manifestRefs = 
       V.map (\(Triplet kidx idx _) -> Plan.ManifestRef ret kidx idx) $
       manifestNodes 
-    
+
     manifestNodes = -- the vector of (kernelID, nodeID, node) of      
       V.concatMap findManifest $ -- elements marked as Manifest, found in
       V.concat . V.toList $ -- a monolithic vector of 
@@ -73,7 +72,7 @@ translate setup omBeforeOptimize = ret
         \ tri@(Triplet _ _ nd) -> case Anot.toMaybe $ OM.getA nd of
           Just omg@(Dep.OMWriteGroup _) -> omg
           Nothing -> error $ "OMWriteGroup missing : " ++ show tri
-          
+
     subKernelSize = 
       (1 +) $ 
       maximum $ 
@@ -81,26 +80,26 @@ translate setup omBeforeOptimize = ret
       V.toList $
       V.map Dep.getOMGroupID $
       omWriteGroup
-      
+
 
     generateSubKernel groupIdx = 
-      mkSubKernel groupIdx $
+      mkSubKernel $
       V.ifilter (\i _ -> omWriteGroup V.! i == Dep.OMWriteGroup groupIdx) $
       manifestNodes 
-      
-    mkSubKernel groupIdx myNodes =
+
+    mkSubKernel myNodes =
       Plan.SubKernelRef 
       { Plan.subKernelParen = ret,
         Plan.kernelIdx  = (tKernelIdx $ myNodes V.! 0),
         Plan.outputIdxs = V.map tNodeIdx myNodes,
-        Plan.inputIdxs  = inputs 
-                          -- TODO --
+        Plan.inputIdxs  = inputs ,
+        Plan.calcIdxs = calcs
       }
       where
         inputs :: V.Vector FGL.Node
         inputs =
           V.fromList $ Set.toList $
-          Set.unionAll $
+          Set.unions $
           map (\(Dep.Direct xs) -> Set.fromList xs) $
           depDirects
         depDirects :: [Dep.Direct]
@@ -109,14 +108,20 @@ translate setup omBeforeOptimize = ret
           V.toList $
           V.map (Anot.toMaybe . OM.getA . tNode) myNodes
 
-
-
-
-
-
-
-
-
+        calcs :: V.Vector FGL.Node
+        calcs = 
+          V.fromList $
+          Set.toList $
+          Set.unions $
+          map (\(Dep.Calc xset) -> xset) $
+          depCalcs
+        depCalcs :: [Dep.Calc]
+        depCalcs = 
+          catMaybes $
+          V.toList $
+          V.map (Anot.toMaybe . OM.getA . tNode) myNodes
+        
+    
 
 
 {-

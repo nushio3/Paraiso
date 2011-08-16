@@ -7,6 +7,7 @@ module Language.Paraiso.OM.PrettyPrint (
 
 import qualified Data.Graph.Inductive as FGL
 import           Data.List (sort)
+import qualified Data.Set as Set
 import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Data.ListLike.String as LL
@@ -75,6 +76,7 @@ ppAnot1 anots = map ("  "++) $ concat cands
       , map ppValid ((Anot.toList anots) ::[Boundary.Valid Int])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Direct])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Indirect])
+      , map (("Depend.Calc "++) . ppDC) ((Anot.toList anots) ::  [Depend.Calc])
       , map showT ((Anot.toList anots) ::  [Depend.KernelWriteGroup])        
       , map showT ((Anot.toList anots) ::  [Depend.OMWriteGroup])                
       ]
@@ -89,3 +91,4 @@ ppAnot1 anots = map ("  "++) $ concat cands
     ppNB (Boundary.UpperBoundary x) = showT x ++ "]"
     ppNB (Boundary.PosiInfinity)    = "+inf]"
     
+    ppDC (Depend.Calc s) = showT $ Set.toList s
