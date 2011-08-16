@@ -121,8 +121,6 @@ myOM = optimize O3 $
 genSetup :: Native.Setup
 genSetup = Native.defaultSetup { Native.directory = "./dist/" }
 
-instance Ready ((:~) Vec2) Int
-
 main :: IO ()
 main = do
   -- output the intermediate state.

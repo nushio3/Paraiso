@@ -15,15 +15,15 @@ import           Language.Paraiso.OM
 import qualified Language.Paraiso.OM.DynValue           as DVal
 import           Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm              as Realm
-import           Language.Paraiso.Optimization.Graph
+import qualified Language.Paraiso.Optimization.Graph    as Opt
 import           Language.Paraiso.Prelude
 
 -- | Give unique numbering to each groups in the entire OM 
 --   in preparation for code generation
-writeGrouping :: OM v g Anot.Annotation -> OM v g Anot.Annotation
+writeGrouping :: Opt.Ready v g => OM v g Anot.Annotation -> OM v g Anot.Annotation
 writeGrouping om0 = om { kernels = kernelsRet}
   where
-    om = gmap dependencyAnalysis om0
+    om = Opt.gmap dependencyAnalysis om0
     kernels0 = kernels om
     graphs0 = V.map dataflow $ kernels0
     graphsSize = V.length graphs0
@@ -50,7 +50,7 @@ writeGrouping om0 = om { kernels = kernelsRet}
         Anot.map (Depend.OMWriteGroup . (diff+) . Depend.getKernelGroupID)
       
 -- | an optimization that changes nothing.
-dependencyAnalysis :: Optimization
+dependencyAnalysis :: Opt.Ready v g => Opt.OptimizationOf v g
 dependencyAnalysis graph = imap update graph 
   where
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
@@ -129,8 +129,10 @@ dependencyAnalysis graph = imap update graph
         f' Nothing  = error "writeGrouping must be done after decideAllocation"
 
     -- the allocation setting of each node.
-    idxToValid :: V.Vector (Boundary.Valid Int)
-    idxToValid = V.fromList $
+    -- the gauge for validness should copy the gauge of the graph.
+    idxToValid = idxToValid' graph
+    idxToValid' :: (Opt.Ready v g) => (Graph v g Anot.Annotation) -> V.Vector (Boundary.Valid g)
+    idxToValid' _  = V.fromList $
       map (\(_, nd) -> f' $ Anot.toMaybe $ getA nd) $
       FGL.labNodes graph
       where

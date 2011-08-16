@@ -26,3 +26,4 @@ translate setup plan =
     makeFunc ker = C.MemberFunc C.Public $ 
                    C.function tVoid (name ker)
     tVoid = C.typeOf ()
+    
