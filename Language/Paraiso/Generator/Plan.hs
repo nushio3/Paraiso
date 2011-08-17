@@ -19,7 +19,6 @@ module Language.Paraiso.Generator.Plan (
 
 import qualified Data.Graph.Inductive as FGL
 import qualified Data.Vector as V
-import qualified Language.Paraiso.Annotation.Boundary as Boundary
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.DynValue as DVal
 import qualified Language.Paraiso.OM.Graph as OM
@@ -56,7 +55,8 @@ data SubKernelRef v g a
       calcIdxs        :: V.Vector FGL.Node,
       outputIdxs      :: V.Vector FGL.Node,
       subKernelRealm  :: Realm.Realm,
-      subKernelValid  :: Boundary.Valid g
+      lowerBoundary   :: v g,
+      upperBoundary   :: v g
     }
 
 instance Referrer (SubKernelRef v g a) (Plan v g a) where

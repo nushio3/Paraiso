@@ -44,8 +44,8 @@ translate setup omBeforeOptimize = ret
         Plan.kernels    = OM.kernels om,
         Plan.storages   = storages,
         Plan.subKernels = subKernels,
-        Plan.lowerMargin = lowerMargin,
-        Plan.upperMargin = upperMargin
+        Plan.lowerMargin = validToLower $ storageValidUnited om,  
+        Plan.upperMargin = validToUpper $ storageValidUnited om  
       }
 
     om = Opt.optimize (Native.optLevel setup) omBeforeOptimize
@@ -97,20 +97,20 @@ translate setup omBeforeOptimize = ret
     getDynValue _                = error $ "invalid request for DVal; probably a non-Value node is marked as Manifest"
 
 
-    lowerMargin = compose $ \ax -> case Interval.lower (totalValidIntervals !! (axisIndex ax)) of
-      Boundary.LowerBoundary x -> x
-      _                        -> error "wrong negaMargin!"
-    upperMargin = negate $ 
-                 compose $ \ax -> case Interval.upper (totalValidIntervals !! (axisIndex ax)) of
-      Boundary.UpperBoundary x -> x
-      _                        -> error "wrong posiMargin!"
-      
-      
+
+    validToLower valid = let Boundary.Valid xs = valid in
+      compose $ \ax -> case Interval.lower (xs !! (axisIndex ax)) of
+        Boundary.LowerBoundary x -> x
+        _                        -> error "wrong lower Margin!"
+    validToUpper valid = negate $ let Boundary.Valid xs = valid in
+      compose $ \ax -> case Interval.upper (xs !! (axisIndex ax)) of
+        Boundary.UpperBoundary x -> x
+        _                        -> error "wrong upper Margin!"
+
     -- the intersection of the valid area of all the store instructions found in the om.
-    totalValidIntervals = let Boundary.Valid xs = totalStoreValid om in xs
-    totalStoreValid :: (Opt.Ready v g) =>
+    storageValidUnited :: (Opt.Ready v g) =>
                        OM.OM v g Anot.Annotation -> Boundary.Valid g
-    totalStoreValid _ = 
+    storageValidUnited _ = 
       foldl1 Pi.intersection $
       concat $
       map findStoreValid $
@@ -148,7 +148,8 @@ translate setup omBeforeOptimize = ret
         Plan.inputIdxs       = inputs ,
         Plan.calcIdxs        = calcs,
         Plan.subKernelRealm  = skRealm,
-        Plan.subKernelValid  = skValid om
+        Plan.lowerBoundary   = validToLower $ skValid om,
+        Plan.upperBoundary   = validToUpper $ skValid om
       }
       where
         inputs :: V.Vector FGL.Node
