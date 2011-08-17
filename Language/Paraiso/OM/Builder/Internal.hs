@@ -17,7 +17,8 @@ module Language.Paraiso.OM.Builder.Internal
      reduce, broadcast,
      shift, loadIndex,loadSize,
      imm, mkOp1, mkOp2,
-     modifyAnot
+     annotate, (<?>),
+     withAnnotation
     ) where
 import qualified Algebra.Absolute as Absolute
 import qualified Algebra.Additive as Additive
@@ -216,7 +217,7 @@ broadcast builder1 = do
   n3 <- addNodeE [n2] $ NValue type2 
   return (FromNode TLocal c1 n3)
 
--- | Shift a 'TLocal' 'Value' with a constant vector.
+-- | Shift a 'TLocal' 'Value' wi5Bth a constant vector.
 shift :: (Typeable c)
   => v g                            -- ^ The amount of shift  
   -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
@@ -296,13 +297,39 @@ mkOp2 op builder1 builder2 = do
 
 
 -- | Execute the builder under modifed annotation.
-modifyAnot :: (a -> a) -> Builder v g a ret ->  Builder v g a ret
-modifyAnot f builder1 = do
+withAnnotation :: (a -> a) -> Builder v g a ret ->  Builder v g a ret
+withAnnotation f builder1 = do
   stat0 <- State.get
-  State.put $ stat0{ context = (context stat0){ currentAnnotation = f $ currentAnnotation (context stat0)} }
+  let curAnot0 = currentAnnotation (context stat0)
+      curAnot1 = f curAnot0
+  State.put $ stat0{ context = (context stat0){ currentAnnotation = curAnot1 } }
   ret <- builder1
-  State.put stat0
+  stat1 <- State.get
+  State.put $ stat1{ context = (context stat1){ currentAnnotation = curAnot0} }
   return ret
+
+
+-- | Execute the builder, and annotate the very result with the givin function. 
+annotate :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
+annotate f builder1 = do
+  v1 <- builder1
+  n1 <- valueToNode v1
+  let 
+    r1 = Val.realm v1
+    c1 = Val.content v1
+    annotator con@(ins, n2, node, outs)
+      | n1 /= n2  = con
+      | otherwise = (ins, n2, fmap f node, outs)
+  stat0 <- State.get
+  State.put $ stat0 {    
+    target = FGL.gmap annotator (target stat0)
+    }
+  return $ FromNode r1 c1 n1 
+  
+-- | (<?>) = annotate
+infix 0 <?>
+(<?>) :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
+(<?>) = annotate
 
 -- | Builder is Additive 'Additive.C'.
 -- You can use 'Additive.zero', 'Additive.+', 'Additive.-', 'Additive.negate'.

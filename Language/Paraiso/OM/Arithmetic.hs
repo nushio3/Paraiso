@@ -17,6 +17,7 @@ arityI = fst.arity
 arityO = snd.arity
   
 data Operator = 
+  Identity |
   Add |
   Sub |
   Neg |
@@ -59,6 +60,7 @@ data Operator =
 
 instance Arity Operator where
   arity a = case a of
+    Identity -> (1,1)
     Add -> (2,1)
     Sub -> (2,1)
     Neg -> (1,1)

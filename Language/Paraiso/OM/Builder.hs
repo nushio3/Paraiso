@@ -13,7 +13,8 @@ module Language.Paraiso.OM.Builder
      
      load, store, imm,
      reduce, broadcast, shift, loadIndex,
-     modifyAnot
+     annotate, (<?>),
+     withAnnotation
     ) where
 
 import Language.Paraiso.OM.Builder.Internal
