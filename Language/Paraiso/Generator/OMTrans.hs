@@ -44,8 +44,8 @@ translate setup omBeforeOptimize = ret
         Plan.kernels    = OM.kernels om,
         Plan.storages   = storages,
         Plan.subKernels = subKernels,
-        Plan.negaMargin = negaMargin,
-        Plan.posiMargin = posiMargin
+        Plan.lowerMargin = lowerMargin,
+        Plan.upperMargin = upperMargin
       }
 
     om = Opt.optimize (Native.optLevel setup) omBeforeOptimize
@@ -97,10 +97,10 @@ translate setup omBeforeOptimize = ret
     getDynValue _                = error $ "invalid request for DVal; probably a non-Value node is marked as Manifest"
 
 
-    negaMargin = compose $ \ax -> case Interval.lower (totalValidIntervals !! (axisIndex ax)) of
+    lowerMargin = compose $ \ax -> case Interval.lower (totalValidIntervals !! (axisIndex ax)) of
       Boundary.LowerBoundary x -> x
       _                        -> error "wrong negaMargin!"
-    posiMargin = negate $ 
+    upperMargin = negate $ 
                  compose $ \ax -> case Interval.upper (totalValidIntervals !! (axisIndex ax)) of
       Boundary.UpperBoundary x -> x
       _                        -> error "wrong posiMargin!"

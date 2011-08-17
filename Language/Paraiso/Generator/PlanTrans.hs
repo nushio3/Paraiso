@@ -33,8 +33,8 @@ translate setup plan =
   where
     comments = (:[]) $ C.Comment $ LL.unlines [ 
       "",
-      "negaMargin = " ++ showT (Plan.negaMargin plan),
-      "posiMargin = " ++ showT (Plan.posiMargin plan)
+      "lowerMargin = " ++ showT (Plan.lowerMargin plan),
+      "upperMargin = " ++ showT (Plan.upperMargin plan)
       ]
     
     memberFuncs = V.toList $ V.map makeFunc $ Plan.kernels plan
