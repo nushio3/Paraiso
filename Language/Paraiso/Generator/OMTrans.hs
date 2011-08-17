@@ -5,6 +5,7 @@ module Language.Paraiso.Generator.OMTrans (
   translate
   ) where
 
+import qualified Algebra.Additive                       as Additive
 import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe (catMaybes)
 import qualified Data.Set                               as Set
@@ -100,10 +101,12 @@ translate setup omBeforeOptimize = ret
 
     validToLower valid = let Boundary.Valid xs = valid in
       compose $ \ax -> case Interval.lower (xs !! (axisIndex ax)) of
+        Boundary.NegaInfinity    -> Additive.zero
         Boundary.LowerBoundary x -> x
-        _                        -> error "wrong lower Margin!"
+        _                        -> error $ "wrong lower Margin! : " 
     validToUpper valid = negate $ let Boundary.Valid xs = valid in
       compose $ \ax -> case Interval.upper (xs !! (axisIndex ax)) of
+        Boundary.PosiInfinity    -> Additive.zero
         Boundary.UpperBoundary x -> x
         _                        -> error "wrong upper Margin!"
 

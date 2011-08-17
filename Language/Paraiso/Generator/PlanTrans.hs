@@ -49,7 +49,14 @@ translate setup plan =
       (C.function tVoid (name subker))
       { C.funcArgs = 
          makeSubArg True (Plan.labNodesIn subker) ++
-         makeSubArg False (Plan.labNodesOut subker)
+         makeSubArg False (Plan.labNodesOut subker),
+        C.funcBody = if Realm.realm subker == Realm.Global then [] else
+          [ C.Comment $ LL.unlines 
+            [ "",
+              "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+              "upperMargin = " ++ showT (Plan.upperBoundary subker)
+            ]
+          ]
       }
     
     nodeNameUniversal :: FGL.Node -> Name

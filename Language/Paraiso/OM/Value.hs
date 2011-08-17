@@ -29,8 +29,8 @@ data (R.TRealm rea, Typeable con) =>
                        
 
 instance  (R.TRealm rea, Typeable con) => R.Realmable (Value rea con) where
-  realm (FromNode r _ _) = R.realm r
-  realm (FromImm r _) = R.realm r
+  realm (FromNode r _ _) = R.tRealm r
+  realm (FromImm r _) = R.tRealm r
   
 
 

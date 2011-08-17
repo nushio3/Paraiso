@@ -16,11 +16,14 @@ import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM
 import           Language.Paraiso.Prelude
 import qualified Language.Paraiso.Tensor as Tensor
+import Prelude (Num)
+
 
 -- | (Ready v g) indicates that the pair (v, g) has all the instances 
 --   to receive full optimization services.
 class (Tensor.Vector v, 
        Additive.C g, 
+       Num g,
        Ord g, 
        Show g,
        Typeable g,
@@ -30,6 +33,7 @@ class (Tensor.Vector v,
 
 instance (Tensor.Vector v, 
           Additive.C g, 
+          Num g,
           Ord g, 
           Show g,
           Typeable g,

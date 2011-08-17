@@ -63,7 +63,9 @@ instance Referrer (SubKernelRef v g a) (Plan v g a) where
   parent = subKernelParent
 instance Nameable (SubKernelRef v g a) where
   name x = mkName $ nameText (parent x) ++ "_sub_" ++ showT (omWriteGroupIdx x)
-
+instance Realm.Realmable (SubKernelRef v g a) where
+  realm = subKernelRealm
+  
 -- | refers to a storage required in the plan
 data StorageRef v g a
   = StorageRef
@@ -83,8 +85,9 @@ instance Nameable (StorageRef v g a) where
     StaticRef i     -> "static_" ++ showT i ++ "_" ++
                        nameText (OM.staticValues (setup $ parent x) V.! i)
     ManifestRef i j -> "manifest_"  ++ showT i ++ "_" ++ showT j
-
-
+instance Realm.Realmable (StorageRef v g a) where
+  realm x = let DVal.DynValue r _ = storageDynValue x in r
+  
 dataflow :: SubKernelRef v g a -> OM.Graph v g a
 dataflow ref = OM.dataflow $ (kernels $ parent ref) V.! (kernelIdx ref)
 
