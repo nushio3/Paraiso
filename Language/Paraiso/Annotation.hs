@@ -5,7 +5,7 @@
 
 module Language.Paraiso.Annotation
     (
-     Annotation, add, empty, map, set, toList, toMaybe
+     Annotation, add, empty, map, set, weakSet, toList, toMaybe
     ) where
 
 import           Data.Dynamic
@@ -27,6 +27,14 @@ add x ys = toDyn x : ys
 --   set @x@ as the only member of the type in the collection.
 set :: (Typeable a) => a -> Annotation -> Annotation
 set x ys = toDyn x : filter ((/= typeOf x) . dynTypeRep) ys
+
+-- | set @x@ as the only member of the type in the collection,
+-- only if no annotation of the same type pre-exists.
+weakSet :: (Typeable a) => a -> Annotation -> Annotation
+weakSet x ys 
+  | any ((== typeOf x) . dynTypeRep) ys = ys
+  | otherwise                           = toDyn x : ys
+
 
 
 -- | Extract all annotations of type @a@ from 

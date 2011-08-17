@@ -19,15 +19,13 @@ decideAllocation :: Optimization
 decideAllocation graph = imap update graph 
   where
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
-    update i a = Anot.set (anot i) a
-
-    anot i 
-      | afterLoad = Alloc.Existing
+    update i 
+      | afterLoad = Anot.set Alloc.Existing
       | beforeStore || beforeReduce || afterReduce || beforeBroadcast
-                  = Alloc.Manifest
+                  = Anot.set Alloc.Manifest
       | (isGlobal || beforeShift || afterShift ) && False -- warehouse
-                  = Alloc.Delayed
-      | otherwise = Alloc.Delayed
+                  = Anot.weakSet Alloc.Delayed
+      | otherwise = Anot.weakSet Alloc.Delayed
         where
           self0 = FGL.lab graph i
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph i) 
