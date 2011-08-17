@@ -50,6 +50,7 @@ data Statement
   | StmtFor Expr Expr Expr [Statement]
   | StmtReturn Expr
   | Exclusive FileType Statement
+  | Comment Text
   deriving (Eq, Show)                    
 
 data Preprocessing
@@ -155,4 +156,5 @@ data Parenthesis
   = Paren | Bracket | Brace 
   | Chevron | Chevron2 | Chevron3 
   | Quotation | Quotation2
+  | SlashStar
   deriving (Eq, Show)                    

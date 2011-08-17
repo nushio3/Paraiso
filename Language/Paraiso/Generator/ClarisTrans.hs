@@ -57,7 +57,8 @@ instance Translatable Statement where
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
     Exclusive file stmt2     ->
       if file == fileType conf then translate conf stmt2 else ""
-
+    Comment str -> paren SlashStar str
+      
 instance Translatable Preprocessing where
   translate _ prpr = case prpr of
     PrprInclude par na -> "#include " ++ paren par na
@@ -204,6 +205,7 @@ paren p str = prefix ++ str ++ suffix
       Chevron3   -> ("<<<",">>>")
       Quotation  -> ("\'","\'")
       Quotation2 -> ("\"","\"")
+      SlashStar  -> ("/*","*/")      
 
 joinBy :: Text -> [Text] -> Text
 joinBy sep xs = LL.concat $ L.intersperse sep xs

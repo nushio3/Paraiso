@@ -22,16 +22,18 @@ import qualified Language.Paraiso.Tensor as Tensor
 class (Tensor.Vector v, 
        Additive.C g, 
        Ord g, 
-       Typeable g,
        Show g,
+       Typeable g,
+       Additive.C (v g), 
        Show (v g)) 
       => Ready (v :: * -> *) (g :: *)
 
 instance (Tensor.Vector v, 
           Additive.C g, 
           Ord g, 
-          Typeable g,
           Show g,
+          Typeable g,
+          Additive.C (v g), 
           Show (v g)) 
          => Ready (v :: * -> *) (g :: *)
 

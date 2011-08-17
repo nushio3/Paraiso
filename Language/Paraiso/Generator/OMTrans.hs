@@ -15,13 +15,16 @@ import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Dep
 import qualified Language.Paraiso.Generator.Plan        as Plan
 import qualified Language.Paraiso.Generator.Native      as Native
+import qualified Language.Paraiso.Interval              as Interval
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM                    as OM
 import qualified Language.Paraiso.OM.DynValue           as DVal
 import qualified Language.Paraiso.OM.Graph              as OM
 import qualified Language.Paraiso.OM.Realm              as Realm
 import qualified Language.Paraiso.Optimization          as Opt
+import qualified Language.Paraiso.PiSystem              as Pi
 import           Language.Paraiso.Prelude
+import           Language.Paraiso.Tensor
 
 
 data Triplet v g 
@@ -32,7 +35,7 @@ data Triplet v g
   } deriving (Show)
 
 translate :: (Opt.Ready v g) =>
-  Native.Setup -> OM.OM v g Anot.Annotation -> Plan.Plan v g Anot.Annotation
+  Native.Setup v g -> OM.OM v g Anot.Annotation -> Plan.Plan v g Anot.Annotation
 translate setup omBeforeOptimize = ret
   where
     ret = Plan.Plan 
@@ -40,7 +43,9 @@ translate setup omBeforeOptimize = ret
         Plan.setup      = OM.setup om,
         Plan.kernels    = OM.kernels om,
         Plan.storages   = storages,
-        Plan.subKernels = subKernels
+        Plan.subKernels = subKernels,
+        Plan.negaMargin = negaMargin,
+        Plan.posiMargin = posiMargin
       }
 
     om = Opt.optimize (Native.optLevel setup) omBeforeOptimize
@@ -92,6 +97,34 @@ translate setup omBeforeOptimize = ret
     getDynValue _                = error $ "invalid request for DVal; probably a non-Value node is marked as Manifest"
 
 
+    negaMargin = compose $ \ax -> case Interval.lower (totalValidIntervals !! (axisIndex ax)) of
+      Boundary.LowerBoundary x -> x
+      _                        -> error "wrong negaMargin!"
+    posiMargin = negate $ 
+                 compose $ \ax -> case Interval.upper (totalValidIntervals !! (axisIndex ax)) of
+      Boundary.UpperBoundary x -> x
+      _                        -> error "wrong posiMargin!"
+      
+      
+    -- the intersection of the valid area of all the store instructions found in the om.
+    totalValidIntervals = let Boundary.Valid xs = totalStoreValid om in xs
+    totalStoreValid :: (Opt.Ready v g) =>
+                       OM.OM v g Anot.Annotation -> Boundary.Valid g
+    totalStoreValid _ = 
+      foldl1 Pi.intersection $
+      concat $
+      map findStoreValid $
+      concat . V.toList $ -- a flat list made from
+      V.map (map snd . FGL.labNodes) $ -- the vector of lists of OM.Node of
+      V.map OM.dataflow  $ -- the graphs contained in
+      OM.kernels om        -- the kernels of the om
+      where
+        findStoreValid nd = case nd of
+          OM.NValue _ _ -> []
+          OM.NInst (OM.Store _) a -> Anot.toList a
+          OM.NInst _ _ -> []
+          
+          
     subKernelSize = 
       (1 +) $ 
       maximum $ 

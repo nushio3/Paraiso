@@ -6,6 +6,8 @@ module Language.Paraiso.Generator.PlanTrans (
   ) where
 
 import qualified Data.Graph.Inductive                as FGL
+import qualified Data.ListLike.String                as LL
+import           Data.ListLike.Text ()
 import qualified Data.Vector                         as V
 import qualified Language.Paraiso.Generator.Claris   as C
 import qualified Language.Paraiso.Generator.Native   as Native
@@ -17,17 +19,24 @@ import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 
-translate :: Opt.Ready v g => Native.Setup -> Plan.Plan v g a -> C.Program
+translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g a -> C.Program
 translate setup plan = 
   C.Program 
   { C.progName = name plan,
     C.topLevel = 
       map include stlHeaders ++ 
+      comments ++
       [ C.ClassDef $ C.Class (name plan) $
         storageVars ++ subKernelFuncs ++ memberFuncs 
       ]
   }
   where
+    comments = (:[]) $ C.Comment $ LL.unlines [ 
+      "",
+      "negaMargin = " ++ showT (Plan.negaMargin plan),
+      "posiMargin = " ++ showT (Plan.posiMargin plan)
+      ]
+    
     memberFuncs = V.toList $ V.map makeFunc $ Plan.kernels plan
     makeFunc ker = C.MemberFunc C.Public $ 
                    C.function tVoid (name ker)

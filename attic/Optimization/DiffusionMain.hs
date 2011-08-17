@@ -118,12 +118,17 @@ myOM = optimize O3 $
     ]
               
 
-genSetup :: Native.Setup
-genSetup = Native.defaultSetup { Native.directory = "./dist/" }
+genSetup :: Native.Setup Vec3 Int
+genSetup 
+  = (Native.defaultSetup $ Vec :~ 128  :~ 128  :~ 128)
+  { Native.directory = "./dist/" }
 
-genSetup2 :: Native.Setup
-genSetup2 = Native.defaultSetup { Native.language = Native.CUDA, 
-                                  Native.directory = "./dist2/" }
+genSetup2 :: Native.Setup Vec3 Int
+genSetup2 
+  = genSetup 
+  { Native.language = Native.CUDA, 
+    Native.directory = "./dist2/" 
+  }
 
 
 main :: IO ()

@@ -35,7 +35,9 @@ data Plan v g a
       setup      :: OM.Setup v g a,
       kernels    :: V.Vector (OM.Kernel v g a),
       storages   :: V.Vector (StorageRef v g a),
-      subKernels :: V.Vector (SubKernelRef v g a)
+      subKernels :: V.Vector (SubKernelRef v g a),
+      negaMargin :: v g,
+      posiMargin :: v g
     }
 
 instance Nameable (Plan v g a) where name = planName    
