@@ -55,9 +55,19 @@ translate setup plan =
             [ "",
               "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
               "upperMargin = " ++ showT (Plan.upperBoundary subker)
-            ]
+            ],
+            loopMaker subker
           ]
       }
+    
+    loopMaker subker = 
+      C.StmtFor 
+        (C.VarDefSub ctr (intImm 0)) 
+        (C.Op2Infix "<" (C.VarExpr ctr) (intImm 0)) 
+        (C.Op1Prefix "++" (C.VarExpr ctr))
+        []
+      where
+        ctr = C.Var tSizet (mkName "i")
     
     nodeNameUniversal :: FGL.Node -> Name
     nodeNameUniversal x = mkName $ "a_" ++ showT x
@@ -95,3 +105,23 @@ translate setup plan =
       Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
     
           
+
+
+intImm :: Int -> C.Expr
+intImm = C.toDyn
+
+tInt :: C.TypeRep
+tInt = C.typeOf (undefined :: Int)
+
+tSizet :: C.TypeRep
+tSizet = C.typeOf (undefined :: Int)
+
+
+tVoid :: C.TypeRep
+tVoid = C.typeOf ()
+
+tHostVecInt :: C.TypeRep
+tHostVecInt = C.TemplateType "thrust::host_vector" [tInt]
+
+tDeviceVecInt :: C.TypeRep
+tDeviceVecInt = C.TemplateType "thrust::device_vector" [tInt]
