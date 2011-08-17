@@ -16,7 +16,8 @@ module Language.Paraiso.OM.Builder.Internal
      load, store,
      reduce, broadcast,
      shift, loadIndex,loadSize,
-     imm, mkOp1, mkOp2
+     imm, mkOp1, mkOp2,
+     modifyAnot
     ) where
 import qualified Algebra.Absolute as Absolute
 import qualified Algebra.Additive as Additive
@@ -293,6 +294,15 @@ mkOp2 op builder1 builder2 = do
   n01 <- addNodeE [n0] $ NValue (toDyn v1) 
   return $ FromNode r1 c1 n01
 
+
+-- | Execute the builder under modifed annotation.
+modifyAnot :: (a -> a) -> Builder v g a ret ->  Builder v g a ret
+modifyAnot f builder1 = do
+  stat0 <- State.get
+  State.put $ stat0{ context = (context stat0){ currentAnnotation = f $ currentAnnotation (context stat0)} }
+  ret <- builder1
+  State.put stat0
+  return ret
 
 -- | Builder is Additive 'Additive.C'.
 -- You can use 'Additive.zero', 'Additive.+', 'Additive.-', 'Additive.negate'.

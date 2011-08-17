@@ -12,7 +12,8 @@ module Language.Paraiso.OM.Builder
      buildKernel,
      
      load, store, imm,
-     reduce, broadcast, shift, loadIndex
+     reduce, broadcast, shift, loadIndex,
+     modifyAnot
     ) where
 
 import Language.Paraiso.OM.Builder.Internal
