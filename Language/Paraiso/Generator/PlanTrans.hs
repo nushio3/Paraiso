@@ -1,14 +1,18 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification, NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
   translate
   ) where
 
+
+import qualified Algebra.Ring                        as Ring
+import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
 import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
 import qualified Data.Vector                         as V
+import qualified Language.Paraiso.Annotation         as Anot
 import qualified Language.Paraiso.Generator.Claris   as C
 import qualified Language.Paraiso.Generator.Native   as Native
 import qualified Language.Paraiso.Generator.Plan     as Plan
@@ -18,8 +22,12 @@ import qualified Language.Paraiso.OM.Realm           as Realm
 import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
+import           Language.Paraiso.Tensor
 
-translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g a -> C.Program
+type An = Anot.Annotation
+data Env v g = Env (Native.Setup v g) (Plan.Plan v g An)
+
+translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g An -> C.Program
 translate setup plan = 
   C.Program 
   { C.progName = name plan,
@@ -31,60 +39,25 @@ translate setup plan =
       ]
   }
   where
+    env = Env setup plan
     comments = (:[]) $ C.Comment $ LL.unlines [ 
       "",
       "lowerMargin = " ++ showT (Plan.lowerMargin plan),
       "upperMargin = " ++ showT (Plan.upperMargin plan)
       ]
-    
+
     memberFuncs = V.toList $ V.map makeFunc $ Plan.kernels plan
     makeFunc ker = C.MemberFunc C.Public $ 
                    C.function tVoid (name ker)
-    tVoid = C.typeOf ()
-    
-    subKernelFuncs = V.toList $ V.map makeSubFunc $ Plan.subKernels plan
-    
-    makeSubFunc subker = 
-      C.MemberFunc C.Public $ 
-      (C.function tVoid (name subker))
-      { C.funcArgs = 
-         makeSubArg True (Plan.labNodesIn subker) ++
-         makeSubArg False (Plan.labNodesOut subker),
-        C.funcBody = if Realm.realm subker == Realm.Global then [] else
-          [ C.Comment $ LL.unlines 
-            [ "",
-              "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-              "upperMargin = " ++ showT (Plan.upperBoundary subker)
-            ],
-            loopMaker subker
-          ]
-      }
-    
-    loopMaker subker = 
-      C.StmtFor 
-        (C.VarDefSub ctr (intImm 0)) 
-        (C.Op2Infix "<" (C.VarExpr ctr) (intImm 0)) 
-        (C.Op1Prefix "++" (C.VarExpr ctr))
-        []
-      where
-        ctr = C.Var tSizet (mkName "i")
-    
-    nodeNameUniversal :: FGL.Node -> Name
-    nodeNameUniversal x = mkName $ "a_" ++ showT x
-    
-    makeSubArg isConst lnodes =
-      let f = (if isConst then C.Const else id) . C.RefOf
-      in
-      map (\(idx,nd)-> case nd of
-                OM.NValue typ _ -> C.Var (f $ mkCtyp typ) (nodeNameUniversal idx)
-                _ -> error "NValue expected" ) $
-      V.toList lnodes
-    
+
+    subKernelFuncs = V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
+
+
     include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
     stlHeaders = case Native.language setup of
       Native.CPlusPlus -> ["vector"]
       Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h"]
-    
+
     storageVars = 
       V.toList $
       V.map storageRefToMenber $
@@ -92,21 +65,73 @@ translate setup plan =
     storageRefToMenber stRef =  
       C.MemberVar  C.Private $ 
       C.Var 
-        (mkCtyp $ Plan.storageType stRef) 
+        (mkCtyp env $ Plan.storageType stRef) 
         (name stRef) 
 
-    mkCtyp :: DVal.DynValue -> C.TypeRep
-    mkCtyp x = case x of
-      DVal.DynValue Realm.Global c -> C.UnitType c
-      DVal.DynValue Realm.Local  c -> containerType c          
-      
-    containerType c = case Native.language setup of
-      Native.CPlusPlus -> C.TemplateType "std::vector" [C.UnitType c]
-      Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
-    
-          
+
+-- | Create a subKernel: a function that performs a portion of actual calculations.
+makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g An -> C.MemberDef
+makeSubFunc env subker = 
+  C.MemberFunc C.Public $ 
+  (C.function tVoid (name subker))
+  { C.funcArgs = 
+     makeSubArg env True (Plan.labNodesIn subker) ++
+     makeSubArg env False (Plan.labNodesOut subker),
+    C.funcBody = if Realm.realm subker == Realm.Global then [] else
+      [ C.Comment $ LL.unlines 
+        [ "",
+          "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+          "upperMargin = " ++ showT (Plan.upperBoundary subker)
+        ],
+        loopMaker env subker
+      ]
+  }
+
+-- | make a subroutine argument list.
+makeSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g An)) -> [C.Var]
+makeSubArg env isConst lnodes =
+  let f = (if isConst then C.Const else id) . C.RefOf
+  in
+  map (\(idx,nd)-> case nd of
+            OM.NValue typ _ -> C.Var (f $ mkCtyp env typ) (nodeNameUniversal idx)
+            _ -> error "NValue expected" ) $
+  V.toList lnodes
+
+-- | implement the loop for each subroutine
+loopMaker :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g An -> C.Statement
+loopMaker (Env setup _) subker = 
+  C.StmtFor 
+    (C.VarDefSub ctr (intImm 0)) 
+    (C.Op2Infix "<" (C.VarExpr ctr) (C.toDyn (vProduct $ Native.localSize setup)))
+    (C.Op1Prefix "++" (C.VarExpr ctr))
+    []
+  where
+    ctr = C.Var tSizet (mkName "i")
+
+-- | convert a DynValue to C type representation
+mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
+mkCtyp env x = case x of
+  DVal.DynValue Realm.Global c -> C.UnitType c
+  DVal.DynValue Realm.Local  c -> containerType env c          
+
+containerType :: Env v g -> TypeRep -> C.TypeRep
+containerType (Env setup _) c = case Native.language setup of
+  Native.CPlusPlus -> C.TemplateType "std::vector" [C.UnitType c]
+  Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
 
 
+
+-- | a universal naming rule for a node.
+nodeNameUniversal :: FGL.Node -> Name
+nodeNameUniversal x = mkName $ "a_" ++ showT x
+
+
+vProduct :: (Vector v, Ring.C a) => (v a) -> a
+vProduct = foldl (*) Ring.one 
+
+
+
+-- | Utility Types
 intImm :: Int -> C.Expr
 intImm = C.toDyn
 

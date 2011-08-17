@@ -8,9 +8,10 @@ module Language.Paraiso.Optimization.Graph (
   gmap
   ) where
 
-import qualified Algebra.Additive            as Additive
+import qualified Algebra.Additive        as Additive
+import qualified Algebra.Ring            as Ring
 import           Data.Typeable
-import qualified Data.Vector as V
+import qualified Data.Vector             as V
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM
@@ -22,9 +23,9 @@ import Prelude (Num)
 -- | (Ready v g) indicates that the pair (v, g) has all the instances 
 --   to receive full optimization services.
 class (Tensor.Vector v, 
-       Additive.C g, 
        Num g,
        Ord g, 
+       Ring.C g, 
        Show g,
        Typeable g,
        Additive.C (v g), 
@@ -32,9 +33,9 @@ class (Tensor.Vector v,
       => Ready (v :: * -> *) (g :: *)
 
 instance (Tensor.Vector v, 
-          Additive.C g, 
           Num g,
           Ord g, 
+          Ring.C g, 
           Show g,
           Typeable g,
           Additive.C (v g), 
