@@ -147,7 +147,7 @@ instance Translatable Expr where
         Imm x                  -> t x
         VarExpr x              -> nameText x
         VarDef (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
-        VarDefCon v x         -> translate conf (VarDef v) ++ paren Paren (translate conf x) 
+        VarDefCon v args         -> translate conf (VarDef v) ++ paren Paren (joinBy ", " $ map t args) 
         VarDefSub v x         -> translate conf (VarDef v) ++ " = " ++ translate conf x      
         FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
         FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args

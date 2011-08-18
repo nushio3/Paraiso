@@ -317,9 +317,9 @@ annotate f builder1 = do
   let 
     r1 = Val.realm v1
     c1 = Val.content v1
-    annotator con@(ins, n2, node, outs)
+    annotator con@(ins, n2, node2, outs)
       | n1 /= n2  = con
-      | otherwise = (ins, n2, fmap f node, outs)
+      | otherwise = (ins, n2, fmap f node2, outs)
   stat0 <- State.get
   State.put $ stat0 {    
     target = FGL.gmap annotator (target stat0)
