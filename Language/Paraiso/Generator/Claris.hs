@@ -54,17 +54,21 @@ data FileType
 
 -- | C++ top-level statements 
 data Statement 
-  = StmtPrpr Preprocessing             -- ^ Preprosessor directive
-  | UsingNamespace Name                -- ^ Name space declaration
-  | ClassDef Class                     -- ^ Class definition
-  | FuncDef Function                   -- ^ Function definition
-  | StmtExpr Expr                      -- ^ Expression
-  | StmtWhile Expr [Statement]         -- ^ While loop
-  | StmtFor Expr Expr Expr [Statement] -- ^ For loop
-  | StmtReturn Expr                    -- ^ return 
-  | Exclusive FileType Statement       
-    -- ^ A statement that is included exclusively in either of the file type
-  | Comment Text                       -- ^ a comment
+  = StmtPrpr Preprocessing       -- ^ Preprosessor directive
+  | UsingNamespace Name          -- ^ Name space declaration
+  | ClassDef Class               -- ^ Class definition
+  | FuncDef Function             -- ^ Function definition
+  | VarDef Var                   -- ^ variable definition as an expression 
+  | VarDefCon Var [Expr]         -- ^ define a variable and call a constructor
+  | VarDefSub Var Expr           -- ^ define a variable and substitute a value
+  | StmtExpr Expr                -- ^ Expression
+  | StmtWhile Expr [Statement]   -- ^ While loop
+  | StmtFor Statement Expr Expr 
+    [Statement]                  -- ^ For loop
+  | StmtReturn Expr              -- ^ return 
+  | Exclusive FileType Statement -- ^ A statement that is included exclusively 
+                                       --   in either of the file type
+  | Comment Text                 -- ^ a comment
   deriving (Eq, Show)                    
 
 -- | Preprocessor directive 
@@ -149,9 +153,6 @@ instance Nameable Var where name (Var _ x) = x
 data Expr
   = Imm Dyn.Dynamic -- ^ an immediate
   | VarExpr Var -- ^ an expression made of a variable
-  | VarDef Var -- ^ variable definition as an expression {TODO: Definitons are statements.}
-  | VarDefCon Var [Expr]-- ^ define a variable and call a constructor{TODO}
-  | VarDefSub Var Expr -- ^ define a variable and substitute a value
   | FuncCallUsr Name [Expr] -- ^ user function call
   | FuncCallStd Text [Expr] -- ^ builtin function call 
   | CudaFuncCallUsr Name Expr Expr [Expr] -- ^ cuda function call with Grid topology

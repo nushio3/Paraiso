@@ -47,13 +47,18 @@ instance Translatable Statement where
     UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
     ClassDef  x              -> translate conf x 
     FuncDef   x              -> translate conf x 
+    VarDef (Var typ nam)     -> LL.unwords [translate conf typ, nameText nam] ++ ";"
+    VarDefCon (Var typ nam) args -> LL.unwords [translate conf typ, nameText nam] 
+                                ++ paren Paren (joinBy ", " $ map (translate conf) args) ++ ";"
+    VarDefSub (Var typ nam) x -> LL.unwords [translate conf typ, nameText nam] 
+                                ++ " = " ++ translate conf x  ++ ";"    
     StmtExpr x               -> translate conf x ++ ";"
     StmtReturn x             -> "return " ++ translate conf x ++ ";"
     StmtWhile test xs        -> "while" 
       ++ paren Paren (translate conf test) 
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
     StmtFor ini test inc xs -> "for" 
-      ++ paren Paren (joinBy "; " [translate conf ini, translate conf test, translate conf inc]) 
+      ++ paren Paren (joinBy " " [translate conf ini, translate conf test,";", translate conf inc]) 
       ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
     Exclusive file stmt2     ->
       if file == fileType conf then translate conf stmt2 else ""
@@ -77,7 +82,7 @@ instance Translatable Class where
       
       memberDecl x = case x of
         MemberFunc ac f -> t ac ++ " " ++ t (FuncDef f)
-        MemberVar  ac y -> t ac ++ " " ++ t (StmtExpr (VarDef y))
+        MemberVar  ac y -> t ac ++ " " ++ t (VarDef y)
 
       memberDef x = case x of
         MemberFunc _ f -> translate conf' (FuncDef f)
@@ -146,9 +151,6 @@ instance Translatable Expr where
       ret = case expr of
         Imm x                  -> t x
         VarExpr x              -> nameText x
-        VarDef (Var typ nam)  -> LL.unwords [translate conf typ, nameText nam] 
-        VarDefCon v args         -> translate conf (VarDef v) ++ paren Paren (joinBy ", " $ map t args) 
-        VarDefSub v x         -> translate conf (VarDef v) ++ " = " ++ translate conf x      
         FuncCallUsr f args     -> (nameText f++) $ paren Paren $ joinBy ", " $ map t args
         FuncCallStd f args     -> (f++) $ paren Paren $ joinBy ", " $ map t args
         CudaFuncCallUsr  f numBlock numThread args 
