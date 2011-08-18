@@ -1,5 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
+
+-- | The volume of mesh that contains the correct results shrinks as
+-- the stencil calculation proceeds. This is because in stencil
+-- calculation each mesh access to its neighbour meshes and for
+-- boundary meshes it cannot be obtained.
+--
+-- boundaryAnalysis marks each node of the Orthotope Machine with the
+-- region for which the computation result is Valid.
+
 module Language.Paraiso.Optimization.BoundaryAnalysis (
   boundaryAnalysis
   ) where
@@ -19,7 +28,7 @@ import           Language.Paraiso.PiSystem
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
--- | an optimization that changes nothing.
+
 boundaryAnalysis :: (Vector v, Additive.C g, Ord g, Typeable g)
                     => Graph v g Anot.Annotation -> Graph v g Anot.Annotation
 boundaryAnalysis graph = imap update graph 
@@ -55,19 +64,25 @@ boundaryAnalysis graph = imap update graph
           DVal.DynValue Realm.Global _ -> True
           _                            -> False
 
+        -- data at all coordinates is valid that is stored in the array 
         full = Valid $ toList $ fullValid graph
+        -- data at arbitrary coordinates is valid including imaginary
+        -- coordinates beyond the range of the array
         infinite = Valid $ toList $ infiniteValid graph
 
+        -- the Valid region of the single preceding value
         preAnot = case FGL.pre graph i of         
           [i'] -> anot i'
           xs    -> error $ "node[" ++ show i ++ "] only 1 pre expected : actually " ++ show (length xs)
 
+        -- intersection of the Valid regions of preceding nodes
         mergedAnot = case (FGL.pre graph i) of
           [] -> error $ "arith node[" ++ show i ++ "] has 0 pre"
           xs -> foldl1 intersection $ map anot $ xs
 
-        shiftPreBy v = Valid $ zipWith shiftIntervalBy (toList v) ((\(Valid x)->x) preAnot)
-
+        --  shift the preceding Valid by a vector v
+        shiftPreBy v = Valid $ 
+            zipWith shiftIntervalBy (toList v) ((\(Valid x)->x) preAnot)
         shiftIntervalBy x (Interval x1 x2) = Interval (add x x1) (add x x2)
         shiftIntervalBy _ Empty            = error "empty interval raised!"
         
@@ -77,8 +92,11 @@ boundaryAnalysis graph = imap update graph
           UpperBoundary y -> UpperBoundary $ x+y
           PosiInfinity    -> PosiInfinity
 
+-- | data at all coordinates is valid that is stored in the array 
 fullValid :: (Vector v, Additive.C g) => Graph v g a -> v (Interval (NearBoundary g))
 fullValid _ = compose (\_ -> Interval (LowerBoundary Additive.zero) (UpperBoundary Additive.zero))
 
+-- | data at arbitrary coordinates is valid including imaginary
+-- coordinates beyond the range of the array
 infiniteValid :: (Vector v, Additive.C g, Typeable g) => Graph v g a -> v (Interval (NearBoundary g))
 infiniteValid _ = compose (\_ -> Interval NegaInfinity PosiInfinity)

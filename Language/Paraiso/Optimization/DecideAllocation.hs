@@ -1,6 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
+-- | The choice of making each Orthotope Machine node Manifest or not
+-- largely depends on the user or the automated tuning.  However, code
+-- generators requires that nodes are Manifest at certain contexts.
+--
+-- decideAllocation makes sure that such nodes are marked as Manifest,
+-- and also makes sure that every node is marked with at least some 
+-- Allocation.
+
 module Language.Paraiso.Optimization.DecideAllocation (
   decideAllocation
   ) where

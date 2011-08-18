@@ -2,6 +2,8 @@
 NoImplicitPrelude, RankNTypes, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
+-- | Basic definitions for optimization 
+
 module Language.Paraiso.Optimization.Graph (
   Optimization, OptimizationEx, 
   OptimizationOf, Ready,
@@ -21,7 +23,7 @@ import Prelude (Num)
 
 
 -- | (Ready v g) indicates that the pair (v, g) has all the instances 
---   to receive full optimization services.
+--   for the full optimizations to be serviced.
 class (Tensor.Vector v, 
        Num g,
        Ord g, 

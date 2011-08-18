@@ -1,5 +1,20 @@
 {-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
+
+-- | This module performs dependency analysis for generating subroutines. 
+--
+-- 1. Direct dependency between Manifest/Existing nodes X and Y: the
+-- subroutine that outputs Y needs to read X as input
+--
+-- 2. Indirect dependency between Manifest nodes X and Y: the
+-- computation of Y requires that the computation of X is finished,
+-- and therefore X and Y cannot be output by the same subroutine
+--
+-- 3. Calculation dependency between any node X and Manifest node Y:
+-- in the subroutine you output Y you need to calculate X.
+--
+-- c.f. 'Language.Paraiso.Annotation.Dependency' 
+
 module Language.Paraiso.Optimization.DependencyAnalysis (
   writeGrouping
   ) where
@@ -49,7 +64,7 @@ writeGrouping om0 = om { kernels = kernelsRet}
       flip nmap graph $
         Anot.map (Depend.OMWriteGroup . (diff+) . Depend.getKernelGroupID)
       
--- | an optimization that changes nothing.
+-- | dependency analysis
 dependencyAnalysis :: Opt.Ready v g => Opt.OptimizationOf v g
 dependencyAnalysis graph = imap update graph 
   where
@@ -238,5 +253,5 @@ dependencyAnalysis graph = imap update graph
     calcRowRead idx
       -- strict nodes depends only on itself
       | isStrict V.! idx = Set.fromList [idx]
-      -- a non-manifest node indirects on its predecessors
+      -- a delayed node indirects on its predecessors
       | otherwise        = Set.union (Set.fromList [idx]) $ calcMatrixWrite V.! idx

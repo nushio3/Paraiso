@@ -22,6 +22,8 @@ import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
 
 
+-- | Perform the code generation and returns the list of written
+-- filepaths and their contents, for your interest.
 generateIO :: (Opt.Ready v g) => Native.Setup v g -> OM.OM v g Anot.Annotation -> IO [(FilePath, Text)]
 generateIO setup om = do
   let dir = Native.directory setup
@@ -31,6 +33,9 @@ generateIO setup om = do
     T.writeFile absfn con
     return (absfn, con)
 
+-- | Generate the (filename, content) list from a code generation
+-- setup and a orthotope machine definition.
+    
 generate :: (Opt.Ready v g) => Native.Setup v g -> OM.OM v g Anot.Annotation -> [(FilePath, Text)]
 generate setup om =  
   [ (headerFn, C.translate C.headerFile prog),

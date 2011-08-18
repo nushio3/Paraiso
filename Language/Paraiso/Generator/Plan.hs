@@ -30,11 +30,11 @@ import           Language.Paraiso.Prelude
 -- for code generation.
 data Plan v g a
   = Plan 
-    { planName   :: Name,
-      setup      :: OM.Setup v g a,
-      kernels    :: V.Vector (OM.Kernel v g a),
-      storages   :: V.Vector (StorageRef v g a),
-      subKernels :: V.Vector (SubKernelRef v g a),
+    { planName   :: Name, -- ^ name of the plan
+      setup      :: OM.Setup v g a, -- ^ OM setup, includes all static variables
+      storages   :: V.Vector (StorageRef v g a), -- ^ Newly allocated Manifest variables
+      kernels    :: V.Vector (OM.Kernel v g a), -- ^ kernels
+      subKernels :: V.Vector (SubKernelRef v g a), -- ^ 
       lowerMargin :: v g,
       upperMargin :: v g
     }

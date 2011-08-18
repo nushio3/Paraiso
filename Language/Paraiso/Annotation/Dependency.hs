@@ -19,19 +19,19 @@ import qualified Data.Set as Set
 import           Language.Paraiso.Prelude
 
 -- | The list of Manifest or Existing nodes that this node directly depends on.
--- A directly depends on B if you need to read B in subroutine you calculate A
+-- Y directly depends on X if you need to read X in subroutine you calculate Y
 newtype Direct
   = Direct [FGL.Node]
   deriving (Eq, Show, Typeable)
            
--- | The list of Manifest or Existing nodes that this node indirectly depends on
--- A indirectly depends on B if you need to calculate B before you calculace A
+-- | The list of Manifest or Existing nodes that this node indirectly depends on.
+-- Y indirectly depends on X if you need to calculate X before you calculace Y
 newtype Indirect
   = Indirect [FGL.Node]
   deriving (Eq, Show, Typeable)
 
--- | The list of All nodes that this node directly depends on
--- A directly depends on B if you need to calculate B in subroutine you calculate A
+-- | The list of All nodes that this node directly depends on.
+-- Y directly depends on X if you need to calculate X in subroutine you calculate Y
 newtype Calc
   = Calc (Set.Set FGL.Node)
   deriving (Eq, Show, Typeable)
