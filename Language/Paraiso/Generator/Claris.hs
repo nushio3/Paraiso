@@ -84,14 +84,14 @@ instance Nameable Class where name = className
 
 -- | C++ class member definition
 data MemberDef 
-  = MemberFunc -- ^ A member function
+  = MemberFunc
     { memberAccess :: AccessModifier,
       memberFunc :: Function
-    }
-  | MemberVar -- ^ A member variable
+    }  -- ^ A member function
+  | MemberVar 
     { memberAccess :: AccessModifier, 
       memberVar :: Var
-    }
+    }-- ^ A member variable
   deriving (Eq, Show)
 
 -- | C++ class member access modifier
