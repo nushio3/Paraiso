@@ -78,9 +78,10 @@ translate setup plan =
 makeFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
 makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public $ 
  (C.function tVoid (name ker)) 
- { C.funcBody = kernelCalls
+ { C.funcBody = kernelCalls ++ storeInsts
  }
  where
+   graph = OM.dataflow ker
 
    kernelCalls = 
      V.toList $
@@ -92,9 +93,24 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public $
      C.StmtExpr $
      C.FuncCallUsr (name subker) (V.toList xs)
 
+   storeInsts = 
+     map swapStmt $
+     concatMap (\(idx, nd) -> case nd of
+               OM.NInst (OM.Store (OM.StaticIdx statIdx))_ -> [(idx, statIdx)] 
+               _ -> []) $
+     FGL.labNodes graph
+
+   swapStmt (idx, statIdx) = 
+     let preIdx = head $ FGL.pre graph idx in
+     case (filter ((Plan.StaticRef statIdx==) . Plan.storageIdx) $ V.toList $ Plan.storages plan,
+           filter ((Plan.ManifestRef kerIdx preIdx==) . Plan.storageIdx) $ V.toList $ Plan.storages plan) of
+       ([stRef],[maRef]) -> 
+         C.StmtExpr $ C.Op2Infix "="
+         (C.VarExpr $ C.Var (mkCtyp env $ Plan.storageType stRef) (name stRef) )
+         (C.VarExpr $ C.Var C.UnknownType (name maRef) )
+       _ -> error $ "mismatch in storage phase: " ++ show (idx, statIdx) 
    findVar idx = 
      let 
-       graph = OM.dataflow ker
        loadIdx = 
          listToMaybe $
          concat $
