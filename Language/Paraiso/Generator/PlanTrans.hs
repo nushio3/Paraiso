@@ -130,6 +130,12 @@ loopMaker env@(Env setup plan) subker =
       else foldl1 (C.Op2Infix "+")
            [ C.Op2Infix "*" x (C.toDyn $ memorySize !! idx)
            | (idx, x) <- zip [0..] codecMod]
+    codecLoadIndex =
+      [ C.Op2Infix "-" x (C.toDyn  ((Plan.lowerMargin plan - Plan.lowerBoundary subker) ! (Axis idx) ))
+      | (idx, x) <- zip [0..] codecMod]
+    codecLoadSize =
+      [ C.toDyn  (Native.localSize setup ! (Axis idx) )
+      | (idx, _) <- zip [0..] codecMod]
     
     addrCounter = C.Var tSizet (mkName "addr_origin")
 
@@ -192,14 +198,16 @@ loopMaker env@(Env setup plan) subker =
           prepre = FGL.pre graph idxInst
           isInput = Set.member idx inputIdxSet
         in case inst of
-      _ | isInput -> (C.toDyn (5151::Int), [])
-      OM.Imm dyn  -> (C.Imm dyn, [])
-      OM.Arith op -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
+      _ | isInput     -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (C.VarExpr addrCounter), [])
+      OM.Imm dyn      -> (C.Imm dyn, [])
+      OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
-      OM.Shift v  -> case prepre of
-        [pre1]    -> (nodeToRhs env' cursor' pre1, [(pre1,cursor')]) where cursor' = cursor - v
-        _         -> error $ "shift has not 1 pre!" ++ show idxInst ++  show prepre
-      _           -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
+      OM.Shift v      -> case prepre of
+        [pre1] -> (nodeToRhs env' cursor' pre1, [(pre1,cursor')]) where cursor' = cursor - v
+        _      -> error $ "shift has not 1 pre!" ++ show idxInst ++  show prepre
+      OM.LoadIndex ax -> (codecLoadIndex !! axisIndex ax, [])
+      OM.LoadSize  ax -> (codecLoadSize  !! axisIndex ax, [])
+      _               -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
         
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
     
