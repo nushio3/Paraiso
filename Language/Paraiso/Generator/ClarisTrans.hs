@@ -78,7 +78,8 @@ instance Translatable Class where
       
       conf' = conf{namespace = ClassSpace me : namespace conf}
       
-      classDecl = "class " ++ nameText na ++ paren Brace (LL.unlines $ map memberDecl membs) ++ ";"
+      classDecl = "class " ++ nameText na ++ 
+                  paren Brace (joinBeginEndBy "\n" $ map memberDecl membs) ++ ";"
       classDef  = joinBeginEndBy "\n" $ map memberDef membs
       
       memberDecl x = case x of

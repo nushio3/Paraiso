@@ -1,4 +1,5 @@
-{-# LANGUAGE ExistentialQuantification, NoImplicitPrelude, OverloadedStrings, TupleSections #-}
+{-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, NoImplicitPrelude, 
+OverloadedStrings, TupleSections #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
@@ -7,7 +8,6 @@ module Language.Paraiso.Generator.PlanTrans (
 
 
 import qualified Algebra.Additive                    as Additive
-import qualified Algebra.Ring                        as Ring
 import           Data.Char
 import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
@@ -82,14 +82,16 @@ makeSubFunc env subker =
   { C.funcArgs = 
      makeSubArg env True (Plan.labNodesIn subker) ++
      makeSubArg env False (Plan.labNodesOut subker),
-    C.funcBody = if Realm.realm subker == Realm.Global then [] else
-      [ C.Comment $ LL.unlines 
-        [ "",
-          "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-          "upperMargin = " ++ showT (Plan.upperBoundary subker)
-        ],
-        loopMaker env subker
-      ]
+    C.funcBody = let r = Realm.realm subker in
+      if r == Realm.Global 
+      then loopMaker env r subker
+      else
+        [ C.Comment $ LL.unlines 
+          [ "",
+            "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+            "upperMargin = " ++ showT (Plan.upperBoundary subker)
+          ]
+        ] ++ loopMaker env r subker
   }
 
 -- | make a subroutine argument list.
@@ -105,19 +107,24 @@ makeSubArg env isConst lnodes =
   
   
 -- | implement the loop for each subroutine
-loopMaker :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.Statement
-loopMaker env@(Env setup plan) subker = 
-  C.StmtFor 
-    (C.VarDefSub loopCounter (intImm 0)) 
-    (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
-    (C.Op1Prefix "++" (C.VarExpr loopCounter)) 
-    loopContent
+loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
+loopMaker env@(Env setup plan) realm subker = case realm of
+  Realm.Local ->
+    [ C.StmtFor 
+      (C.VarDefSub loopCounter (intImm 0)) 
+      (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
+      (C.Op1Prefix "++" (C.VarExpr loopCounter)) $
+      [C.VarDefSub addrCounter codecAddr] ++
+      loopContent
+    ]
+  Realm.Global -> loopContent
+  
   where
     loopCounter = C.Var tSizet (mkName "i")
     memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
     boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
      - Plan.lowerBoundary subker - Plan.upperBoundary subker
-    
+
     codecDiv = 
       [ if idx == 0 then (C.VarExpr loopCounter) else C.Op2Infix "/" (C.VarExpr loopCounter) (C.toDyn $ product $ take idx boundarySize) 
       | idx <- [0..length boundarySize-1]]
@@ -142,15 +149,11 @@ loopMaker env@(Env setup plan) subker =
         summa = sum $
           [ cursor ! (Axis idx) * product (take idx memorySize)
           | (idx, _) <- zip [0..] memorySize]
-    
-    
+
+
     addrCounter = C.Var tSizet (mkName "addr_origin")
 
     loopContent = 
-      [C.VarDefSub addrCounter codecAddr] ++
-      loopContentCalc
-
-    loopContentCalc = 
       concat $
       map buildExprs $
       filterVal $
@@ -158,18 +161,21 @@ loopMaker env@(Env setup plan) subker =
 
     buildExprs (idx, val@(DVal.DynValue r c)) = 
       map (\cursor -> 
-            rhs cursor
+            lhs cursor
             (fst $ rhsAndRequest env idx cursor)
           ) $
       Set.toList $ lhsCursors V.! idx
       where
-        rhs cursor expr = 
+        lhs cursor expr = 
           if Set.member idx outputIdxSet
-          then C.StmtExpr $ flip (C.Op2Infix "=") expr 
-               (C.ArrayAccess (C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)) (C.VarExpr addrCounter)) 
+          then C.StmtExpr $ flip (C.Op2Infix "=") expr $ case realm of
+            Realm.Local ->
+              (C.ArrayAccess (C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)) (C.VarExpr addrCounter)) 
+            Realm.Global ->
+              C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)
           else flip C.VarDefSub expr 
                (C.Var (C.UnitType c) $ nodeNameCursored env idx cursor)
-    
+
     -- lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
     lhsCursors = V.generate idxSize f
       where 
@@ -189,8 +195,8 @@ loopMaker env@(Env setup plan) subker =
        jdx > idx,
        cur <- Set.toList $ lhsCursors V.! jdx
        ]
-      
-      
+
+
 {-
     rhsAndRequest :: (Opt.Ready v g) 
                      => Env v g
@@ -205,7 +211,9 @@ loopMaker env@(Env setup plan) subker =
           prepre = FGL.pre graph idxInst
           isInput = Set.member idx inputIdxSet
         in case inst of
-      _ | isInput     -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (codecCursor cursor), [])
+      _ | isInput     -> case realm of
+        Realm.Local -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (codecCursor cursor), [])
+        Realm.Global -> (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx), [])
       OM.Imm dyn      -> (C.Imm dyn, [])
       OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
@@ -215,10 +223,10 @@ loopMaker env@(Env setup plan) subker =
       OM.LoadIndex ax -> (codecLoadIndex !! axisIndex ax, [])
       OM.LoadSize  ax -> (codecLoadSize  !! axisIndex ax, [])
       _               -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
-        
+
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
-    
-    
+
+
     preVal  = filterVal  . FGL.pre graph
     preInst = filterInst . FGL.pre graph
     sucVal  = filterVal  . FGL.suc graph
