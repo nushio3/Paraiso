@@ -108,17 +108,36 @@ makeSubArg env isConst lnodes =
 loopMaker :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.Statement
 loopMaker env@(Env setup plan) subker = 
   C.StmtFor 
-    (C.VarDefSub ctr (intImm 0)) 
-    (C.Op2Infix "<" (C.VarExpr ctr) (C.toDyn (vProduct rect)))
-    (C.Op1Prefix "++" (C.VarExpr ctr)) 
+    (C.VarDefSub loopCounter (intImm 0)) 
+    (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
+    (C.Op1Prefix "++" (C.VarExpr loopCounter)) 
     loopContent
   where
-    ctr = C.Var tSizet (mkName "i")
-    rect = Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    loopCounter = C.Var tSizet (mkName "i")
+    memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
      - Plan.lowerBoundary subker - Plan.upperBoundary subker
-
+    
+    codecDiv = 
+      [ if idx == 0 then (C.VarExpr loopCounter) else C.Op2Infix "/" (C.VarExpr loopCounter) (C.toDyn $ product $ take idx boundarySize) 
+      | idx <- [0..length boundarySize-1]]
+    codecMod = 
+      [ if idx == length codecDiv-1 then x else C.Op2Infix "%" x (C.toDyn $ boundarySize !! idx)
+      | (idx, x) <- zip [0..] codecDiv]
+    codecAddr = 
+      if memorySize == boundarySize 
+      then C.VarExpr loopCounter
+      else foldl1 (C.Op2Infix "+")
+           [ C.Op2Infix "*" x (C.toDyn $ memorySize !! idx)
+           | (idx, x) <- zip [0..] codecMod]
+    
+    addrCounter = C.Var tSizet (mkName "addr_origin")
 
     loopContent = 
+      [C.VarDefSub addrCounter codecAddr] ++
+      loopContentCalc
+
+    loopContentCalc = 
       concat $
       map buildExprs $
       filterVal $
@@ -126,21 +145,25 @@ loopMaker env@(Env setup plan) subker =
 
     buildExprs (idx, val@(DVal.DynValue r c)) = 
       map (\cursor -> 
-            C.VarDefSub (C.Var (C.UnitType c) $nodeNameCursored env idx cursor)
+            rhs cursor
             (fst $ rhsAndRequest env idx cursor)
           ) $
       Set.toList $ lhsCursors V.! idx
+      where
+        rhs cursor expr = 
+          if Set.member idx outputIdxSet
+          then C.StmtExpr $ flip (C.Op2Infix "=") expr 
+               (C.ArrayAccess (C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)) (C.VarExpr addrCounter)) 
+          else flip C.VarDefSub expr 
+               (C.Var (C.UnitType c) $ nodeNameCursored env idx cursor)
     
-    
---    lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
+    -- lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
     lhsCursors = V.generate idxSize f
       where 
         f idx
           | not (Set.member idx allIdxSet) = Set.empty
           | Set.member idx outputIdxSet    = Set.singleton Additive.zero
           | otherwise                      = lhsRequest idx
-            --Set.unions $ map (lhsCursors V.!) $ FGL.suc graph idx
-
 
     -- lhsRequests :: FGL.Node -> (Set.Set (v g))
     lhsRequest idx =
@@ -239,8 +262,6 @@ cursorToText _ cursor = cursorT
       | otherwise = 'k'
 
 
-vProduct :: (Vector v, Ring.C a) => (v a) -> a
-vProduct = foldl (*) Ring.one 
 
 
 
