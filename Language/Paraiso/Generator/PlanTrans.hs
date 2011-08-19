@@ -13,6 +13,7 @@ import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
 import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
+import           Data.Maybe
 import qualified Data.Set                            as Set
 import qualified Data.Text                           as T
 import qualified Data.Vector                         as V
@@ -53,9 +54,7 @@ translate setup plan =
       "upperMargin = " ++ showT (Plan.upperMargin plan)
       ]
 
-    memberFuncs = V.toList $ V.map makeFunc $ Plan.kernels plan
-    makeFunc ker = C.MemberFunc C.Public $ 
-                   C.function tVoid (name ker)
+    memberFuncs = V.toList $ V.imap (\idx ker -> makeFunc env idx ker) $ Plan.kernels plan
 
     subKernelFuncs = V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
 
@@ -72,6 +71,44 @@ translate setup plan =
     storageRefToMenber stRef =  
       C.MemberVar  C.Private $ 
       C.Var 
+        (mkCtyp env $ Plan.storageType stRef) 
+        (name stRef) 
+
+
+makeFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
+makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public $ 
+ (C.function tVoid (name ker)) 
+ { C.funcBody = kernelCalls
+ }
+ where
+
+   kernelCalls = 
+     V.toList $
+     V.map (\subker -> callSubKer subker $ V.map findVar $ 
+                       Plan.inputIdxs subker V.++ Plan.outputIdxs subker) $
+     V.filter ((== kerIdx) . Plan.kernelIdx) $
+     Plan.subKernels plan
+   callSubKer subker xs = 
+     C.StmtExpr $
+     C.FuncCallUsr (name subker) (V.toList xs)
+
+   findVar idx = 
+     let 
+       graph = OM.dataflow ker
+       loadIdx = 
+         listToMaybe $
+         concat $
+         map (\jdx -> 
+               case FGL.lab graph jdx of
+                 Just (OM.NInst (OM.Load (OM.StaticIdx statIdx))_)-> [Plan.StaticRef statIdx] 
+                 _                                                -> []) $
+         FGL.pre graph idx
+       match stIdx
+         | stIdx == Plan.ManifestRef kerIdx idx = True
+         | Just stIdx == loadIdx                = True
+         | otherwise                            = False
+       stRef = V.head $ V.filter ( match . Plan.storageIdx ) $ Plan.storages plan
+     in C.VarExpr $ C.Var 
         (mkCtyp env $ Plan.storageType stRef) 
         (name stRef) 
 
@@ -105,9 +142,9 @@ makeSubArg env isConst lnodes =
             OM.NValue typ _ -> C.Var (f $ mkCtyp env typ) (nodeNameUniversal idx)
             _ -> error "NValue expected" ) $
   V.toList lnodes
-  
-  
-  
+
+
+
 -- | implement the loop for each subroutine
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
@@ -120,7 +157,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       loopContent
     ]
   Realm.Global -> loopContent
-  
+
   where
     loopCounter = C.Var tSizet (mkName "i")
     memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan

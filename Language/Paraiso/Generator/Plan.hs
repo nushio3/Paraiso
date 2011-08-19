@@ -18,7 +18,6 @@ module Language.Paraiso.Generator.Plan (
   ) where
 
 import qualified Data.Graph.Inductive as FGL
-import qualified Data.Set as Set
 import qualified Data.Vector as V
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.DynValue as DVal
@@ -78,6 +77,7 @@ data StorageRef v g a
 data StorageIdx 
   = StaticRef   Int -- ^ (StatigRef plan i) = i'th static variable in the plan
   | ManifestRef Int FGL.Node -- ^ (ManifestRef plan i j) = j'th node of the i'th kernel in the plan
+  deriving (Eq, Show)
 
 instance Referrer (StorageRef v g a) (Plan v g a) where
   parent = storageRefParent
