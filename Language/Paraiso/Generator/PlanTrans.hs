@@ -109,7 +109,7 @@ loopMaker env@(Env setup plan) subker =
   C.StmtFor 
     (C.VarDefSub ctr (intImm 0)) 
     (C.Op2Infix "<" (C.VarExpr ctr) (C.toDyn (vProduct rect)))
-    (C.Op1Prefix "++" (C.VarExpr ctr))
+    (C.Op1Prefix "++" (C.VarExpr ctr)) 
     loopContent
   where
     ctr = C.Var tSizet (mkName "i")
@@ -118,43 +118,66 @@ loopMaker env@(Env setup plan) subker =
 
 
     loopContent = 
-      V.toList $
-      V.map (\(idx, (DVal.DynValue r c)) -> 
-              C.VarDef (C.Var (C.UnitType c) $ nodeNameCursored env idx (Set.findMin $ lhsCursors V.! idx))) $
-      allValNodes
+      concat $
+      map buildExprs $
+      filterVal $
+      Set.toList allIdxSet
 
+    buildExprs (idx, val@(DVal.DynValue r c)) = 
+      map (\cursor -> 
+            C.VarDefSub (C.Var (C.UnitType c) $nodeNameCursored env idx cursor)
+            (fst $ rhsAndRequest env idx cursor)
+          ) $
+      Set.toList $ lhsCursors V.! idx
     
-    lhsCursors = lhsCursors' env
-    lhsCursors' ::  (Opt.Ready v g) => (Env v g) -> V.Vector(Set.Set(v g))
-    lhsCursors' _ = V.replicate idxSize $ Set.singleton Additive.zero
-
-
-
-    allLabNodes = 
-      V.filter (\(idx, _) -> Set.member idx allIdxSet) $
-      V.fromList $
-      FGL.labNodes $
-      Plan.dataflow subker
-
-    allValNodes  = V.concatMap (\(i,(xs,ys))->V.map(i,)xs) shiwake
-    allInstNodes = V.concatMap (\(i,(xs,ys))->V.map(i,)ys) shiwake
     
-    shiwake = 
-      V.map (\(idx, nd) -> (idx,) $ case nd of
-                OM.NValue dval _ -> (V.singleton dval, V.empty)
-                OM.NInst  inst _ -> (V.empty, V.singleton inst))
-      allLabNodes
+    lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
+    lhsCursors = V.generate idxSize f
+      where 
+        f idx
+          | not (Set.member idx allIdxSet) = Set.empty
+          | Set.member idx outputIdxSet    = Set.singleton Additive.zero
+          | otherwise                      = Set.unions $ map (lhsCursors V.!) $ FGL.suc graph idx
+    
+    rhsAndRequest :: (Opt.Ready v g) 
+                     => Env v g
+                     -> FGL.Node
+                     -> v g
+                     -> (C.Expr,[(Int, Set.Set(v g))])
+    rhsAndRequest env' idx cursor = 
+      let (idxPre,inst) = case preInst idx of
+            found:_ -> found
+            _       -> error $ "right hand side is not inst:" ++ show idx
+        in case inst of
+      OM.Imm dyn  -> (C.Imm dyn, [])
+      OM.Arith op -> (C.FuncCallStd (showT op) 
+                     (map (nodeToRhs env' cursor) (FGL.pre graph idxPre)),  [])
+      _           -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
+        
+    nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
+    
+    preVal  = filterVal  . FGL.pre graph
+    preInst = filterInst . FGL.pre graph
+    sucVal  = filterVal  . FGL.suc graph
+    sucInst = filterInst . FGL.suc graph
 
+    filterVal  = concat . map (\(i,(xs,ys))-> map(i,)xs) . shiwake
+    filterInst = concat . map (\(i,(xs,ys))-> map(i,)ys) . shiwake
+    shiwake indices = 
+      map (\idx -> (idx,) $ case FGL.lab graph idx of
+              Just (OM.NValue dval _) -> ([dval], [])
+              Just (OM.NInst  inst _) -> ([], [inst])
+              Nothing                 -> error $ "not in graph:" ++ show idx) $
+      indices 
+
+    idxSize = FGL.noNodes graph
+
+    allIdxSet = Set.unions [inputIdxSet, outputIdxSet, calcIdxSet]
     inputIdxSet  = Set.fromList $ V.toList $ Plan.inputIdxs  subker
     outputIdxSet = Set.fromList $ V.toList $ Plan.outputIdxs subker
+    calcIdxSet = Set.fromList $ V.toList $ Plan.calcIdxs subker    
 
-    allIdxSet = 
-      Set.unions $
-      map 
-      (Set.fromList . V.toList . ($ subker)) 
-      [Plan.inputIdxs, Plan.calcIdxs, Plan.outputIdxs]
-
-    idxSize = FGL.noNodes $ Plan.dataflow subker
+    graph = Plan.dataflow subker
 
 -- | convert a DynValue to C type representation
 mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
@@ -171,6 +194,8 @@ containerType (Env setup _) c = case Native.language setup of
 -- | a universal naming rule for a node.
 nodeNameUniversal :: FGL.Node -> Name
 nodeNameUniversal idx = mkName $ "a" ++ showT idx
+
+
 
 nodeNameCursored :: Opt.Ready v g => Env v g ->  FGL.Node -> v g -> Name
 nodeNameCursored env idx cursor = mkName $ "a" ++ showT idx ++ "_" ++ 

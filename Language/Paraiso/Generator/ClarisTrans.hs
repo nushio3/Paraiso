@@ -166,7 +166,7 @@ instance Translatable Expr where
         Op2Infix op x y        -> LL.unwords [pt x, op, pt y]
         Op3Infix op1 op2 x y z -> LL.unwords [pt x, op1, pt y, op2, pt z]
         ArrayAccess x y        -> pt x ++ paren Bracket (t y)
-
+        CommentExpr str x      -> t x ++ " " ++ paren SlashStar str ++ " "
 -- | The databeses for Haskell -> Cpp type name translations.
 typeRepDB:: [Dyn.TypeRep -> Maybe Text]
 typeRepDB = map fst symbolDB

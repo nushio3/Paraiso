@@ -165,6 +165,7 @@ data Expr
   | Op2Infix Text Expr Expr -- ^ infix binary operator
   | Op3Infix Text Text Expr Expr Expr -- ^ sandwiched trinity operator
   | ArrayAccess Expr Expr -- ^ access a component of an array
+  | CommentExpr Text Expr -- ^ commented expr
   deriving (Show)
 
 instance Eq Expr where
