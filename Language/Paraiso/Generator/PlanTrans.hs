@@ -136,6 +136,13 @@ loopMaker env@(Env setup plan) subker =
     codecLoadSize =
       [ C.toDyn  (Native.localSize setup ! (Axis idx) )
       | (idx, _) <- zip [0..] codecMod]
+    codecCursor cursor = 
+      (C.Op2Infix "+" (C.VarExpr addrCounter) (C.toDyn summa))
+      where
+        summa = sum $
+          [ cursor ! (Axis idx) * product (take idx memorySize)
+          | (idx, _) <- zip [0..] memorySize]
+    
     
     addrCounter = C.Var tSizet (mkName "addr_origin")
 
@@ -198,7 +205,7 @@ loopMaker env@(Env setup plan) subker =
           prepre = FGL.pre graph idxInst
           isInput = Set.member idx inputIdxSet
         in case inst of
-      _ | isInput     -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (C.VarExpr addrCounter), [])
+      _ | isInput     -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (codecCursor cursor), [])
       OM.Imm dyn      -> (C.Imm dyn, [])
       OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
