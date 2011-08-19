@@ -169,8 +169,7 @@ translate setup omBeforeOptimize = ret
 
         calcs :: V.Vector FGL.Node
         calcs = 
-          V.fromList $
-          Set.toList $
+          V.fromList $ Set.toList $ 
           Set.unions $
           map (\(Dep.Calc xset) -> xset) $
           depCalcs

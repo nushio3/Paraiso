@@ -6,11 +6,15 @@ module Language.Paraiso.Generator.PlanTrans (
   ) where
 
 
+import qualified Algebra.Additive                    as Additive
 import qualified Algebra.Ring                        as Ring
+import           Data.Char
 import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
 import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
+import qualified Data.Set                            as Set
+import qualified Data.Text                           as T
 import qualified Data.Vector                         as V
 import qualified Language.Paraiso.Annotation         as Anot
 import qualified Language.Paraiso.Generator.Claris   as C
@@ -24,10 +28,10 @@ import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.Tensor
 
-type An = Anot.Annotation
-data Env v g = Env (Native.Setup v g) (Plan.Plan v g An)
+type AnAn = Anot.Annotation
+data Env v g = Env (Native.Setup v g) (Plan.Plan v g AnAn)
 
-translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g An -> C.Program
+translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g AnAn -> C.Program
 translate setup plan = 
   C.Program 
   { C.progName = name plan,
@@ -70,7 +74,7 @@ translate setup plan =
 
 
 -- | Create a subKernel: a function that performs a portion of actual calculations.
-makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g An -> C.MemberDef
+makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.MemberDef
 makeSubFunc env subker = 
   C.MemberFunc C.Public $ 
   (C.function tVoid (name subker))
@@ -88,7 +92,7 @@ makeSubFunc env subker =
   }
 
 -- | make a subroutine argument list.
-makeSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g An)) -> [C.Var]
+makeSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g AnAn)) -> [C.Var]
 makeSubArg env isConst lnodes =
   let f = (if isConst then C.Const else id) . C.RefOf
   in
@@ -96,17 +100,41 @@ makeSubArg env isConst lnodes =
             OM.NValue typ _ -> C.Var (f $ mkCtyp env typ) (nodeNameUniversal idx)
             _ -> error "NValue expected" ) $
   V.toList lnodes
-
+  
+  
+  
 -- | implement the loop for each subroutine
-loopMaker :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g An -> C.Statement
-loopMaker (Env setup _) subker = 
+loopMaker :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.Statement
+loopMaker env@(Env setup plan) subker = 
   C.StmtFor 
     (C.VarDefSub ctr (intImm 0)) 
-    (C.Op2Infix "<" (C.VarExpr ctr) (C.toDyn (vProduct $ Native.localSize setup)))
+    (C.Op2Infix "<" (C.VarExpr ctr) (C.toDyn (vProduct rect)))
     (C.Op1Prefix "++" (C.VarExpr ctr))
-    []
+    loopContent
   where
     ctr = C.Var tSizet (mkName "i")
+    rect = Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+     - Plan.lowerBoundary subker - Plan.upperBoundary subker
+
+
+    loopContent = 
+      V.toList $
+      V.map (\(idx, _) -> C.VarDef (C.Var tInt $ nodeNameCursored env idx Additive.zero)) $
+      allLabNodes
+
+    allLabNodes = 
+      V.filter (\(idx, _) -> Set.member idx allIdxSet) $
+      V.fromList $
+      FGL.labNodes $
+      Plan.dataflow subker
+
+    allIdxSet = 
+      Set.unions $
+      map 
+      (Set.fromList . V.toList . ($ subker)) 
+      [Plan.inputIdxs, Plan.calcIdxs, Plan.outputIdxs]
+
+    
 
 -- | convert a DynValue to C type representation
 mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
@@ -120,11 +148,21 @@ containerType (Env setup _) c = case Native.language setup of
   Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
 
 
-
 -- | a universal naming rule for a node.
 nodeNameUniversal :: FGL.Node -> Name
-nodeNameUniversal x = mkName $ "a_" ++ showT x
+nodeNameUniversal idx = mkName $ "a_" ++ showT idx
 
+nodeNameCursored :: Opt.Ready v g => Env v g ->  FGL.Node -> v g -> Name
+nodeNameCursored _ idx cursor = mkName $ "a_" ++ showT idx ++ "_" ++ cursorT
+  where
+    cursorT :: T.Text
+    cursorT = foldl1 connector $ compose (\i -> T.map sanitize $ showT (cursor ! i))
+    connector a b = a ++ "_" ++ b
+    sanitize c
+      | isDigit c = c
+      | c == '-'  = 'm'
+      | c == '.'  = 'o'
+      | otherwise = 'x'
 
 vProduct :: (Vector v, Ring.C a) => (v a) -> a
 vProduct = foldl (*) Ring.one 
