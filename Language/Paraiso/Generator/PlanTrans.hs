@@ -132,28 +132,50 @@ loopMaker env@(Env setup plan) subker =
       Set.toList $ lhsCursors V.! idx
     
     
-    lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
+--    lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
     lhsCursors = V.generate idxSize f
       where 
         f idx
           | not (Set.member idx allIdxSet) = Set.empty
           | Set.member idx outputIdxSet    = Set.singleton Additive.zero
-          | otherwise                      = Set.unions $ map (lhsCursors V.!) $ FGL.suc graph idx
-    
+          | otherwise                      = lhsRequest idx
+            --Set.unions $ map (lhsCursors V.!) $ FGL.suc graph idx
+
+
+    -- lhsRequests :: FGL.Node -> (Set.Set (v g))
+    lhsRequest idx =
+      Set.fromList $
+      map snd $
+      filter ((==idx) . fst) $
+      concat $ 
+      [snd $ rhsAndRequest env jdx cur| 
+       jdx <- Set.toList allIdxSet, 
+       jdx > idx,
+       cur <- Set.toList $ lhsCursors V.! jdx
+       ]
+      
+      
+{-
     rhsAndRequest :: (Opt.Ready v g) 
                      => Env v g
                      -> FGL.Node
                      -> v g
-                     -> (C.Expr,[(Int, Set.Set(v g))])
+                     -> (C.Expr,[(Int, v g)])
+-}
     rhsAndRequest env' idx cursor = 
-      let (idxPre,inst) = case preInst idx of
+      let (idxInst,inst) = case preInst idx of
             found:_ -> found
             _       -> error $ "right hand side is not inst:" ++ show idx
+          prepre = FGL.pre graph idxInst
+          isInput = Set.member idx inputIdxSet
         in case inst of
-      _ | Set.member idx inputIdxSet -> (C.toDyn (5151::Int), [])
+      _ | isInput -> (C.toDyn (5151::Int), [])
       OM.Imm dyn  -> (C.Imm dyn, [])
-      OM.Arith op -> (rhsArith op (map (nodeToRhs env' cursor) (FGL.pre graph idxPre)),  
-                      [])
+      OM.Arith op -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
+                      map (,cursor) prepre)
+      OM.Shift v  -> case prepre of
+        [pre1]    -> (nodeToRhs env' cursor' pre1, [(pre1,cursor')]) where cursor' = cursor - v
+        _         -> error $ "shift has not 1 pre!" ++ show idxInst ++  show prepre
       _           -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
         
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
