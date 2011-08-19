@@ -24,6 +24,7 @@ import qualified Language.Paraiso.OM.Arithmetic      as Arith
 import qualified Language.Paraiso.OM.DynValue        as DVal
 import qualified Language.Paraiso.OM.Graph           as OM
 import qualified Language.Paraiso.OM.Realm           as Realm
+import qualified Language.Paraiso.OM.Reduce           as ReduceOp
 import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
@@ -38,6 +39,7 @@ translate setup plan =
   { C.progName = name plan,
     C.topLevel = 
       map include stlHeaders ++ 
+      library ++ 
       comments ++
       [ C.ClassDef $ C.Class (name plan) $
         storageVars ++ subKernelFuncs ++ memberFuncs 
@@ -60,7 +62,7 @@ translate setup plan =
 
     include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
     stlHeaders = case Native.language setup of
-      Native.CPlusPlus -> ["vector"]
+      Native.CPlusPlus -> ["algorithm", "cmath", "vector"]
       Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h"]
 
     storageVars = 
@@ -196,24 +198,18 @@ loopMaker env@(Env setup plan) realm subker = case realm of
        cur <- Set.toList $ lhsCursors V.! jdx
        ]
 
-
-{-
-    rhsAndRequest :: (Opt.Ready v g) 
-                     => Env v g
-                     -> FGL.Node
-                     -> v g
-                     -> (C.Expr,[(Int, v g)])
--}
+    -- rhsAndRequest :: (Opt.Ready v g) => Env v g -> FGL.Node -> v g -> (C.Expr,[(Int, v g)])
     rhsAndRequest env' idx cursor = 
       let (idxInst,inst) = case preInst idx of
             found:_ -> found
             _       -> error $ "right hand side is not inst:" ++ show idx
           prepre = FGL.pre graph idxInst
           isInput = Set.member idx inputIdxSet
+          creatVar idx = C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)
         in case inst of
       _ | isInput     -> case realm of
-        Realm.Local -> (C.ArrayAccess (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)) (codecCursor cursor), [])
-        Realm.Global -> (C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx), [])
+        Realm.Local -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])
+        Realm.Global -> (creatVar idx, [])
       OM.Imm dyn      -> (C.Imm dyn, [])
       OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
@@ -222,6 +218,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         _      -> error $ "shift has not 1 pre!" ++ show idxInst ++  show prepre
       OM.LoadIndex ax -> (codecLoadIndex !! axisIndex ax, [])
       OM.LoadSize  ax -> (codecLoadSize  !! axisIndex ax, [])
+      OM.Reduce op    -> let fname = T.pack ("reduce_" ++ map toLower (show op)) in
+        (C.FuncCallStd fname (map creatVar prepre), [])
       _               -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
 
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
@@ -286,8 +284,6 @@ cursorToText _ cursor = cursorT
 
 
 
-
-
 -- | Utility Types
 intImm :: Int -> C.Expr
 intImm = C.toDyn
@@ -329,3 +325,6 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.Select , [x,y,z]) -> C.Op3Infix "?" ":" x y z   
   _ -> C.FuncCallStd (showT op) argExpr
 
+
+library :: [C.Statement]
+library = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement  "template <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"

@@ -63,6 +63,7 @@ instance Translatable Statement where
       ++ paren Brace (joinBeginEndBy "\n" $ map (translate conf) xs)
     Exclusive file stmt2    ->
       if file == fileType conf then translate conf stmt2 else ""
+    RawStatement text       -> text
     Comment str             -> paren SlashStar str
       
 instance Translatable Preprocessing where
@@ -225,3 +226,5 @@ joinBeginEndBy sep xs = sep ++ joinBy sep xs ++ sep
 
 joinBeginBy :: Text -> [Text] -> Text
 joinBeginBy sep xs = sep ++ joinBy sep xs 
+
+

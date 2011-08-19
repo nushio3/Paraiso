@@ -67,7 +67,9 @@ data Statement
     [Statement]                  -- ^ For loop
   | StmtReturn Expr              -- ^ return 
   | Exclusive FileType Statement -- ^ A statement that is included exclusively 
-                                       --   in either of the file type
+                                 --   in either of the file type
+  
+  | RawStatement Text            -- ^ text directly embedded into source code
   | Comment Text                 -- ^ a comment
   deriving (Eq, Show)                    
 
