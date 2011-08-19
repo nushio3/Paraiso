@@ -102,6 +102,9 @@ data MemberDef
 data AccessModifier = Private | Protected | Public
   deriving (Eq, Show)
 
+-- | C++ syntax for variable definition
+
+
 -- | C++ function definition
 data Function 
   = Function 

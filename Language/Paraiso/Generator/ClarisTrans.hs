@@ -4,7 +4,8 @@ RankNTypes #-}
 
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Generator.ClarisTrans (      
-  Translatable(..), paren, joinBy, joinEndBy, 
+  Translatable(..), paren, 
+  joinBy, joinEndBy, joinBeginBy, joinBeginEndBy, 
   headerFile, sourceFile, Context
   ) where
 
@@ -43,26 +44,26 @@ instance Translatable Program where
 
 instance Translatable Statement where    
   translate conf stmt = case stmt of
-    StmtPrpr   x             -> translate conf x ++ "\n"
-    UsingNamespace x         -> "using namespace " ++ nameText x ++ ";"
-    ClassDef  x              -> translate conf x 
-    FuncDef   x              -> translate conf x 
-    VarDef (Var typ nam)     -> LL.unwords [translate conf typ, nameText nam] ++ ";"
-    VarDefCon (Var typ nam) args -> LL.unwords [translate conf typ, nameText nam] 
-                                ++ paren Paren (joinBy ", " $ map (translate conf) args) ++ ";"
-    VarDefSub (Var typ nam) x -> LL.unwords [translate conf typ, nameText nam] 
-                                ++ " = " ++ translate conf x  ++ ";"    
-    StmtExpr x               -> translate conf x ++ ";"
-    StmtReturn x             -> "return " ++ translate conf x ++ ";"
-    StmtWhile test xs        -> "while" 
+    StmtPrpr   x            -> translate conf x ++ "\n"
+    UsingNamespace x        -> "using namespace " ++ nameText x ++ ";"
+    ClassDef  x             -> translate conf x 
+    FuncDef   x             -> translate conf x 
+    VarDef x                -> translate conf x ++ ";"    
+    VarDefCon x args        -> translate conf x ++
+                               paren Paren (joinBy ", " $ map (translate conf) args) ++ ";"
+    VarDefSub x rhs         -> translate conf x ++
+                               " = " ++ translate conf rhs  ++ ";"    
+    StmtExpr x              -> translate conf x ++ ";"
+    StmtReturn x            -> "return " ++ translate conf x ++ ";"
+    StmtWhile test xs       -> "while" 
       ++ paren Paren (translate conf test) 
-      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
+      ++ paren Brace (joinBeginEndBy "\n" $ map (translate conf) xs)
     StmtFor ini test inc xs -> "for" 
       ++ paren Paren (joinBy " " [translate conf ini, translate conf test,";", translate conf inc]) 
-      ++ paren Brace (joinEndBy "\n" $ map (translate conf) xs)
-    Exclusive file stmt2     ->
+      ++ paren Brace (joinBeginEndBy "\n" $ map (translate conf) xs)
+    Exclusive file stmt2    ->
       if file == fileType conf then translate conf stmt2 else ""
-    Comment str -> paren SlashStar str
+    Comment str             -> paren SlashStar str
       
 instance Translatable Preprocessing where
   translate _ prpr = case prpr of
@@ -78,7 +79,7 @@ instance Translatable Class where
       conf' = conf{namespace = ClassSpace me : namespace conf}
       
       classDecl = "class " ++ nameText na ++ paren Brace (LL.unlines $ map memberDecl membs) ++ ";"
-      classDef  = joinBy "\n" $ map memberDef membs
+      classDef  = joinBeginEndBy "\n" $ map memberDef membs
       
       memberDecl x = case x of
         MemberFunc ac f -> t ac ++ " " ++ t (FuncDef f)
@@ -101,14 +102,14 @@ instance Translatable Function where
         = LL.unwords
           [ translate conf (funcType f)
           , funcName'
-          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
+          , paren Paren $ joinBy ", " $ map (translate conf) (funcArgs f)
           , ";"]
       funcDef 
         = LL.unwords
           [ translate conf (funcType f)
           , funcName'
-          , paren Paren $ joinBy ", " $ map (translate conf . VarDef) (funcArgs f)
-          , paren Brace $ joinEndBy "\n" $ map (translate conf) $ funcBody f]
+          , paren Paren $ joinBy ", " $ map (translate conf) (funcArgs f)
+          , paren Brace $ joinBeginEndBy "\n" $ map (translate conf) $ funcBody f]
       funcName' = joinBy "::" $ reverse $ nameText f : map nameText (namespace conf)
 
 instance Translatable TypeRep where
@@ -141,6 +142,9 @@ instance Translatable Dyn.Dynamic where
     case msum $ map ($x) dynamicDB of
       Just str -> str
       Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
+
+instance Translatable Var where
+  translate conf (Var typ nam) = LL.unwords [translate conf typ, nameText nam]
 
 instance Translatable Expr where
   translate conf expr = ret
@@ -214,3 +218,9 @@ joinBy sep xs = LL.concat $ L.intersperse sep xs
 
 joinEndBy :: Text -> [Text] -> Text
 joinEndBy sep xs = joinBy sep xs ++ sep
+
+joinBeginEndBy :: Text -> [Text] -> Text
+joinBeginEndBy sep xs = sep ++ joinBy sep xs ++ sep
+
+joinBeginBy :: Text -> [Text] -> Text
+joinBeginBy sep xs = sep ++ joinBy sep xs 

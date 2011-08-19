@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE ExistentialQuantification, NoImplicitPrelude, OverloadedStrings, TupleSections #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
@@ -119,8 +119,16 @@ loopMaker env@(Env setup plan) subker =
 
     loopContent = 
       V.toList $
-      V.map (\(idx, _) -> C.VarDef (C.Var tInt $ nodeNameCursored env idx Additive.zero)) $
-      allLabNodes
+      V.map (\(idx, (DVal.DynValue r c)) -> 
+              C.VarDef (C.Var (C.UnitType c) $ nodeNameCursored env idx (Set.findMin $ lhsCursors V.! idx))) $
+      allValNodes
+
+    
+    lhsCursors = lhsCursors' env
+    lhsCursors' ::  (Opt.Ready v g) => (Env v g) -> V.Vector(Set.Set(v g))
+    lhsCursors' _ = V.replicate idxSize $ Set.singleton Additive.zero
+
+
 
     allLabNodes = 
       V.filter (\(idx, _) -> Set.member idx allIdxSet) $
@@ -128,13 +136,25 @@ loopMaker env@(Env setup plan) subker =
       FGL.labNodes $
       Plan.dataflow subker
 
+    allValNodes  = V.concatMap (\(i,(xs,ys))->V.map(i,)xs) shiwake
+    allInstNodes = V.concatMap (\(i,(xs,ys))->V.map(i,)ys) shiwake
+    
+    shiwake = 
+      V.map (\(idx, nd) -> (idx,) $ case nd of
+                OM.NValue dval _ -> (V.singleton dval, V.empty)
+                OM.NInst  inst _ -> (V.empty, V.singleton inst))
+      allLabNodes
+
+    inputIdxSet  = Set.fromList $ V.toList $ Plan.inputIdxs  subker
+    outputIdxSet = Set.fromList $ V.toList $ Plan.outputIdxs subker
+
     allIdxSet = 
       Set.unions $
       map 
       (Set.fromList . V.toList . ($ subker)) 
       [Plan.inputIdxs, Plan.calcIdxs, Plan.outputIdxs]
 
-    
+    idxSize = FGL.noNodes $ Plan.dataflow subker
 
 -- | convert a DynValue to C type representation
 mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
@@ -150,10 +170,14 @@ containerType (Env setup _) c = case Native.language setup of
 
 -- | a universal naming rule for a node.
 nodeNameUniversal :: FGL.Node -> Name
-nodeNameUniversal idx = mkName $ "a_" ++ showT idx
+nodeNameUniversal idx = mkName $ "a" ++ showT idx
 
 nodeNameCursored :: Opt.Ready v g => Env v g ->  FGL.Node -> v g -> Name
-nodeNameCursored _ idx cursor = mkName $ "a_" ++ showT idx ++ "_" ++ cursorT
+nodeNameCursored env idx cursor = mkName $ "a" ++ showT idx ++ "_" ++ 
+                                cursorToText env cursor
+
+cursorToText :: Opt.Ready v g => Env v g ->  v g -> T.Text
+cursorToText _ cursor = cursorT
   where
     cursorT :: T.Text
     cursorT = foldl1 connector $ compose (\i -> T.map sanitize $ showT (cursor ! i))
@@ -161,8 +185,9 @@ nodeNameCursored _ idx cursor = mkName $ "a_" ++ showT idx ++ "_" ++ cursorT
     sanitize c
       | isDigit c = c
       | c == '-'  = 'm'
-      | c == '.'  = 'o'
-      | otherwise = 'x'
+      | c == '.'  = 'd'
+      | otherwise = 'k'
+
 
 vProduct :: (Vector v, Ring.C a) => (v a) -> a
 vProduct = foldl (*) Ring.one 
