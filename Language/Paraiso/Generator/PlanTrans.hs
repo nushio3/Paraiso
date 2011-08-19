@@ -150,6 +150,7 @@ loopMaker env@(Env setup plan) subker =
             found:_ -> found
             _       -> error $ "right hand side is not inst:" ++ show idx
         in case inst of
+      _ | Set.member idx inputIdxSet -> (C.toDyn (5151::Int), [])
       OM.Imm dyn  -> (C.Imm dyn, [])
       OM.Arith op -> (rhsArith op (map (nodeToRhs env' cursor) (FGL.pre graph idxPre)),  
                       [])
