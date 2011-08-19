@@ -20,6 +20,7 @@ import qualified Language.Paraiso.Annotation         as Anot
 import qualified Language.Paraiso.Generator.Claris   as C
 import qualified Language.Paraiso.Generator.Native   as Native
 import qualified Language.Paraiso.Generator.Plan     as Plan
+import qualified Language.Paraiso.OM.Arithmetic      as Arith
 import qualified Language.Paraiso.OM.DynValue        as DVal
 import qualified Language.Paraiso.OM.Graph           as OM
 import qualified Language.Paraiso.OM.Realm           as Realm
@@ -150,11 +151,12 @@ loopMaker env@(Env setup plan) subker =
             _       -> error $ "right hand side is not inst:" ++ show idx
         in case inst of
       OM.Imm dyn  -> (C.Imm dyn, [])
-      OM.Arith op -> (C.FuncCallStd (showT op) 
-                     (map (nodeToRhs env' cursor) (FGL.pre graph idxPre)),  [])
+      OM.Arith op -> (rhsArith op (map (nodeToRhs env' cursor) (FGL.pre graph idxPre)),  
+                      [])
       _           -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
         
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor
+    
     
     preVal  = filterVal  . FGL.pre graph
     preInst = filterInst . FGL.pre graph
@@ -238,3 +240,25 @@ tHostVecInt = C.TemplateType "thrust::host_vector" [tInt]
 
 tDeviceVecInt :: C.TypeRep
 tDeviceVecInt = C.TemplateType "thrust::device_vector" [tInt]
+
+rhsArith :: Arith.Operator -> [C.Expr] -> C.Expr
+rhsArith op argExpr = case (op, argExpr) of
+  (Arith.Identity, [x]) ->  x
+  (Arith.Add    , [x,y]) -> C.Op2Infix "+" x y
+  (Arith.Sub    , [x,y]) -> C.Op2Infix "-" x y
+  (Arith.Neg    , [x]) -> C.Op1Prefix "-" x 
+  (Arith.Mul    , [x,y]) -> C.Op2Infix "*" x y
+  (Arith.Div    , [x,y]) -> C.Op2Infix "/" x y
+  (Arith.Inv    , [x]) -> C.Op1Prefix "1/" x 
+  (Arith.Not    , [x]) -> C.Op1Prefix "!" x   
+  (Arith.And    , [x,y]) -> C.Op2Infix "&&" x y  
+  (Arith.Or     , [x,y]) -> C.Op2Infix "||" x y  
+  (Arith.EQ     , [x,y]) -> C.Op2Infix "==" x y  
+  (Arith.NE     , [x,y]) -> C.Op2Infix "!=" x y    
+  (Arith.LT     , [x,y]) -> C.Op2Infix "<" x y    
+  (Arith.LE     , [x,y]) -> C.Op2Infix "<=" x y    
+  (Arith.GT     , [x,y]) -> C.Op2Infix ">" x y    
+  (Arith.GE     , [x,y]) -> C.Op2Infix ">=" x y    
+  (Arith.Select , [x,y,z]) -> C.Op3Infix "?" ":" x y z   
+  _ -> C.FuncCallStd (showT op) argExpr
+
