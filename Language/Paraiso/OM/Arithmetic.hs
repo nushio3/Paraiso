@@ -59,6 +59,7 @@ data Operator =
   Asin |
   Acos |
   Atan |
+  Atan2 |  
   Sincos 
   deriving (P.Eq, P.Ord, P.Show, P.Read)
 
@@ -102,5 +103,6 @@ instance Arity Operator where
     Asin -> (1,1)
     Acos -> (1,1)
     Atan -> (1,1)
+    Atan2 -> (2,1)
     Sincos -> (1,2)
 

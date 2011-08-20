@@ -380,7 +380,20 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.GT     , [x,y]) -> C.Op2Infix ">" x y    
   (Arith.GE     , [x,y]) -> C.Op2Infix ">=" x y    
   (Arith.Select , [x,y,z]) -> C.Op3Infix "?" ":" x y z   
-  _ -> C.FuncCallStd (showT op) argExpr
+  (Arith.Max    , [x,y])  -> C.FuncCallStd "std::max" [x,y]
+  (Arith.Min    , [x,y])  -> C.FuncCallStd "std::min" [x,y]
+  (Arith.Abs    , [x])  -> C.FuncCallStd "abs" [x]
+  (Arith.Sqrt   , [x])  -> C.FuncCallStd "sqrt" [x]
+  (Arith.Exp    , [x])  -> C.FuncCallStd "exp" [x]
+  (Arith.Log    , [x])  -> C.FuncCallStd "log" [x]
+  (Arith.Sin    , [x])  -> C.FuncCallStd "sin" [x]
+  (Arith.Cos    , [x])  -> C.FuncCallStd "cos" [x]
+  (Arith.Tan    , [x])  -> C.FuncCallStd "tan" [x]
+  (Arith.Asin   , [x])  -> C.FuncCallStd "asin" [x]
+  (Arith.Acos   , [x])  -> C.FuncCallStd "acos" [x]
+  (Arith.Atan   , [x])  -> C.FuncCallStd "atan" [x]
+  (Arith.Atan2  , [x,y])  -> C.FuncCallStd "atan2" [x,y]
+  _ -> C.FuncCallStd (T.map toLower $ showT op) argExpr
 
 
 library :: [C.Statement]

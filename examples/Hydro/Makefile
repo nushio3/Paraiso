@@ -14,7 +14,7 @@ kh.out: kh.o hydro.o
 
 
 lib:
-	ghc -i../../ --make -O3 HydroMain.hs
+	ghc -i../../ --make -O3  -fspec-constr-count=42 HydroMain.hs
 	./HydroMain
 
 recomp:
@@ -27,3 +27,4 @@ clean:
 	rm -fr *.out
 	rm -fr dist/
 	rm -f output/*.*
+
