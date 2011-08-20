@@ -33,9 +33,9 @@ intGDV = DynValue{realm = Rlm.Global, typeRep = typeOf (0::Int)}
 -- the list of static variables for this machine
 lifeVars :: [Named DynValue]
 lifeVars =
-      [Named (mkName "population") intGDV] ++
-      [Named (mkName "generation") intGDV] ++
-      [Named (mkName "cell") intDV] 
+  [Named (mkName "population") intGDV] ++
+  [Named (mkName "generation") intGDV] ++
+  [Named (mkName "cell") intDV] 
 
 
 -- adjacency vectors in Conway's game of Life

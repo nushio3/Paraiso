@@ -274,6 +274,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       OM.LoadSize  ax -> (codecLoadSize  !! axisIndex ax, [])
       OM.Reduce op    -> let fname = T.pack ("reduce_" ++ map toLower (show op)) in
         (C.FuncCallStd fname (map creatVar prepre), [])
+      OM.Broadcast    -> let fname = "broadcast" in
+        (C.FuncCallStd fname (map creatVar prepre), [])
       _               -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
 
     nodeToRhs env' cursor idx = C.VarExpr $ C.Var C.UnknownType $ nodeNameCursored env' idx cursor

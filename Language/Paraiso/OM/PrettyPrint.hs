@@ -77,7 +77,9 @@ ppAnot1 om anots = map ("  "++) $ concat cands
       , map ppValid (toValidList om anots)      
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Direct])
       , map (("Depend."++) . showT) ((Anot.toList anots) ::  [Depend.Indirect])
-      , map (("Depend.Calc "++) . ppDC) ((Anot.toList anots) ::  [Depend.Calc])
+      , if ((Anot.toList anots) ::  [Alloc.Allocation]) == [Alloc.Manifest]
+        then map (("Depend.Calc "++) . ppDC) ((Anot.toList anots) ::  [Depend.Calc])
+        else []
       , map showT ((Anot.toList anots) ::  [Depend.KernelWriteGroup])        
       , map showT ((Anot.toList anots) ::  [Depend.OMWriteGroup])                
       ]
