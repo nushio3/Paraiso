@@ -217,7 +217,7 @@ broadcast builder1 = do
   n3 <- addNodeE [n2] $ NValue type2 
   return (FromNode TLocal c1 n3)
 
--- | Shift a 'TLocal' 'Value' wi5Bth a constant vector.
+-- | Shift a 'TLocal' 'Value' with a constant vector.
 shift :: (Typeable c)
   => v g                            -- ^ The amount of shift  
   -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
