@@ -111,14 +111,16 @@ dependencyAnalysis graph = imap update graph
       where
         inner idx 
           -- if there is no predecessor you are the first
-          | length pres == 0 = 0
+          | length pres == 0        = 0
           -- you found someone else you can coexist with
-          | length coPres >0 = kernelGroup V.! head coPres 
+          | not (null coGroups) = head coGroups
           -- there are predecessors, but you can't coexist with any of them
-          | otherwise        = 1 + maximum (map (kernelGroup V.!) pres)
+          | otherwise               = 1 + maximum (map (kernelGroup V.!) pres)
           where
             pres = takeWhile (<idx) manifestNodes
-            coPres = filter (coexist idx) pres
+            existingGroups = Set.toList $ Set.fromList $ map (kernelGroup V.!) pres
+            groupMember grp = filter ((==grp) . (kernelGroup V.!)) pres
+            coGroups = filter (and . map (coexist idx) .  groupMember) existingGroups
     
     -- whether two nodes can be written simultaneously in one kernel.
     coexist :: FGL.Node -> FGL.Node -> Bool
@@ -127,7 +129,7 @@ dependencyAnalysis graph = imap update graph
                    = error "coexistence not defined for non-Manifest nodes"
       | idx == jdx = True
       | idx <  jdx = coexist jdx idx
-      | otherwise  = not dependent' && sameShape
+      | otherwise  = (not dependent') && sameShape
       where
         dependent' = indirectMatrixWrite V.! idx V.! (idxToSidx V.! jdx)
         sameShape  = 

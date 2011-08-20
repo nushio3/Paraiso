@@ -27,7 +27,7 @@ decideAllocation :: Optimization
 decideAllocation graph = imap update graph 
   where
     update :: FGL.Node -> Anot.Annotation -> Anot.Annotation
-    update i 
+    update i  
       | afterLoad = Anot.set Alloc.Existing
       | beforeStore || beforeReduce || afterReduce || beforeBroadcast || afterBroadcast
                   = Anot.set Alloc.Manifest
@@ -38,33 +38,43 @@ decideAllocation graph = imap update graph
           self0 = FGL.lab graph i
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph i) 
           suc0  = FGL.lab graph =<<(listToMaybe $ FGL.suc graph i) 
+          pres  = catMaybes $ map (FGL.lab graph) $ FGL.pre graph i
+          sucs  = catMaybes $ map (FGL.lab graph) $ FGL.suc graph i
           isGlobal  = case self0 of
             Just (NValue (DVal.DynValue Realm.Global _) _) -> True
             _                                              -> False
           afterLoad = case pre0 of
-            Just (NInst (Load _) _) -> True
-            _                       -> False
-          beforeStore   = case suc0 of
-            Just (NInst (Store _) _) -> True
-            _                        -> False
-          beforeReduce = case suc0 of
-            Just (NInst (Reduce _) _) -> True
-            _                         -> False
-          afterReduce = case pre0 of
-            Just (NInst (Reduce _) _) -> True
-            _                         -> False
-          beforeBroadcast = case suc0 of
-            Just (NInst (Broadcast) _) -> True
+            Just (NInst (Load _) _)    -> True
             _                          -> False
+          beforeStore  = 
+            or $
+            flip map sucs $ \ nd -> case nd of
+              (NInst (Store _) _)   -> True
+              _                     -> False
+          beforeReduce = 
+            or $
+            flip map sucs $ \ nd -> case nd of
+              (NInst (Reduce _) _)  -> True
+              _                     -> False
+          afterReduce = case pre0 of
+            Just (NInst (Reduce _) _)  -> True
+            _                          -> False
+          beforeBroadcast =
+            or $
+            flip map sucs $ \ nd -> case nd of
+              (NInst (Broadcast) _) -> True
+              _                     -> False
           afterBroadcast = case pre0 of
             Just (NInst (Broadcast) _) -> True
             _                          -> False
-          beforeShift = case suc0 of
-            Just (NInst (Shift _) _) -> True
-            _                        -> False
+          beforeShift = 
+            or $
+            flip map sucs $ \ nd -> case nd of
+              (NInst (Shift _) _)   -> True
+              _                     -> False
           afterShift = case pre0 of
-            Just (NInst (Shift _) _) -> True
-            _                        -> False
+            Just (NInst (Shift _) _)   -> True
+            _                          -> False
 
 
 
