@@ -71,28 +71,29 @@ translate setup plan =
       V.map storageRefToMenber $
       Plan.storages plan
     storageRefToMenber stRef =  
-      C.MemberVar  C.Private $ 
+      C.MemberVar  C.Public $ 
       C.Var 
         (mkCtyp env $ Plan.storageType stRef) 
         (name stRef) 
 
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
-  makeMiki "size" size ++ 
-  makeMiki "lowerMargin" lM ++   
-  makeMiki "upperMargin" uM ++   
-  makeMiki "memorySize" memorySize
+  makeMami False  "size" size ++ 
+  makeMami True "lowerMargin" lM ++   
+  makeMami True "upperMargin" uM ++   
+  makeMami False  "memorySize" memorySize
   where
     size = toList $ Native.localSize setup
     memorySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
     lM = toList $ Plan.lowerMargin plan
     uM = toList $ Plan.upperMargin plan
 
-    makeMiki label xs = 
-      map (\(i,x) -> make (label ++  show i) x) $
+    makeMami alone label xs = 
+      (if alone then id else (finale label xs :))  $
+      map (\(i,x) -> tiro (label ++  show i) x) $
       zip [0..] xs
 
-    make str ret =
+    tiro str ret =
       C.MemberFunc C.Public True $
       (C.function (C.typeOf (size!!0)) $ mkName $ T.pack str) 
       { C.funcBody = 
@@ -100,6 +101,7 @@ memberFuncForSize env@(Env setup plan) =
         ]
       }
 
+    finale str xs = tiro str (product xs)
 
 
 makeFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
