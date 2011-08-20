@@ -44,6 +44,7 @@ translate setup plan =
       library ++ 
       comments ++
       [ C.ClassDef $ C.Class (name plan) $
+        memberFuncForSize env ++
         storageVars ++ subKernelFuncs ++ memberFuncs 
       ]
   }
@@ -75,9 +76,34 @@ translate setup plan =
         (mkCtyp env $ Plan.storageType stRef) 
         (name stRef) 
 
+memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
+memberFuncForSize env@(Env setup plan) = 
+  makeMiki "size" size ++ 
+  makeMiki "lowerMargin" lM ++   
+  makeMiki "upperMargin" uM ++   
+  makeMiki "memorySize" memorySize
+  where
+    size = toList $ Native.localSize setup
+    memorySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    lM = toList $ Plan.lowerMargin plan
+    uM = toList $ Plan.upperMargin plan
+
+    makeMiki label xs = 
+      map (\(i,x) -> make (label ++  show i) x) $
+      zip [0..] xs
+
+    make str ret =
+      C.MemberFunc C.Public True $
+      (C.function (C.typeOf (size!!0)) $ mkName $ T.pack str) 
+      { C.funcBody = 
+        [ C.StmtReturn (C.toDyn ret)
+        ]
+      }
+
+
 
 makeFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
-makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public $ 
+makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $ 
  (C.function tVoid (name ker)) 
  { C.funcBody = kernelCalls ++ storeInsts
  }
@@ -133,7 +159,7 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public $
 -- | Create a subKernel: a function that performs a portion of actual calculations.
 makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.MemberDef
 makeSubFunc env subker = 
-  C.MemberFunc C.Public $ 
+  C.MemberFunc C.Public False $ 
   (C.function tVoid (name subker))
   { C.funcArgs = 
      makeSubArg env True (Plan.labNodesIn subker) ++

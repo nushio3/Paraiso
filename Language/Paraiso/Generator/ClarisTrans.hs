@@ -84,11 +84,14 @@ instance Translatable Class where
       classDef  = joinBeginEndBy "\n" $ map memberDef membs
       
       memberDecl x = case x of
-        MemberFunc ac f -> t ac ++ " " ++ t (FuncDef f)
+        MemberFunc ac inl f -> if inl 
+                               then t ac ++ " " ++ translate conf{ fileType = SourceFile } (FuncDef f)
+                               else t ac ++ " " ++ t (FuncDef f)
         MemberVar  ac y -> t ac ++ " " ++ t (VarDef y)
 
       memberDef x = case x of
-        MemberFunc _ f -> translate conf' (FuncDef f)
+        MemberFunc _ inl f -> if inl then ""
+                              else translate conf' (FuncDef f)
         MemberVar _ _ -> ""
 
 instance Translatable AccessModifier where

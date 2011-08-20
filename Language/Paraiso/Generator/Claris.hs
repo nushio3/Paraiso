@@ -92,7 +92,8 @@ instance Nameable Class where name = className
 data MemberDef 
   = MemberFunc
     { memberAccess :: AccessModifier,
-      memberFunc :: Function
+      inlined      :: Bool,
+      memberFunc   :: Function
     }  -- ^ A member function
   | MemberVar 
     { memberAccess :: AccessModifier, 
