@@ -24,6 +24,7 @@ import qualified Algebra.Absolute as Absolute
 import qualified Algebra.Additive as Additive
 import qualified Algebra.Algebraic as Algebraic
 import qualified Algebra.Field as Field
+import qualified Algebra.IntegralDomain as IntegralDomain 
 import qualified Algebra.Lattice as Lattice
 import qualified Algebra.Ring as Ring
 import qualified Algebra.Transcendental as Transcendental
@@ -243,16 +244,17 @@ loadIndex c0 axis = do
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TLocal c0 n1)
 
--- | Load the 'Axis' component of the mesh size, to a 'TGlobal' 'Value'.
-loadSize :: (Typeable c)
-            => c                            -- ^The 'Val.content' type.
+-- | Load the 'Axis' component of the mesh size, to either a  'TGlobal' 'Value' or  'TLocal' 'Value'..
+loadSize :: (TRealm r, Typeable c)
+            => r                            -- ^ The 'TRealm'
+            -> c                            -- ^The 'Val.content' type.
             -> Axis v                       -- ^ The axis for which the size is required
-            -> Builder v g a (Value TGlobal c) -- ^ The 'TGlobal' 'Value' that contains the size of the mesh in that direction.
-loadSize c0 axis = do
-  let type0 = mkDyn TLocal c0
+            -> Builder v g a (Value r c) -- ^ The 'TGlobal' 'Value' that contains the size of the mesh in that direction.
+loadSize r0 c0 axis = do
+  let type0 = mkDyn r0 c0
   n0 <- addNodeE []   $ NInst (LoadSize axis)
   n1 <- addNodeE [n0] $ NValue type0 
-  return (FromNode TGlobal c0 n1)
+  return (FromNode r0 c0 n1)
 
 
 -- | Create an immediate 'Value' from a Haskell concrete value. 
@@ -345,6 +347,13 @@ instance (TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g a (Value r c)) 
   one = return $ FromImm unitTRealm Ring.one
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
+
+-- | Builder is Ring 'IntegralDomain.C'.
+-- You can use div and mod.
+instance (TRealm r, Typeable c, IntegralDomain.C c) => IntegralDomain.C (Builder v g a (Value r c)) where
+  div = mkOp2 A.Div
+  mod = mkOp2 A.Mod
+  divMod = error "divmod is to be defined!"
 
 -- | you can convert GHC numeric immediates to 'Builder'.
 instance (TRealm r, Typeable c, Ring.C c) => Prelude.Num (Builder v g a (Value r c)) where  

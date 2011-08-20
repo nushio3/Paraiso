@@ -11,6 +11,7 @@ import qualified Algebra.Additive                    as Additive
 import           Data.Char
 import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
+import           Data.List (sortBy)
 import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
 import           Data.Maybe
@@ -256,7 +257,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       let (idxInst,inst) = case preInst idx of
             found:_ -> found
             _       -> error $ "right hand side is not inst:" ++ show idx
-          prepre = FGL.pre graph idxInst
+          prepre = map fst $ sortBy (\x y -> compare (snd x) (snd y)) $ FGL.lpre graph idxInst
           isInput = Set.member idx inputIdxSet
           creatVar idx = C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)
         in case inst of
@@ -365,6 +366,7 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.Neg    , [x]) -> C.Op1Prefix "-" x 
   (Arith.Mul    , [x,y]) -> C.Op2Infix "*" x y
   (Arith.Div    , [x,y]) -> C.Op2Infix "/" x y
+  (Arith.Mod    , [x,y]) -> C.Op2Infix "%" x y  
   (Arith.Inv    , [x]) -> C.Op1Prefix "1/" x 
   (Arith.Not    , [x]) -> C.Op1Prefix "!" x   
   (Arith.And    , [x,y]) -> C.Op2Infix "&&" x y  

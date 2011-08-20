@@ -23,6 +23,10 @@ data Operator =
   Neg |
   Mul | 
   Div |
+  --DivRm |   TODO 
+  --DivRp |  
+  Mod |
+  DivMod |
   Inv |
   Not |
   And |
@@ -66,6 +70,8 @@ instance Arity Operator where
     Neg -> (1,1)
     Mul -> (2,1)
     Div -> (2,1)
+    Mod -> (2,1)
+    DivMod -> (2,2)    
     Inv -> (1,1)
     Not -> (1,1)
     And -> (2,1)

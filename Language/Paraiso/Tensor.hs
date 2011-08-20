@@ -39,9 +39,12 @@ data Vec a
 -- from n-dimensional tensor.
 data (n :: * -> * ) :~ a 
   = (n a) :~ a 
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Show, Read)
 infixl 3 :~
 
+-- | the last component contributes the most to the ordering
+instance (Ord (n a), Ord a) => Ord (n :~ a) where
+  compare (xs :~ x) (ys :~ y) = compare (y, ys) (x, xs)
 
 instance Foldable Vec where
   foldMap = foldMapDefault
