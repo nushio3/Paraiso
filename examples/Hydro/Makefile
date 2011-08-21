@@ -1,4 +1,4 @@
-all: shock.out kh.out
+all: lib #shock.out kh.out
 
 hydro.o: dist/Hydro.hpp dist/Hydro.cpp
 	g++ -c -O3 -Idist dist/Hydro.cpp -o hydro.o
