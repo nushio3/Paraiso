@@ -17,11 +17,16 @@ arityI = fst.arity
 arityO = snd.arity
   
 data Operator = 
+  Identity |
   Add |
   Sub |
   Neg |
   Mul | 
   Div |
+  --DivRm |   TODO 
+  --DivRp |  
+  Mod |
+  DivMod |
   Inv |
   Not |
   And |
@@ -54,16 +59,20 @@ data Operator =
   Asin |
   Acos |
   Atan |
+  Atan2 |  
   Sincos 
   deriving (P.Eq, P.Ord, P.Show, P.Read)
 
 instance Arity Operator where
   arity a = case a of
+    Identity -> (1,1)
     Add -> (2,1)
     Sub -> (2,1)
     Neg -> (1,1)
     Mul -> (2,1)
     Div -> (2,1)
+    Mod -> (2,1)
+    DivMod -> (2,2)    
     Inv -> (1,1)
     Not -> (1,1)
     And -> (2,1)
@@ -94,5 +103,6 @@ instance Arity Operator where
     Asin -> (1,1)
     Acos -> (1,1)
     Atan -> (1,1)
+    Atan2 -> (2,1)
     Sincos -> (1,2)
 

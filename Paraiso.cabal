@@ -15,7 +15,7 @@ Name:                Paraiso
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.0.0.0
+Version:             0.1.0.0
 
 -- A short (one-line) description of the package.
 Synopsis:            a code generator for partial differential equations solvers.
@@ -106,48 +106,69 @@ flag test
 Library
   -- Modules exported by the library.
   Exposed-modules:     Language.Paraiso
+                       Language.Paraiso.Annotation
+                       Language.Paraiso.Annotation.Allocation
+                       Language.Paraiso.Annotation.Balloon
+                       Language.Paraiso.Annotation.Boundary
+                       Language.Paraiso.Annotation.Comment
+                       Language.Paraiso.Annotation.Dependency
                        Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
-                       Language.Paraiso.Generator.Allocation
-                       Language.Paraiso.Generator.Cpp
+                       Language.Paraiso.Generator.Claris
+                       Language.Paraiso.Generator.ClarisTrans
+                       Language.Paraiso.Generator.Native
+                       Language.Paraiso.Generator.OMTrans
+                       Language.Paraiso.Generator.Plan
+                       Language.Paraiso.Generator.PlanTrans
                        Language.Paraiso.Interval
                        Language.Paraiso.Name        
+                       Language.Paraiso.OM
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
                        Language.Paraiso.OM.Builder.Boolean
                        Language.Paraiso.OM.Builder.Internal
                        Language.Paraiso.OM.DynValue
                        Language.Paraiso.OM.Graph
+                       Language.Paraiso.OM.PrettyPrint
                        Language.Paraiso.OM.Realm
                        Language.Paraiso.OM.Reduce
                        Language.Paraiso.OM.Value
+                       Language.Paraiso.Optimization
+                       Language.Paraiso.Optimization.BoundaryAnalysis
+                       Language.Paraiso.Optimization.DecideAllocation
+                       Language.Paraiso.Optimization.DependencyAnalysis
+                       Language.Paraiso.Optimization.Graph
+                       Language.Paraiso.Optimization.Identity
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
-                       Language.Paraiso.POM
                        Language.Paraiso.Prelude
                        Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
-  Build-depends:       base                  >= 4.3.1 && < 4.4,
-                       containers            >= 0.4.0 && < 0.5,
-                       control-monad-failure >= 0.7.0 && < 0.8,
-                       directory             >= 1.1.0 && < 1.2,
-                       filepath              >= 1.2.0 && < 1.3,
-                       fgl                   >= 5.4.2 && < 5.5,
-                       mtl                   >= 2.0.1 && < 2.1,
-                       numeric-prelude       >= 0.2.1 && < 0.3,
-                       repa                  >= 2.0.0 && < 2.1
+  Build-depends:       base                  == 4.*,
+                       containers            >= 0.4.0  && < 0.5,
+                       control-monad-failure >= 0.7.0  && < 0.8,
+                       directory             >= 1.1.0  && < 1.2,
+                       filepath              >= 1.2.0  && < 1.3,
+                       fgl                   >= 5.4.2  && < 5.5,
+                       ListLike              >= 3.1.1  && < 3.2,
+                       listlike-instances    >= 0.1    && < 0.2,
+                       mtl                   >= 2.0.1  && < 2.1,
+                       numeric-prelude       >= 0.2.1  && < 0.3,
+                       process               >= 1.0.1  && < 1.0.2,
+                       random                >= 1.0.0  && < 1.1,
+                       repa                  >= 2.1.1  && < 2.2,
+                       text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2
   -- Modules not exported by this package.
   -- Other-modules:       
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
 
-  ghc-options:    -O3 -Wall -funbox-strict-fields -fno-warn-name-shadowing
+  ghc-options:    -O3 -Wall   -fspec-constr-count=25
 
-  if impl(ghc >= 7.0)
-    ghc-options:        -fspec-constr-count=25
 
   Default-Language: Haskell2010
 
@@ -158,14 +179,29 @@ source-repository head
 
 test-suite runtests
     type: exitcode-stdio-1.0
-    build-depends: base >= 4.3.1 && < 4.4,
-                   test-framework,
-                   test-framework-quickcheck2,
-                   test-framework-hunit,
-                   HUnit,
-                   QuickCheck >= 2 && < 3
+    build-depends:     base                  == 4.*,
+                       containers            >= 0.4.0  && < 0.5,
+                       control-monad-failure >= 0.7.0  && < 0.8,
+                       directory             >= 1.1.0  && < 1.2,
+                       filepath              >= 1.2.0  && < 1.3,
+                       fgl                   >= 5.4.2  && < 5.5,
+                       ListLike              >= 3.1.1  && < 3.2,
+                       listlike-instances    >= 0.1    && < 0.2,
+                       mtl                   >= 2.0.1  && < 2.1,
+                       numeric-prelude       >= 0.2.1  && < 0.3,
+                       process               >= 1.0.1  && < 1.0.2,
+                       random                >= 1.0.0  && < 1.1,
+                       repa                  >= 2.1.1  && < 2.2,
+                       text                  >= 0.11.1 && < 0.12,
+                       vector                >= 0.7.1  && < 0.7.2,
+
+                       test-framework,
+                       test-framework-quickcheck2,
+                       test-framework-hunit,
+                       HUnit,
+                       QuickCheck >= 2 && < 3
     main-is: runtests.hs
     
-    ghc-options:     -Wall -O3
+    ghc-options:     -Wall -O3  -fspec-constr-count=25
     Default-Language: Haskell2010
 

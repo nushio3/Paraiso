@@ -1,5 +1,6 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances,
-  MultiParamTypeClasses, NoImplicitPrelude, StandaloneDeriving, 
+{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, FlexibleInstances,
+ FunctionalDependencies, KindSignatures,
+  MultiParamTypeClasses, NoImplicitPrelude,
   TypeOperators, UndecidableInstances  #-} 
 {-# OPTIONS -Wall #-}
 -- | A tensor algebra library. Main ingredients are :
@@ -30,20 +31,20 @@ infixl 9 !
 v ! i  = component i v   
 
 -- | data constructor for 0-dimensional tensor.
-data Vec a = Vec 
-infixl 3 :~
+data Vec a 
+  = Vec 
+  deriving (Eq, Ord, Show, Read)
+
 -- | data constructor for constructing n+1-dimensional tensor
 -- from n-dimensional tensor.
-data n :~ a = (n a) :~ a
+data (n :: * -> * ) :~ a 
+  = (n a) :~ a 
+  deriving (Eq, Show, Read)
+infixl 3 :~
 
-deriving instance (Eq a) => Eq (Vec a)
-deriving instance (Eq a, Eq (n a)) => Eq (n :~ a)
-deriving instance (Ord a) => Ord (Vec a)
-deriving instance (Ord a, Ord (n a)) => Ord (n :~ a)
-deriving instance (Show a) => Show (Vec a)
-deriving instance (Show a, Show (n a)) => Show (n :~ a)
-deriving instance (Read a) => Read (Vec a)
-deriving instance (Read a, Read (n a)) => Read (n :~ a)
+-- | the last component contributes the most to the ordering
+instance (Ord (n a), Ord a) => Ord (n :~ a) where
+  compare (xs :~ x) (ys :~ y) = compare (x, xs) (y, ys) 
 
 instance Foldable Vec where
   foldMap = foldMapDefault
@@ -71,7 +72,7 @@ instance (Applicative n, Traversable n) => Applicative ((:~) n) where
 -- Axis also carries v, the container type for its corresponding
 -- vector. Therefore, An axis of one type can access only vectors
 -- of a fixed dimension, but of arbitrary type.
-newtype Axis v = Axis {axisIndex::Int} deriving (Eq,Ord,Show,Read)
+newtype (Vector v) => Axis v = Axis {axisIndex::Int} deriving (Eq,Ord,Show,Read)
 
 -- | An object that allows component-wise access.
 class (Traversable v) => Vector v where
@@ -80,7 +81,7 @@ class (Traversable v) => Vector v where
                 Axis v -- ^the axis of the component you want
                 -> v a -- ^the target vector 
                 -> f a -- ^the component, obtained within a 'Failure' monad
-                
+
   -- | Get a component. This computation may result in a runtime error,
   -- though, as long as the 'Axis' is generated from library functions
   -- such as 'compose', there will be no error.
@@ -91,7 +92,7 @@ class (Traversable v) => Vector v where
   -- | Create a 'Vector' from a function that maps 
   -- axis to components.
   compose :: (Axis v -> a) -> v a
-  
+
 instance Vector Vec where
   componentF axis Vec 
     = failureString $ "axis out of bound: " ++ show axis
@@ -112,7 +113,7 @@ instance (Additive.C a) => Additive.C (Vec a) where
   x+y  = compose (\i ->  x!i +  y!i)
   x-y  = compose (\i ->  x!i -  y!i)
   negate x = compose (\i -> negate $ x!i)
-  
+
 instance (Vector v, Additive.C a) => Additive.C ((:~) v a) where
   zero = compose $ const Additive.zero
   x+y  = compose (\i -> x!i + y!i)
@@ -134,7 +135,7 @@ class  (Vector v, Ring.C a) => VectorRing v a where
   -- | pure but unsafe version means of obtaining a 'unitVector'
   unitVector :: Axis v -> v a
   unitVector = unsafePerformFailure . unitVectorF
-    
+
 instance (Ring.C a) => VectorRing Vec a where
   unitVectorF axis
       = failureString $ "axis out of bound: " ++ show axis

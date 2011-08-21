@@ -6,7 +6,6 @@
 module Language.Paraiso.OM.Builder.Boolean
   (eq, ne, lt, le, gt, ge, select) where
 
-import qualified Algebra.Ring as Ring
 import Data.Dynamic (Typeable, typeOf)
 import qualified Language.Paraiso.OM.Arithmetic as A
 import Language.Paraiso.OM.Builder.Internal
@@ -14,16 +13,15 @@ import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
-import Language.Paraiso.Tensor
 import NumericPrelude 
 
 
 -- | generate a binary operator that returns Bool results.
-mkOp2B :: (Vector v, Ring.C g, TRealm r, Typeable c) => 
+mkOp2B :: (TRealm r, Typeable c) => 
           A.Operator                   -- ^The operation to be performed
-       -> (Builder v g (Value r c))    -- ^The first argument
-       -> (Builder v g (Value r c))    -- ^The second argument
-       -> (Builder v g (Value r Bool)) -- ^The result
+       -> (Builder v g a (Value r c))    -- ^The first argument
+       -> (Builder v g a (Value r c))    -- ^The second argument
+       -> (Builder v g a (Value r Bool)) -- ^The result
 mkOp2B op builder1 builder2 = do
   v1 <- builder1
   v2 <- builder2
@@ -31,13 +29,13 @@ mkOp2B op builder1 builder2 = do
       r1 = Val.realm v1
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [n1, n2] (NInst (Arith op) ())
-  n01 <- addNode [n0] (NValue (toDyn v1){typeRep = typeOf True} ())
+  n0 <- addNodeE [n1, n2] $ NInst (Arith op) 
+  n01 <- addNodeE [n0]    $ NValue (toDyn v1){typeRep = typeOf True} 
   return $ FromNode r1 True n01
 
 
-type CompareOp =  (Vector v, Ring.C g, TRealm r, Typeable c) => 
-    (Builder v g (Value r c)) -> (Builder v g (Value r c)) -> (Builder v g (Value r Bool))
+type CompareOp =  (TRealm r, Typeable c) => 
+    (Builder v g a (Value r c)) -> (Builder v g a (Value r c)) -> (Builder v g a (Value r Bool))
 
 -- | Equal
 eq :: CompareOp
@@ -59,11 +57,11 @@ ge :: CompareOp
 ge = mkOp2B A.GE
 
 -- | selects either the second or the third argument based 
-select ::(Vector v, Ring.C g, TRealm r, Typeable c) => 
-         (Builder v g (Value r Bool)) -- ^The 'Bool' condition
-      -> (Builder v g (Value r c))    -- ^The value chosen when the condition is 'True'
-      -> (Builder v g (Value r c))    -- ^The value chosen when the condition is 'False'
-      -> (Builder v g (Value r c))    -- ^The result
+select ::(TRealm r, Typeable c) => 
+         (Builder v g a (Value r Bool)) -- ^The 'Bool' condition
+      -> (Builder v g a (Value r c))    -- ^The value chosen when the condition is 'True'
+      -> (Builder v g a (Value r c))    -- ^The value chosen when the condition is 'False'
+      -> (Builder v g a (Value r c))    -- ^The result
 select builderB builder1 builder2 = do
   vb <- builderB
   v1 <- builder1
@@ -71,8 +69,8 @@ select builderB builder1 builder2 = do
   nb <- valueToNode vb
   n1 <- valueToNode v1
   n2 <- valueToNode v2
-  n0 <- addNode [nb, n1, n2] (NInst (Arith A.Select) ())
-  n01 <- addNode [n0] (NValue (toDyn v1) ())
+  n0 <- addNodeE [nb, n1, n2] $ NInst (Arith A.Select) 
+  n01 <- addNodeE [n0] $ NValue (toDyn v1) 
   let 
       r1 = Val.realm v1
       c1 = Val.content v1

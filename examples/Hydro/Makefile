@@ -1,4 +1,4 @@
-all: shock.out kh.out
+all: lib #shock.out kh.out
 
 hydro.o: dist/Hydro.hpp dist/Hydro.cpp
 	g++ -c -O3 -Idist dist/Hydro.cpp -o hydro.o
@@ -14,10 +14,17 @@ kh.out: kh.o hydro.o
 
 
 lib:
-	runhaskell  -i../../ HydroMain.hs
+	ghc -i../../ --make -O3  -fspec-constr-count=42 HydroMain.hs
+	./HydroMain
+
+recomp:
+	ghc  -i../../ --make -O3 HydroMain.hs -fforce-recomp \
+	-fspec-constr-count=16
+
 
 clean:
 	rm -fr *.o
 	rm -fr *.out
 	rm -fr dist/
 	rm -f output/*.*
+
