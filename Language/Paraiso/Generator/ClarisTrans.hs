@@ -114,6 +114,9 @@ instance Translatable Function where
           [ translate conf (funcType f)
           , funcName'
           , paren Paren $ joinBy ", " $ map (translate conf) (funcArgs f)
+          , if null $ funcMemberInitializer f 
+            then ""
+            else (": " ++) $ joinBy "," $ map (translate conf) $ funcMemberInitializer f 
           , paren Brace $ joinBeginEndBy "\n" $ map (translate conf) $ funcBody f]
       funcName' = joinBy "::" $ reverse $ nameText f : map nameText (namespace conf)
 

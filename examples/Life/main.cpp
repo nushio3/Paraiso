@@ -17,8 +17,8 @@ int main () {
   const int W = sim.memorySize0();
   const int H = sim.memorySize1();
   int wait = 1000000;
+  string buf; buf.resize((W+1)*H);
   for (int t = 0; t < 1500; ++t) {
-    string buf; buf.resize((W+1)*H);
     for (int y = 0; y < H/2; ++y) {
       for (int x = 0; x < W; ++x) {
 	int i0 = (2*y)  *W+x;
@@ -31,7 +31,6 @@ int main () {
     ostringstream oss;
     oss << buf << "\n" 
 	<< "generation: " << t << endl;
-    system("clear");
     cout << oss.str() << flush;
     usleep(wait);
     wait = max(100000, int(wait*0.8));

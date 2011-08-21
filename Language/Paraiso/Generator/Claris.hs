@@ -114,7 +114,8 @@ data Function
     { funcName :: Name, 
       funcType :: TypeRep,
       funcArgs :: [Var],
-      funcBody :: [Statement] 
+      funcBody :: [Statement], 
+      funcMemberInitializer :: [Expr]
     }
   deriving (Eq, Show)
 instance Nameable Function where name = funcName
@@ -125,7 +126,8 @@ function tr na = Function
   { funcName = na,
     funcType = tr,
     funcArgs = [],
-    funcBody = []
+    funcBody = [],
+    funcMemberInitializer = []
   }
 
 -- | description C++ type

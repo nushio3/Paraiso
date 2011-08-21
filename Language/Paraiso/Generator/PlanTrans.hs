@@ -26,7 +26,6 @@ import qualified Language.Paraiso.OM.Arithmetic      as Arith
 import qualified Language.Paraiso.OM.DynValue        as DVal
 import qualified Language.Paraiso.OM.Graph           as OM
 import qualified Language.Paraiso.OM.Realm           as Realm
-import qualified Language.Paraiso.OM.Reduce           as ReduceOp
 import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
@@ -44,8 +43,10 @@ translate setup plan =
       library ++ 
       comments ++
       [ C.ClassDef $ C.Class (name plan) $
+        storageVars ++ 
+        constructorDef ++ 
         memberFuncForSize env ++
-        storageVars ++ subKernelFuncs ++ memberFuncs 
+        subKernelFuncs ++ memberFuncs 
       ]
   }
   where
@@ -55,6 +56,18 @@ translate setup plan =
       "lowerMargin = " ++ showT (Plan.lowerMargin plan),
       "upperMargin = " ++ showT (Plan.upperMargin plan)
       ]
+
+    constructorDef = 
+      (:[]) $
+      C.MemberFunc C.Public True $
+      (C.function  C.ConstructorType (name plan))
+      { C.funcMemberInitializer = -- allocate memory for storage members
+           concat $
+           flip map storageVars $ \memb -> case memb of
+             C.MemberVar _ var -> 
+               [C.FuncCallUsr (name var) [C.FuncCallStd "memorySize" []]]
+             _ -> []
+      }
 
     memberFuncs = V.toList $ V.imap (\idx ker -> makeFunc env idx ker) $ Plan.kernels plan
 
@@ -91,7 +104,7 @@ memberFuncForSize env@(Env setup plan) =
     makeMami alone label xs = 
       (if alone then id else (finale label xs :))  $
       map (\(i,x) -> tiro (label ++  show i) x) $
-      zip [0..] xs
+      zip [(0::Int)..] xs
 
     tiro str ret =
       C.MemberFunc C.Public True $
@@ -215,12 +228,15 @@ loopMaker env@(Env setup plan) realm subker = case realm of
     codecMod = 
       [ if idx == length codecDiv-1 then x else C.Op2Infix "%" x (C.toDyn $ boundarySize !! idx)
       | (idx, x) <- zip [0..] codecDiv]
+    codecModAdd = 
+      [ C.Op2Infix "+" x (C.toDyn $ Plan.lowerMargin plan ! (Axis idx))
+      | (idx, x) <- zip [0..] codecMod]
     codecAddr = 
       if memorySize == boundarySize 
       then C.VarExpr loopCounter
       else foldl1 (C.Op2Infix "+")
-           [ C.Op2Infix "*" x (C.toDyn $ memorySize !! idx)
-           | (idx, x) <- zip [0..] codecMod]
+           [ C.Op2Infix "*" x (C.toDyn $ product $ take idx  memorySize)
+           | (idx, x) <- zip [0..] codecModAdd]
     codecLoadIndex =
       [ C.Op2Infix "-" x (C.toDyn  ((Plan.lowerMargin plan - Plan.lowerBoundary subker) ! (Axis idx) ))
       | (idx, x) <- zip [0..] codecMod]
@@ -287,7 +303,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
             _       -> error $ "right hand side is not inst:" ++ show idx
           prepre = map fst $ sortBy (\x y -> compare (snd x) (snd y)) $ FGL.lpre graph idxInst
           isInput = Set.member idx inputIdxSet
-          creatVar idx = C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx)
+          creatVar idx' = C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx')
         in case inst of
       _ | isInput     -> case realm of
         Realm.Local -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])

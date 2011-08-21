@@ -44,7 +44,7 @@ infixl 3 :~
 
 -- | the last component contributes the most to the ordering
 instance (Ord (n a), Ord a) => Ord (n :~ a) where
-  compare (xs :~ x) (ys :~ y) = compare (y, ys) (x, xs)
+  compare (xs :~ x) (ys :~ y) = compare (x, xs) (y, ys) 
 
 instance Foldable Vec where
   foldMap = foldMapDefault
