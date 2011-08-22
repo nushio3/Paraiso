@@ -77,6 +77,7 @@ diffuse field = do
   num <- bind $ foldl1 (+) neighbours
   -- create the new cell state based on the judgement.
   ret <- bind $ (Anot.add Alloc.Manifest <?> (1/6) * num )
+  --ret <- bind $ ((1/6) * num )  
   return $ ret 
   
        

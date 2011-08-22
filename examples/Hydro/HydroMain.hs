@@ -6,7 +6,8 @@ module Main(main) where
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
-import           Language.Paraiso.Annotation (Annotation)
+import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import           Language.Paraiso.Name
 import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
@@ -114,7 +115,7 @@ boundaryCondition cell = do
   outOf <- bind $ 
        (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
        (foldl1 (||) $ compose (\i -> (icoord !i) `ge` (isize !i)))
-  return $ select outOf <$> cell0 <*> cell
+  return $ (\a b -> Anot.add Alloc.Manifest <?> (select outOf a b)) <$> cell0 <*> cell
 
 buildProceed :: B ()
 buildProceed = do
@@ -131,6 +132,7 @@ buildProceed = do
 
   cell <- boundaryCondition cell0
 
+
   let timescale i = dR!i / (soundSpeed cell + abs (velocity cell !i))
   dts <- bind $ foldl1 min $ compose timescale
 
@@ -144,6 +146,8 @@ buildProceed = do
   store (mkName "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
   store (mkName "pressure") $ pressure cell3
+
+
 
 
 proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
@@ -253,7 +257,7 @@ hllc i left right = do
 
 
 -- compose the machine.
-myOM :: OM Dim Int Annotation
+myOM :: OM Dim Int Anot.Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
     [(mkName "init"   , buildInit),
