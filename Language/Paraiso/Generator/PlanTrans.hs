@@ -34,6 +34,7 @@ import           Language.Paraiso.Tensor
 type AnAn = Anot.Annotation
 data Env v g = Env (Native.Setup v g) (Plan.Plan v g AnAn)
 
+-- translate the plan to Claris
 translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g AnAn -> C.Program
 translate setup plan = 
   C.Program 
@@ -89,6 +90,7 @@ translate setup plan =
         (mkCtyp env $ Plan.storageType stRef) 
         (name stRef) 
 
+-- Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
   makeMami False  "size" size ++ 
@@ -102,7 +104,7 @@ memberFuncForSize env@(Env setup plan) =
     uM = toList $ Plan.upperMargin plan
 
     makeMami alone label xs = 
-      (if alone then id else (finale label xs :))  $
+      (if not alone then (finale label xs :) else id)  $
       map (\(i,x) -> tiro (label ++  show i) x) $
       zip [(0::Int)..] xs
 

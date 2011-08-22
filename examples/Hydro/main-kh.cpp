@@ -12,43 +12,47 @@
 using namespace std;
 
 const int antiAlias = 1;
-const int W = 200 * antiAlias, H = 200 * antiAlias;
+int W,H;
 
 void dump (string fn, Hydro &sim) {
   ofstream ofs (fn.c_str()); 
   for (int iy = antiAlias/2; iy < H; iy+=antiAlias) {
     for (int ix = antiAlias/2; ix < W; ix+=antiAlias) {
-      double x = sim.dR0() * (ix+0.5);
-      double y = sim.dR0() * (iy+0.5);
-      int i = W * iy + ix;
+      double x = sim.static_3_dR0 * (ix+0.5);
+      double y = sim.static_4_dR1 * (iy+0.5);
+      int i = sim.memorySize0() * (iy+sim.lowerMargin1()) + ix + sim.lowerMargin0();
       ofs << x << " " << y << " "
-          << sim.density()[i] << " "
-          << sim.velocity0()[i] << " "
-          << sim.velocity1()[i] << " "
-          << sim.pressure()[i] << endl;
+          << sim.static_7_density[i] << " "
+          << sim.static_8_velocity0[i] << " "
+          << sim.static_9_velocity1[i] << " "
+          << sim.static_10_pressure[i] << endl;
     }
     ofs << endl;
   }
 }
 
 int main () {
-  Hydro sim(W, H);
-  sim.time() = 0;
-  sim.cfl() = 0.5;
-  sim.extent0() = 1.0;
-  sim.extent1() = 1.0;
-  sim.dR0() = sim.extent0() / W;
-  sim.dR1() = sim.extent1() / H;
-  sim.init_kh();
+  Hydro sim;
+  W = sim.size0();
+  H = sim.size1();
+
+  sim.static_1_time = 0;
+  sim.static_2_cfl = 0.5;
+  sim.static_5_extent0 = 1.0;
+  sim.static_6_extent1 = 1.0;
+  sim.static_3_dR0 = sim.static_5_extent0 / W;
+  sim.static_4_dR1 = sim.static_6_extent1 / H;
+  sim.init();
   char buf[256];
   sprintf(buf, "mkdir -p output%d", antiAlias);
   system(buf);
   int ctr = 0;
   while (ctr <= 1000) {
-    cerr << sim.time() << endl;
-    if (!isfinite(sim.time())) return -1;
+    double t = sim.static_1_time;
+    cerr << sim.static_1_time << endl;
+    if (!isfinite(t)) return -1;
     sim.proceed();
-    if (sim.time() > 0.1 * ctr) {
+    if (t > 0.1 * ctr) {
       sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;

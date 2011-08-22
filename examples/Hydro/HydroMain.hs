@@ -60,8 +60,153 @@ loadGReal :: Name -> BGR
 loadGReal = load TGlobal (undefined::Real) 
 
 ----------------------------------------------------------------
--- Hydro utility functions.
+-- Hydro Implementations
 ----------------------------------------------------------------
+
+buildInit :: B ()
+buildInit = do
+  dRG     <- mapM (bind . loadGReal) dRNames
+  extentG <- mapM (bind . loadGReal) extentNames
+  dR <- mapM (bind . broadcast) dRG 
+  extent <- mapM (bind . broadcast) extentG
+  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
+  coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
+
+  let ex = Axis 0
+      ey = Axis 1
+      vplus, vminus :: Dim BR
+      vplus  = Vec :~ ( 0.3) :~ 0
+      vminus = Vec :~ (-0.3) :~ 0
+
+  region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
+  velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
+
+  factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
+
+  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 2)
+  _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
+  store (mkName "pressure") $ factor * (kGamma::BR) * 1.414
+
+
+boundaryCondition :: Hydro BR -> B (Hydro BR)
+boundaryCondition cell = do
+  dRG     <- mapM (bind . loadGReal) dRNames
+  extentG <- mapM (bind . loadGReal) extentNames
+  dR <- mapM (bind . broadcast) dRG 
+  extent <- mapM (bind . broadcast) extentG
+  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
+  isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Double) axis)        
+  coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
+  
+  let ex = Axis 0
+      ey = Axis 1
+      vplus, vminus :: Dim BR
+      vplus  = Vec :~ ( 0.3) :~ 0
+      vminus = Vec :~ (-0.3) :~ 0
+
+  region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
+
+  cell0 <- bindPrimitive 
+           (kGamma * (kGamma::BR) * (select region 1 2))
+           (compose (\i -> select region (vplus!i) (vminus!i)))
+           ((kGamma::BR) * 1.414)
+
+  outOf <- bind $ 
+       (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
+       (foldl1 (||) $ compose (\i -> (icoord !i) `ge` (isize !i)))
+  return $ select outOf <$> cell0 <*> cell
+
+buildProceed :: B ()
+buildProceed = do
+  dens    <- bind $ loadReal $ mkName "density"
+  velo    <- mapM (bind . loadReal) velocityNames
+  pres    <- bind $ loadReal $ mkName "pressure"
+
+  timeG   <- bind $ loadGReal $ mkName "time"
+  cflG    <- bind $ loadGReal $ mkName "cfl"
+
+  dRG     <- mapM (bind . loadGReal) dRNames  
+  dR      <- mapM (bind . broadcast) dRG 
+  cell0 <-  bindPrimitive dens velo pres
+
+  cell <- boundaryCondition cell0
+
+  let timescale i = dR!i / (soundSpeed cell + abs (velocity cell !i))
+  dts <- bind $ foldl1 min $ compose timescale
+
+  dtG <- bind $ cflG * reduce Reduce.Min dts
+  dt  <- bind $ broadcast dtG
+
+  cell2 <- proceedSingle 1 (dt/2) dR cell  cell
+  cell3 <- proceedSingle 2  dt    dR cell2 cell
+
+  store (mkName "time") $ timeG + dtG
+  store (mkName "density") $ density cell3
+  _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
+  store (mkName "pressure") $ pressure cell3
+
+
+proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
+proceedSingle order dt dR cellF cellS = do
+  let calcWall i = do
+        (lp,rp) <- interpolate order i cellF
+        hllc i lp rp
+  wall <- sequence $ compose calcWall
+  foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+
+--  cx <- addFlux dt dR wall (Axis 0) cellS
+--  addFlux dt dR wall (Axis 1) cx
+
+addFlux :: BR -> Dim BR -> Dim (Hydro BR) -> Axis Dim -> Hydro BR -> B (Hydro BR)
+addFlux dt dR wall ex cell = do
+  dtdx <- bind $ dt / dR!ex
+  leftWall  <- mapM bind $ wall ! ex
+  rightWall <- mapM (bind . shift (negate $ unitVector ex)) $ wall!ex
+  dens1 <- bind $ density cell + dtdx * (densityFlux leftWall - densityFlux rightWall)!ex
+  mome1 <- sequence $ compose 
+           (\j -> bind $ (momentum cell !j + dtdx * 
+                          (momentumFlux leftWall - momentumFlux rightWall) !j!ex))
+  enrg1 <- bind $ energy  cell + dtdx * (energyFlux leftWall - energyFlux rightWall)  !ex
+
+  bindConserved dens1 mome1 enrg1
+
+
+interpolate :: Int -> Axis Dim -> Hydro BR -> B (Hydro BR, Hydro BR)
+interpolate order i cell = do
+  let shifti n =  shift $ compose (\j -> if i==j then n else 0)
+  a0 <- mapM (bind . shifti ( 2)) cell
+  a1 <- mapM (bind . shifti ( 1)) cell
+  a2 <- mapM (bind . shifti ( 0)) cell
+  a3 <- mapM (bind . shifti (-1)) cell
+  intp <- sequence $ interpolateSingle order <$> a0 <*> a1 <*> a2 <*> a3
+  let (l,r) = (fmap fst intp , fmap snd intp)
+      bp :: Hydro BR -> B (Hydro BR)
+      bp x = do 
+        dens1 <- bind $ density x
+        velo1 <- mapM bind $ velocity x
+        pres1 <- bind $ pressure x
+        bindPrimitive dens1 velo1 pres1
+  lp <- bp l
+  rp <- bp r
+  return (lp,rp)
+
+interpolateSingle :: Int -> BR -> BR -> BR -> BR -> B (BR,BR)
+interpolateSingle order x0 x1 x2 x3 = 
+  if order == 1 
+  then do
+    return (x1, x2)
+  else if order == 2
+       then do
+         d01 <- bind $ x1-x0
+         d12 <- bind $ x2-x1
+         d23 <- bind $ x3-x2
+         let absmaller a b = select ((a*b) `le` 0) 0 $ select (abs a `lt` abs b) a b
+         d1 <- bind $ absmaller d01 d12
+         d2 <- bind $ absmaller d12 d23
+         l <- bind $ x1 + d1/2
+         r <- bind $ x2 - d2/2
+         return (l, r)
+       else error $ show order ++ "th order spatial interpolation is not yet implemented"
 
 hllc :: Axis Dim -> Hydro BR -> Hydro BR -> B (Hydro BR)
 hllc i left right = do
@@ -103,144 +248,7 @@ hllc i left right = do
                  (starShock + pressure x/density x/(shock - speed)))
         bindConserved dens mome enrg
 
-buildProceed :: B ()
-buildProceed = do
-  dens    <- bind $ loadReal $ mkName "density"
-  velo    <- mapM (bind . loadReal) velocityNames
-  pres    <- bind $ loadReal $ mkName "pressure"
 
-  timeG   <- bind $ loadGReal $ mkName "time"
-  cflG    <- bind $ loadGReal $ mkName "cfl"
-
-  dRG     <- mapM (bind . loadGReal) dRNames  
-  dR      <- mapM (bind . broadcast) dRG 
-  cell <-  bindPrimitive dens velo pres
-
-  let timescale i = dR!i / (soundSpeed cell + abs (velocity cell !i))
-  dts <- bind $ foldl1 min $ compose timescale
-
-  dtG <- bind $ cflG * reduce Reduce.Min dts
-  dt  <- bind $ broadcast dtG
-
-  cell2 <- proceedSingle 1 (dt/2) dR cell  cell
-  cell3 <- proceedSingle 2  dt    dR cell2 cell
-
-  store (mkName "time") $ timeG + dtG
-  store (mkName "density") $ density cell3
-  _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
-  store (mkName "pressure") $ pressure cell3
-
-
-proceedSingle :: Int -> BR -> Dim BR -> Hydro BR -> Hydro BR -> B (Hydro BR)
-proceedSingle order dt dR cellF cellS = do
-  let calcWall i = do
-        (lp,rp) <- interpolate order i cellF
-        hllc i lp rp
-  wall <- sequence $ compose calcWall
-  foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
-
---  cx <- addFlux dt dR wall (Axis 0) cellS
---  addFlux dt dR wall (Axis 1) cx
-
-addFlux :: BR -> Dim BR -> Dim (Hydro BR) -> Axis Dim -> Hydro BR -> B (Hydro BR)
-addFlux dt dR wall ex cell = do
-  dtdx <- bind $ dt / dR!ex
-  leftWall  <- mapM bind $ wall ! ex
-  rightWall <- mapM (bind . shift (negate $ unitVector ex)) $ wall!ex
-  dens1 <- bind $ density cell + dtdx * (densityFlux leftWall - densityFlux rightWall)!ex
-  mome1 <- sequence $ compose 
-           (\j -> bind $ (momentum cell !j + dtdx * 
-                          (momentumFlux leftWall - momentumFlux rightWall) !j!ex))
-  enrg1 <- bind $ energy  cell + dtdx * (energyFlux leftWall - energyFlux rightWall)  !ex
-
-  bindConserved dens1 mome1 enrg1
-
-interpolateSingle :: Int -> BR -> BR -> BR -> BR -> B (BR,BR)
-interpolateSingle order x0 x1 x2 x3 = 
-  if order == 1 
-  then do
-    return (x1, x2)
-  else if order == 2
-       then do
-         d01 <- bind $ x1-x0
-         d12 <- bind $ x2-x1
-         d23 <- bind $ x3-x2
-         let absmaller a b = select ((a*b) `le` 0) 0 $ select (abs a `lt` abs b) a b
-         d1 <- bind $ absmaller d01 d12
-         d2 <- bind $ absmaller d12 d23
-         l <- bind $ x1 + d1/2
-         r <- bind $ x2 - d2/2
-         return (l, r)
-       else error $ show order ++ "th order spatial interpolation is not yet implemented"
-
-interpolate :: Int -> Axis Dim -> Hydro BR -> B (Hydro BR, Hydro BR)
-interpolate order i cell = do
-  let shifti n =  shift $ compose (\j -> if i==j then n else 0)
-  a0 <- mapM (bind . shifti ( 2)) cell
-  a1 <- mapM (bind . shifti ( 1)) cell
-  a2 <- mapM (bind . shifti ( 0)) cell
-  a3 <- mapM (bind . shifti (-1)) cell
-  intp <- sequence $ interpolateSingle order <$> a0 <*> a1 <*> a2 <*> a3
-  let (l,r) = (fmap fst intp , fmap snd intp)
-      bp :: Hydro BR -> B (Hydro BR)
-      bp x = do 
-        dens1 <- bind $ density x
-        velo1 <- mapM bind $ velocity x
-        pres1 <- bind $ pressure x
-        bindPrimitive dens1 velo1 pres1
-  lp <- bp l
-  rp <- bp r
-  return (lp,rp)
-
-
-
-
-
-buildInit2 :: B ()
-buildInit2 = do
-  dRG     <- mapM (bind . loadGReal) dRNames
-  extentG <- mapM (bind . loadGReal) extentNames
-  dR <- mapM (bind . broadcast) dRG 
-  extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
-  coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
-
-  let ex = Axis 0
-      ey = Axis 1
-      vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 0.3) :~ 0
-      vminus = Vec :~ (-0.3) :~ 0
-
-  region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
-  velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
-
-  factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
-
-  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 2)
-  _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (mkName "pressure") $ factor * (kGamma::BR) * 1.414
-
-
-buildInit1 :: B ()
-buildInit1 = do
-  dRG     <- mapM (bind . loadGReal) dRNames
-  extentG <- mapM (bind . loadGReal) extentNames
-  dR <- mapM (bind . broadcast) dRG 
-  extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
-  coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
-
-  let ex = Axis 0
-
-  region <- bind $ (coord!ex) `lt` (0.5*extent!ex)
-
-  dens <- bind $ select region (1.0::BR) (0.125)
-  velo <- sequence $ compose (\_ -> bind $ (0::BR))
-  pres <- bind $ select region (1.0::BR) (0.1)
-
-  store (mkName "density") $ dens
-  _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (mkName "pressure") $ pres
 
 
 
@@ -248,14 +256,13 @@ buildInit1 = do
 myOM :: OM Dim Int Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
-    [(mkName "init_shocktube"   , buildInit1),
-     (mkName "init_kh"   , buildInit2),
+    [(mkName "init"   , buildInit),
      (mkName "proceed", buildProceed)]
 
 
 generationSetup :: Native.Setup Vec2 Int
 generationSetup = 
-  (Native.defaultSetup $ Vec :~ 128 :~ 128)
+  (Native.defaultSetup $ Vec :~ 300 :~ 300)
   { Native.directory = "./dist/" 
   }
 
