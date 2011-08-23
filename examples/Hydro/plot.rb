@@ -8,7 +8,8 @@ set term png
 set out "#{ofn}"
 set pm3d
 set pm3d map
-set cbrange [1.5:4]
+#set cbrange [1.5:4]
+set cbrange [1.5:1.8]
 set size ratio -1
 splot "#{fn}" u 1:2:3 t 'density at t = #{tstr}'
 GNU

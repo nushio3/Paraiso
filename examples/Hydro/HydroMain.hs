@@ -76,15 +76,15 @@ buildInit = do
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 0.3) :~ 0
-      vminus = Vec :~ (-0.3) :~ 0
+      vplus  = Vec :~ ( 0.1) :~ 0
+      vminus = Vec :~ (-0.1) :~ 0
 
   region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
   velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
 
   factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
 
-  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 2)
+  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 1.1)
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
   store (mkName "pressure") $ factor * (kGamma::BR) * 1.414
 
@@ -102,13 +102,13 @@ boundaryCondition cell = do
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 0.3) :~ 0
-      vminus = Vec :~ (-0.3) :~ 0
+      vplus  = Vec :~ ( 0.1) :~ 0
+      vminus = Vec :~ (-0.1) :~ 0
 
   region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
 
   cell0 <- bindPrimitive 
-           (kGamma * (kGamma::BR) * (select region 1 2))
+           (kGamma * (kGamma::BR) * (select region 1 1.1))
            (compose (\i -> select region (vplus!i) (vminus!i)))
            ((kGamma::BR) * 1.414)
 
@@ -266,7 +266,7 @@ myOM =  optimize O3 $
 
 generationSetup :: Native.Setup Vec2 Int
 generationSetup = 
-  (Native.defaultSetup $ Vec :~ 300 :~ 300)
+  (Native.defaultSetup $ Vec :~ 400 :~ 400)
   { Native.directory = "./dist/" 
   }
 
