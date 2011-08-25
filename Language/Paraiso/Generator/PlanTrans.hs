@@ -209,7 +209,8 @@ makeSubArg env isConst lnodes =
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
   Realm.Local ->
-    [ C.StmtFor 
+    [ C.StmtPrpr $ C.PrprPragma "omp parallel for",
+      C.StmtFor 
       (C.VarDefSub loopCounter (intImm 0)) 
       (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
       (C.Op1Prefix "++" (C.VarExpr loopCounter)) $

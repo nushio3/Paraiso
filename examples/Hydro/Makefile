@@ -2,7 +2,7 @@ all: lib kh.out #shock.out
 
 
 kh.out: main-kh.cpp  dist/Hydro.cpp
-	g++ main-kh.cpp dist/Hydro.cpp -O3 -Idist/ -o kh.out
+	g++ main-kh.cpp dist/Hydro.cpp -O3  --openmp -Idist/ -o kh.out
 
 lib:
 	ghc -i../../ --make -O3  -fspec-constr-count=42 HydroMain.hs
