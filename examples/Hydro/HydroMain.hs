@@ -266,7 +266,7 @@ myOM =  optimize O3 $
 
 generationSetup :: Native.Setup Vec2 Int
 generationSetup = 
-  (Native.defaultSetup $ Vec :~ 400 :~ 400)
+  (Native.defaultSetup $ Vec :~ 200 :~ 200)
   { Native.directory = "./dist/" 
   }
 
