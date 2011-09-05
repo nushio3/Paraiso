@@ -14,6 +14,7 @@ module Language.Paraiso.Optimization (
 import           Language.Paraiso.Annotation
 import           Language.Paraiso.OM
 import           Language.Paraiso.Optimization.BoundaryAnalysis
+import           Language.Paraiso.Optimization.DeadCodeElimination
 import           Language.Paraiso.Optimization.DecideAllocation
 import           Language.Paraiso.Optimization.DependencyAnalysis
 import           Language.Paraiso.Optimization.Graph
@@ -28,7 +29,7 @@ optimize :: (Ready v g)
             -> OM v g Annotation
             
 optimize level = case level of
-  O0 -> gmap identity . writeGrouping . gmap boundaryAnalysis . gmap decideAllocation
+  O0 -> gmap identity . writeGrouping . gmap boundaryAnalysis . gmap decideAllocation . gmap deadCodeElimination
   _  -> optimize O0
 
 data Level 

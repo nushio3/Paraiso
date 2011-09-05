@@ -5,22 +5,23 @@ module Language.Paraiso.OM.PrettyPrint (
   prettyPrint, prettyPrintA, prettyPrintA1
   ) where
 
-import qualified Data.Graph.Inductive as FGL
+import qualified Data.Graph.Inductive                   as FGL
 import           Data.List (sort)
-import qualified Data.Set as Set
-import qualified Data.Text as T
-import qualified Data.Vector as V
-import qualified Data.ListLike.String as LL
+import qualified Data.Set                               as Set
+import qualified Data.Text                              as T
+import qualified Data.Vector                            as V
+import qualified Data.ListLike.String                   as LL
 import qualified Data.ListLike.Text ()
-import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Depend
+import qualified Language.Paraiso.Annotation.Execution  as Exec
 import           Language.Paraiso.Interval
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Graph
-import           Language.Paraiso.Optimization.Graph as Opt
+import           Language.Paraiso.Optimization.Graph    as Opt
 import           Language.Paraiso.Prelude
 
 -- | pretty print the OM, neglecting any annotations.
@@ -80,6 +81,7 @@ ppAnot1 om anots = map ("  "++) $ concat cands
       , if ((Anot.toList anots) ::  [Alloc.Allocation]) == [Alloc.Manifest]
         then map (("Depend.Calc "++) . ppDC) ((Anot.toList anots) ::  [Depend.Calc])
         else []
+      , map showT ((Anot.toList anots) ::  [Exec.Alive])
       , map showT ((Anot.toList anots) ::  [Depend.KernelWriteGroup])        
       , map showT ((Anot.toList anots) ::  [Depend.OMWriteGroup])                
       ]
