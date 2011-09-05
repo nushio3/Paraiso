@@ -76,17 +76,18 @@ buildInit = do
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 0.1) :~ 0
-      vminus = Vec :~ (-0.1) :~ 0
+      vplus  = Vec :~ ( 6) :~ 0
+      vminus = Vec :~ ( 0) :~ 0
 
-  region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
+  region <- bind $ (coord!ey) `gt` (0.47*extent!ey) && (coord!ey) `lt` (0.53*extent!ey) && (coord!ex) `lt` 0
+
   velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
 
-  factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
+  factor <- bind $ 1 + 1e-3 * sin (6 * pi * coord ! ex)
 
-  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 1.1)
+  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 10)
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (mkName "pressure") $ factor * (kGamma::BR) * 1.414
+  store (mkName "pressure") $ factor * 0.6
 
 
 boundaryCondition :: Hydro BR -> B (Hydro BR)
@@ -102,15 +103,15 @@ boundaryCondition cell = do
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
-      vplus  = Vec :~ ( 0.1) :~ 0
-      vminus = Vec :~ (-0.1) :~ 0
+      vplus  = Vec :~ ( 6) :~ 0
+      vminus = Vec :~ ( 0) :~ 0
 
-  region <- bind $ (coord!ey) `lt` (0.5*extent!ey)
+  region <- bind $ (coord!ey) `gt` (0.47*extent!ey) && (coord!ey) `lt` (0.53*extent!ey) && (coord!ex) `lt` 0
 
   cell0 <- bindPrimitive 
-           (kGamma * (kGamma::BR) * (select region 1 1.1))
+           (kGamma * (kGamma::BR) * (select region 1 10))
            (compose (\i -> select region (vplus!i) (vminus!i)))
-           ((kGamma::BR) * 1.414)
+           (0.6)
 
   outOf <- bind $ 
        (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
@@ -145,6 +146,8 @@ buildProceed = do
   store (mkName "time") $ timeG + dtG
   store (mkName "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
+    
+  
   store (mkName "pressure") $ pressure cell3
 
 
@@ -156,7 +159,12 @@ proceedSingle order dt dR cellF cellS = do
         (lp,rp) <- interpolate order i cellF
         hllc i lp rp
   wall <- sequence $ compose calcWall
-  foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+  cellN <- foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+
+  bindPrimitive 
+    (max 1e-2 $ density cellN)
+    (velocity cellN)
+    (max 1e-2 $ pressure cellN)
 
 --  cx <- addFlux dt dR wall (Axis 0) cellS
 --  addFlux dt dR wall (Axis 1) cx

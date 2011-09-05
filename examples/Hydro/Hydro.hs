@@ -46,7 +46,7 @@ delta :: (Eq a, Ring.C b) => a -> a -> b
 delta i j = if i==j then Ring.one else Additive.zero
 
 kGamma :: Field.C a => a
-kGamma = fromRational' $ 7/5
+kGamma = fromRational' $ 5/3
 
 -- | sound speed as a standalone function.
 soundSpeed' :: BR -> BR -> BR

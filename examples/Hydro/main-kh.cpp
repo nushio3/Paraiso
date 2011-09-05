@@ -52,7 +52,7 @@ int main () {
     cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
     sim.proceed();
-    if (t > 0.1 * ctr) {
+    if (t > 0.001 * ctr) {
       sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;
