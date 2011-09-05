@@ -272,11 +272,19 @@ myOM =  optimize O3 $
      (mkName "proceed", buildProceed)]
 
 
-generationSetup :: Native.Setup Vec2 Int
-generationSetup = 
+cpuSetup :: Native.Setup Vec2 Int
+cpuSetup = 
   (Native.defaultSetup $ Vec :~ 200 :~ 200)
   { Native.directory = "./dist/" 
   }
+
+gpuSetup :: Native.Setup Vec2 Int
+gpuSetup = 
+  (Native.defaultSetup $ Vec :~ 200 :~ 200)
+  { Native.directory = "./dist-cuda/" ,
+    Native.language  = Native.CUDA
+  }
+
 
 
 main :: IO ()
@@ -285,8 +293,11 @@ main = do
   -- output the intermediate state.
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
 
-  -- generate the library 
-  _ <- generateIO generationSetup myOM
+  -- generate the cpu library 
+  _ <- generateIO cpuSetup myOM
+
+  -- generate the gpu library 
+  _ <- generateIO gpuSetup myOM
 
   return ()
 
