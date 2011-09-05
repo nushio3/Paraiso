@@ -83,11 +83,11 @@ buildInit = do
 
   velo <- sequence $ compose (\i -> bind $ select region (vplus!i) (vminus!i))
 
-  factor <- bind $ 1 + 1e-2 * sin (6 * pi * coord ! ex)
+  factor <- bind $ 1 + 1e-3 * sin (6 * pi * coord ! ex)
 
   store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 10)
   _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (mkName "pressure") $ factor * (kGamma::BR) * 0.6
+  store (mkName "pressure") $ factor * 0.6
 
 
 boundaryCondition :: Hydro BR -> B (Hydro BR)
@@ -111,7 +111,7 @@ boundaryCondition cell = do
   cell0 <- bindPrimitive 
            (kGamma * (kGamma::BR) * (select region 1 10))
            (compose (\i -> select region (vplus!i) (vminus!i)))
-           ((kGamma::BR) * 1)
+           (0.6)
 
   outOf <- bind $ 
        (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
@@ -146,6 +146,8 @@ buildProceed = do
   store (mkName "time") $ timeG + dtG
   store (mkName "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
+    
+  
   store (mkName "pressure") $ pressure cell3
 
 
@@ -157,7 +159,12 @@ proceedSingle order dt dR cellF cellS = do
         (lp,rp) <- interpolate order i cellF
         hllc i lp rp
   wall <- sequence $ compose calcWall
-  foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+  cellN <- foldl1 (.) (compose (\i -> (>>= addFlux dt dR wall i))) $ return cellS
+
+  bindPrimitive 
+    (max 1e-2 $ density cellN)
+    (velocity cellN)
+    (max 1e-2 $ pressure cellN)
 
 --  cx <- addFlux dt dR wall (Axis 0) cellS
 --  addFlux dt dR wall (Axis 1) cx
@@ -267,7 +274,7 @@ myOM =  optimize O3 $
 
 generationSetup :: Native.Setup Vec2 Int
 generationSetup = 
-  (Native.defaultSetup $ Vec :~ 400 :~ 400)
+  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist/" 
   }
 

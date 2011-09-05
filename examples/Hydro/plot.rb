@@ -9,6 +9,7 @@ set out "#{ofn}"
 set pm3d
 set pm3d map
 set cbrange [0:100]
+set zrange [0:100]
 set size ratio -1
 splot "#{fn}" u 1:2:3 t 'density at t = #{tstr}'
 GNU
@@ -19,6 +20,6 @@ end
 ARGV.each{|fn|
   ofn = fn[0..-5] + '.png'
   fn =~ /([0-9]+)\./
-  tstr = sprintf("%.1f",$1.to_f/10)
+  tstr = sprintf("%.3f",$1.to_f/1000)
   gnuplot(tstr, fn, ofn)
 }

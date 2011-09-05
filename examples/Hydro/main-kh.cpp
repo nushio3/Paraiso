@@ -37,7 +37,7 @@ int main () {
   H = sim.size1();
 
   sim.static_1_time = 0;
-  sim.static_2_cfl = 0.4;
+  sim.static_2_cfl = 0.5;
   sim.static_5_extent0 = 1.0;
   sim.static_6_extent1 = 1.0;
   sim.static_3_dR0 = sim.static_5_extent0 / W;
@@ -52,7 +52,7 @@ int main () {
     cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
     sim.proceed();
-    if (t > 0.01 * ctr) {
+    if (t > 0.001 * ctr) {
       sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;
