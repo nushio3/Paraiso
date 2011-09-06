@@ -7,7 +7,7 @@ kh.out: main-kh.cpp  dist/Hydro.cpp
 
 
 kh-cuda.out: main-kh.cu  dist-cuda/Hydro.cu
-	nvcc main-kh.cu dist-cuda/Hydro.cu -O3   -Idist-cuda/ -o kh-cuda.out
+	nvcc main-kh.cu dist-cuda/Hydro.cu -O3   -Idist-cuda/ -o kh-cuda.out -arch=sm_20
 
 lib:
 	ghc -i../../ --make -O3  -fspec-constr-count=42 HydroMain.hs
