@@ -70,7 +70,7 @@ buildInit = do
   extentG <- mapM (bind . loadGReal) extentNames
   dR <- mapM (bind . broadcast) dRG 
   extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
+  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
 
   let ex = Axis 0
@@ -96,8 +96,8 @@ boundaryCondition cell = do
   extentG <- mapM (bind . loadGReal) extentNames
   dR <- mapM (bind . broadcast) dRG 
   extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Double) axis)  
-  isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Double) axis)        
+  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
+  isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Real) axis)        
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
   
   let ex = Axis 0
