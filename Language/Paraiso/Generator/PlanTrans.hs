@@ -41,13 +41,14 @@ translate setup plan =
   { C.progName = name plan,
     C.topLevel = 
       map include stlHeaders ++ 
-      library ++ 
+      library env ++ 
       comments ++
+      subHelperFuncs ++ 
       [ C.ClassDef $ C.Class (name plan) $
         storageVars ++ 
         constructorDef ++ 
         memberFuncForSize env ++
-        subKernelFuncs ++ memberFuncs 
+        subMemberFuncs ++ memberFuncs 
       ]
   }
   where
@@ -70,15 +71,20 @@ translate setup plan =
              _ -> []
       }
 
-    memberFuncs = V.toList $ V.imap (\idx ker -> makeFunc env idx ker) $ Plan.kernels plan
+    memberFuncs = 
+      V.toList $ 
+      V.imap (\idx ker -> makeFunc env idx ker) $ 
+      Plan.kernels plan
 
-    subKernelFuncs = concat $ V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
+    subHelperFuncs = concat $ V.toList $ V.map snd $ subKernelFuncs   
+    subMemberFuncs = concat $ V.toList $ V.map fst $ subKernelFuncs   
+    subKernelFuncs = V.map (makeSubFunc env) $ Plan.subKernels plan
 
 
     include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
     stlHeaders = case Native.language setup of
       Native.CPlusPlus -> ["algorithm", "cmath", "vector"]
-      Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h"]
+      Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h", "thrust/functional.h", "thrust/extrema.h", "thrust/reduce.h"]
 
     storageVars = 
       V.toList $
@@ -173,66 +179,97 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $
         (name stRef) 
 
 
--- | Create a subKernel: a function that performs a portion of actual calculations.
-makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> [C.MemberDef]
+-- | Create a subKernel: a member function that performs a portion of
+--   actual calculations. It may also generate some helper functions
+--   called from the subKernel body.
+makeSubFunc :: Opt.Ready v g 
+            => Env v g 
+            -> Plan.SubKernelRef v g AnAn 
+            -> ([C.MemberDef], [C.Statement])
 makeSubFunc env@(Env setup plan) subker = 
   case Native.language setup of
     Native.CPlusPlus -> cppSolution
-    Native.CUDA      -> [cudaInner, cudaSolution]
+    Native.CUDA      -> cudaSolution
   where
-    cudaInner = 
-      C.MemberFunc C.Public False $ 
-      (C.function tVoid (name subker))
-      { C.funcArgs = 
-         makeSubArg env True (Plan.labNodesIn subker) ++
-         makeSubArg env False (Plan.labNodesOut subker),
-        C.funcBody = let r = Realm.realm subker in
-          if r == Realm.Global 
-          then loopMaker env r subker
-          else
-            [ C.Comment $ LL.unlines 
-              [ "",
-                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-                "upperMargin = " ++ showT (Plan.upperBoundary subker)
-              ]
-            ] ++ loopMaker env r subker
-      }
+    rlm = Realm.realm subker 
+    
+    cudaHelperName = mkName $ nameText subker ++ "_inner"
+    
+    cudaBodys = 
+      if rlm == Realm.Global 
+      then []
+      else
+        (:[]) $
+        C.FuncDef $
+        (C.function 
+         (C.QualifiedType [C.CudaGlobal] tVoid) 
+         cudaHelperName)
+        { C.funcArgs = 
+           makeRawSubArg env True  (Plan.labNodesIn subker) ++
+           makeRawSubArg env False (Plan.labNodesOut subker),
+          C.funcBody = 
+          [ C.Comment $ LL.unlines 
+            [ "",
+              "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+              "upperMargin = " ++ showT (Plan.upperBoundary subker)
+            ]
+          ] ++ loopMaker env rlm subker
+        }
+    
+    (gridDim, blockDim) = Native.cudaGridSize setup
     
     cudaSolution = 
-      C.MemberFunc C.Public False $ 
-      (C.function tVoid (name subker))
-      { C.funcArgs = 
-         makeSubArg env True (Plan.labNodesIn subker) ++
-         makeSubArg env False (Plan.labNodesOut subker),
-        C.funcBody = let r = Realm.realm subker in
-          if r == Realm.Global 
-          then loopMaker env r subker
-          else
-            [ C.Comment $ LL.unlines 
-              [ "",
-                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-                "upperMargin = " ++ showT (Plan.upperBoundary subker)
-              ]
-            ] ++ loopMaker env r subker
-      }
-
-    cppSolution = 
+      (,cudaBodys) $
       (:[]) $
       C.MemberFunc C.Public False $ 
       (C.function tVoid (name subker))
       { C.funcArgs = 
          makeSubArg env True (Plan.labNodesIn subker) ++
          makeSubArg env False (Plan.labNodesOut subker),
-        C.funcBody = let r = Realm.realm subker in
-          if r == Realm.Global 
-          then loopMaker env r subker
+        C.funcBody = 
+          if rlm == Realm.Global 
+          then loopMaker env rlm subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ],
+              C.StmtExpr $ C.CudaFuncCallUsr cudaHelperName (C.toDyn gridDim) (C.toDyn blockDim) $
+              map takeRaw $ 
+              (V.toList $ Plan.labNodesIn subker) ++ (V.toList $ Plan.labNodesOut subker)
+            ] 
+      }
+
+    takeRaw (idx, nd)= 
+      case nd of
+        OM.NValue typ _ -> 
+          C.FuncCallStd "thrust::raw_pointer_cast" $
+          (:[]) $
+          C.Op1Prefix "&*" $
+          flip C.MemberAccess (C.FuncCallStd "begin" []) $
+          C.VarExpr $
+          C.Var (mkCppType env typ) (nodeNameUniversal idx)
+        _ -> error "NValue expected" 
+
+    cppSolution = 
+      (,[]) $
+      (:[]) $
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = 
+          if rlm == Realm.Global 
+          then loopMaker env rlm subker
           else
             [ C.Comment $ LL.unlines 
               [ "",
                 "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
                 "upperMargin = " ++ showT (Plan.upperBoundary subker)
               ]
-            ] ++ loopMaker env r subker
+            ] ++ loopMaker env rlm subker
       }
 
     
@@ -246,6 +283,18 @@ makeSubArg env isConst lnodes =
             OM.NValue typ _ -> C.Var (f $ mkCppType env typ) (nodeNameUniversal idx)
             _ -> error "NValue expected" ) $
   V.toList lnodes
+
+-- | make a subroutine argument list, using raw pointers.
+makeRawSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g AnAn)) -> [C.Var]
+makeRawSubArg env isConst lnodes =
+  let f = (if isConst then C.Const else id) 
+  in
+  map (\(idx,nd)-> case nd of
+          OM.NValue typ _ -> 
+            C.Var (f $ mkCudaRawType env typ) (nodeNameUniversal idx)
+          _ -> error "NValue expected" ) $
+  V.toList lnodes
+
 
 
 
@@ -501,5 +550,12 @@ rhsArith op argExpr = case (op, argExpr) of
   _ -> C.FuncCallStd (T.map toLower $ showT op) argExpr
 
 
-library :: [C.Statement]
-library = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement  "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
+library :: Opt.Ready v g => Env v g -> [C.Statement]
+library (Env setup _) = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement $ lib
+  where
+    lib = case Native.language setup of
+      Native.CPlusPlus -> cpuLib
+      Native.CUDA      -> cpuLib ++"\n" ++ gpuLib
+    cpuLib = "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
+
+    gpuLib = "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"
