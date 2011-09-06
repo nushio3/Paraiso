@@ -274,13 +274,13 @@ myOM =  optimize O3 $
 
 cpuSetup :: Native.Setup Vec2 Int
 cpuSetup = 
-  (Native.defaultSetup $ Vec :~ 200 :~ 200)
+  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist/" 
   }
 
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
-  (Native.defaultSetup $ Vec :~ 200 :~ 200)
+  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA
   }

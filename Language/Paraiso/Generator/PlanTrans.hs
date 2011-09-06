@@ -72,7 +72,7 @@ translate setup plan =
 
     memberFuncs = V.toList $ V.imap (\idx ker -> makeFunc env idx ker) $ Plan.kernels plan
 
-    subKernelFuncs = V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
+    subKernelFuncs = concat $ V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
 
 
     include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
@@ -87,7 +87,7 @@ translate setup plan =
     storageRefToMenber stRef =  
       C.MemberVar  C.Public $ 
       C.Var 
-        (mkCtyp env $ Plan.storageType stRef) 
+        (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
 -- Generate member functions that returns the sizes of the mesh
@@ -150,7 +150,7 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $
            filter ((Plan.ManifestRef kerIdx preIdx==) . Plan.storageIdx) $ V.toList $ Plan.storages plan) of
        ([stRef],[maRef]) -> 
          C.StmtExpr $ C.Op2Infix "="
-         (C.VarExpr $ C.Var (mkCtyp env $ Plan.storageType stRef) (name stRef) )
+         (C.VarExpr $ C.Var (mkCppType env $ Plan.storageType stRef) (name stRef) )
          (C.VarExpr $ C.Var C.UnknownType (name maRef) )
        _ -> error $ "mismatch in storage phase: " ++ show (idx, statIdx) 
    findVar idx = 
@@ -169,37 +169,81 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $
          | otherwise                            = False
        stRef = V.head $ V.filter ( match . Plan.storageIdx ) $ Plan.storages plan
      in C.VarExpr $ C.Var 
-        (mkCtyp env $ Plan.storageType stRef) 
+        (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
 
 -- | Create a subKernel: a function that performs a portion of actual calculations.
-makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.MemberDef
-makeSubFunc env subker = 
-  C.MemberFunc C.Public False $ 
-  (C.function tVoid (name subker))
-  { C.funcArgs = 
-     makeSubArg env True (Plan.labNodesIn subker) ++
-     makeSubArg env False (Plan.labNodesOut subker),
-    C.funcBody = let r = Realm.realm subker in
-      if r == Realm.Global 
-      then loopMaker env r subker
-      else
-        [ C.Comment $ LL.unlines 
-          [ "",
-            "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-            "upperMargin = " ++ showT (Plan.upperBoundary subker)
-          ]
-        ] ++ loopMaker env r subker
-  }
+makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> [C.MemberDef]
+makeSubFunc env@(Env setup plan) subker = 
+  case Native.language setup of
+    Native.CPlusPlus -> cppSolution
+    Native.CUDA      -> [cudaInner, cudaSolution]
+  where
+    cudaInner = 
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = let r = Realm.realm subker in
+          if r == Realm.Global 
+          then loopMaker env r subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ]
+            ] ++ loopMaker env r subker
+      }
+    
+    cudaSolution = 
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = let r = Realm.realm subker in
+          if r == Realm.Global 
+          then loopMaker env r subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ]
+            ] ++ loopMaker env r subker
+      }
 
+    cppSolution = 
+      (:[]) $
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = let r = Realm.realm subker in
+          if r == Realm.Global 
+          then loopMaker env r subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ]
+            ] ++ loopMaker env r subker
+      }
+
+    
+    
 -- | make a subroutine argument list.
 makeSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g AnAn)) -> [C.Var]
 makeSubArg env isConst lnodes =
   let f = (if isConst then C.Const else id) . C.RefOf
   in
   map (\(idx,nd)-> case nd of
-            OM.NValue typ _ -> C.Var (f $ mkCtyp env typ) (nodeNameUniversal idx)
+            OM.NValue typ _ -> C.Var (f $ mkCppType env typ) (nodeNameUniversal idx)
             _ -> error "NValue expected" ) $
   V.toList lnodes
 
@@ -352,8 +396,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
     graph = Plan.dataflow subker
 
 -- | convert a DynValue to C type representation
-mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
-mkCtyp env x = case x of
+mkCppType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
+mkCppType env x = case x of
   DVal.DynValue Realm.Global c -> C.UnitType c
   DVal.DynValue Realm.Local  c -> containerType env c          
 
@@ -361,6 +405,20 @@ containerType :: Env v g -> TypeRep -> C.TypeRep
 containerType (Env setup _) c = case Native.language setup of
   Native.CPlusPlus -> C.TemplateType "std::vector" [C.UnitType c]
   Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
+
+
+-- | convert a DynValue to raw-pointer type representation 
+--   for example used within CUDA kernel
+mkCudaRawType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
+mkCudaRawType env x = case x of
+  DVal.DynValue Realm.Global c -> C.UnitType c
+  DVal.DynValue Realm.Local  c -> containerRawType env c          
+
+containerRawType :: Env v g -> TypeRep -> C.TypeRep
+containerRawType (Env setup _) c = case Native.language setup of
+  Native.CPlusPlus -> C.PtrOf $ C.UnitType c
+  Native.CUDA      -> C.PtrOf $ C.UnitType c
+
 
 
 -- | a universal naming rule for a node.
