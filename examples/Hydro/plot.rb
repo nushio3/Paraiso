@@ -20,6 +20,6 @@ end
 ARGV.each{|fn|
   ofn = fn[0..-5] + '.png'
   fn =~ /([0-9]+)\./
-  tstr = sprintf("%.3f",$1.to_f/1000)
+  tstr = sprintf("%.3f",$1.to_f/100)
   gnuplot(tstr, fn, ofn)
 }

@@ -47,12 +47,12 @@ int main () {
   sprintf(buf, "mkdir -p output%d", antiAlias);
   system(buf);
   int ctr = 0;
-  while (ctr <= 1000) {
+  while (ctr <= 100) {
     double t = sim.static_1_time;
     cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
     sim.proceed();
-    if (t > 0.001 * ctr) {
+    if (t > 0.01 * ctr) {
       sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;
