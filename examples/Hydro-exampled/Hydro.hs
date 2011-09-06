@@ -18,6 +18,7 @@ module Hydro(Real, Dim, B, BR, BGR, bind,
 import qualified Algebra.Additive  as Additive
 import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
+import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.OM.Value as Val
@@ -28,9 +29,9 @@ import           Language.Paraiso.Tensor
 -- Binder monad utilities
 ----------------------------------------------------------------
 
-type Real = Double
+type Real = Float
 type Dim = Vec2
-type B a = Builder Dim Int a
+type B a = Builder Dim Int Annotation a
 type BR = B (Value TLocal Real)
 type BGR = B (Value TGlobal Real)
 
@@ -45,7 +46,7 @@ delta :: (Eq a, Ring.C b) => a -> a -> b
 delta i j = if i==j then Ring.one else Additive.zero
 
 kGamma :: Field.C a => a
-kGamma = fromRational' $ 7/5
+kGamma = fromRational' $ 5/3
 
 -- | sound speed as a standalone function.
 soundSpeed' :: BR -> BR -> BR

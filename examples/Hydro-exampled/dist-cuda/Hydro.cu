@@ -4,7 +4,11 @@
 
 
 
-template <class T> T broadcast (const T& x) {
+
+
+template <class T>
+__device__ __host__
+T broadcast (const T& x) {
   return x;
 }
 template <class T> T reduce_sum (const std::vector<T> &xs) {
@@ -22,107 +26,39 @@ template <class T> T reduce_max (const std::vector<T> &xs) {
   for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);
   return ret;
 }
+template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {
+  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());
+}
+template <class T> T reduce_min (const thrust::device_vector<T> &xs) {
+  return *(thrust::min_element(xs.begin(), xs.end()));
+}
+template <class T> T reduce_max (const thrust::device_vector<T> &xs) {
+  return *(thrust::max_element(xs.begin(), xs.end()));
+}
+
 
 /*
 lowerMargin = (Vec :~ 3) :~ 3
 upperMargin = (Vec :~ 3) :~ 3
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void Hydro::Hydro_sub_0 (const float & a1, const float & a3, const float & a6, std::vector<float>  & a8, std::vector<float>  & a10, std::vector<float>  & a12)  {
+__global__ void Hydro_sub_0_inner (const float a1, const float a3, const float a6, float * a8, float * a10, float * a12)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 ((a8)[addr_origin]) = (broadcast(a1));
 ((a10)[addr_origin]) = (broadcast(a3));
 ((a12)[addr_origin]) = (broadcast(a6));
 }
 }
-void Hydro::Hydro_sub_1 (const std::vector<float>  & a8, const std::vector<float>  & a10, const std::vector<float>  & a12, std::vector<float>  & a46, std::vector<float>  & a52, std::vector<float>  & a86, std::vector<float>  & a93)  {
+__global__ void Hydro_sub_1_inner (const float * a8, const float * a10, const float * a12, float * a46, float * a52, float * a86, float * a93)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 float a8_0_0 = (a8)[(addr_origin) + (0)];
 float a10_0_0 = (a10)[(addr_origin) + (0)];
@@ -168,14 +104,12 @@ float a91_0_0 = 0.6f;
 ((a93)[addr_origin]) = ((a70_0_0) * (a91_0_0));
 }
 }
-void Hydro::Hydro_sub_2 (const float & a13, const float & a15, const float & a65, const float & a67, const float & a70, std::vector<float>  & a17, std::vector<float>  & a19, std::vector<float>  & a72, std::vector<float>  & a74, std::vector<float>  & a76)  {
+__global__ void Hydro_sub_2_inner (const float a13, const float a15, const float a65, const float a67, const float a70, float * a17, float * a19, float * a72, float * a74, float * a76)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 ((a17)[addr_origin]) = (broadcast(a13));
 ((a19)[addr_origin]) = (broadcast(a15));
@@ -184,14 +118,12 @@ int addr_origin = i;
 ((a76)[addr_origin]) = (broadcast(a70));
 }
 }
-void Hydro::Hydro_sub_3 (const std::vector<float>  & a1, const std::vector<float>  & a3, const std::vector<float>  & a5, const std::vector<float>  & a7, const std::vector<float>  & a72, const std::vector<float>  & a74, const std::vector<float>  & a76, std::vector<float>  & a308, std::vector<float>  & a310, std::vector<float>  & a312, std::vector<float>  & a322, std::vector<float>  & a324, std::vector<float>  & a326, std::vector<float>  & a344, std::vector<float>  & a348, std::vector<float>  & a352, std::vector<float>  & a358, std::vector<float>  & a362, std::vector<float>  & a366, std::vector<float>  & a370, std::vector<float>  & a376, std::vector<float>  & a1064, std::vector<float>  & a1068, std::vector<float>  & a1072, std::vector<float>  & a1078, std::vector<float>  & a1082, std::vector<float>  & a1086, std::vector<float>  & a1090, std::vector<float>  & a1096, std::vector<float>  & a1798, std::vector<float>  & a1806, std::vector<float>  & a1814, std::vector<float>  & a1822, std::vector<float>  & a3846, std::vector<float>  & a3854, std::vector<float>  & a3862, std::vector<float>  & a3870)  {
+__global__ void Hydro_sub_3_inner (const float * a1, const float * a3, const float * a5, const float * a7, const float * a72, const float * a74, const float * a76, float * a308, float * a310, float * a312, float * a322, float * a324, float * a326, float * a344, float * a348, float * a352, float * a358, float * a362, float * a366, float * a370, float * a376, float * a1064, float * a1068, float * a1072, float * a1078, float * a1082, float * a1086, float * a1090, float * a1096, float * a1798, float * a1806, float * a1814, float * a1822, float * a3846, float * a3854, float * a3862, float * a3870)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 float a1_0_0 = (a1)[(addr_origin) + (0)];
 float a3_0_0 = (a3)[(addr_origin) + (0)];
@@ -373,14 +305,12 @@ float a1094_0_0 = 0.6f;
 ((a3870)[addr_origin]) = ((a306_0_0) ? (a264_0_0) : (a55_0_0));
 }
 }
-void Hydro::Hydro_sub_4 (const std::vector<float>  & a17, const std::vector<float>  & a19, const std::vector<float>  & a308, const std::vector<float>  & a310, const std::vector<float>  & a312, const std::vector<float>  & a322, const std::vector<float>  & a324, const std::vector<float>  & a326, std::vector<float>  & a336)  {
+__global__ void Hydro_sub_4_inner (const float * a17, const float * a19, const float * a308, const float * a310, const float * a312, const float * a322, const float * a324, const float * a326, float * a336)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 float a17_0_0 = (a17)[(addr_origin) + (0)];
 float a19_0_0 = (a19)[(addr_origin) + (0)];
@@ -388,47 +318,35 @@ float a308_0_0 = (a308)[(addr_origin) + (0)];
 float a310_0_0 = (a310)[(addr_origin) + (0)];
 float a312_0_0 = (a312)[(addr_origin) + (0)];
 float a314_0_0 = -(a312_0_0);
-float a316_0_0 = std::max(a310_0_0, a314_0_0);
+float a316_0_0 = max(a310_0_0, a314_0_0);
 float a318_0_0 = (a308_0_0) + (a316_0_0);
 float a320_0_0 = (a17_0_0) / (a318_0_0);
 float a322_0_0 = (a322)[(addr_origin) + (0)];
 float a324_0_0 = (a324)[(addr_origin) + (0)];
 float a326_0_0 = (a326)[(addr_origin) + (0)];
 float a328_0_0 = -(a326_0_0);
-float a330_0_0 = std::max(a324_0_0, a328_0_0);
+float a330_0_0 = max(a324_0_0, a328_0_0);
 float a332_0_0 = (a322_0_0) + (a330_0_0);
 float a334_0_0 = (a19_0_0) / (a332_0_0);
-((a336)[addr_origin]) = (std::min(a320_0_0, a334_0_0));
+((a336)[addr_origin]) = (min(a320_0_0, a334_0_0));
 }
 }
-void Hydro::Hydro_sub_5 (const std::vector<float>  & a336, float & a338)  {
-(a338) = (reduce_min(a336));
-}
-void Hydro::Hydro_sub_6 (const float & a11, const float & a338, float & a340)  {
-float a11_0_0 = a11;
-float a338_0_0 = a338;
-(a340) = ((a11_0_0) * (a338_0_0));
-}
-void Hydro::Hydro_sub_7 (const float & a340, std::vector<float>  & a342)  {
+__global__ void Hydro_sub_7_inner (const float a340, float * a342)  {
 /*
 lowerMargin = (Vec :~ 0) :~ 0
 upperMargin = (Vec :~ 0) :~ 0
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1060900) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1060900) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = i;
 ((a342)[addr_origin]) = (broadcast(a340));
 }
 }
-void Hydro::Hydro_sub_8 (const std::vector<float>  & a17, const std::vector<float>  & a19, const std::vector<float>  & a342, const std::vector<float>  & a344, const std::vector<float>  & a348, const std::vector<float>  & a352, const std::vector<float>  & a358, const std::vector<float>  & a362, const std::vector<float>  & a366, const std::vector<float>  & a370, const std::vector<float>  & a376, const std::vector<float>  & a1064, const std::vector<float>  & a1068, const std::vector<float>  & a1072, const std::vector<float>  & a1078, const std::vector<float>  & a1082, const std::vector<float>  & a1086, const std::vector<float>  & a1090, const std::vector<float>  & a1096, const std::vector<float>  & a1798, const std::vector<float>  & a1806, const std::vector<float>  & a1814, const std::vector<float>  & a1822, const std::vector<float>  & a3846, const std::vector<float>  & a3854, const std::vector<float>  & a3862, const std::vector<float>  & a3870, std::vector<float>  & a3912, std::vector<float>  & a3914, std::vector<float>  & a3946, std::vector<float>  & a3950)  {
+__global__ void Hydro_sub_8_inner (const float * a17, const float * a19, const float * a342, const float * a344, const float * a348, const float * a352, const float * a358, const float * a362, const float * a366, const float * a370, const float * a376, const float * a1064, const float * a1068, const float * a1072, const float * a1078, const float * a1082, const float * a1086, const float * a1090, const float * a1096, const float * a1798, const float * a1806, const float * a1814, const float * a1822, const float * a3846, const float * a3854, const float * a3862, const float * a3870, float * a3912, float * a3914, float * a3946, float * a3950)  {
 /*
 lowerMargin = (Vec :~ 3) :~ 3
 upperMargin = (Vec :~ 3) :~ 3
 */
-#pragma omp parallel for
-
-for(int i = 0; (i) < (1048576) ; (i) += (1)){
+for(int i = blockIdx.x * blockDim.x + threadIdx.x; (i) < (1048576) ; (i) += (blockDim.x * gridDim.x)){
 int addr_origin = ((((i) % (1024)) + (3)) * (1)) + ((((i) / (1024)) + (3)) * (1030));
 float a17_0_m2 = (a17)[(addr_origin) + (-2060)];
 float a17_0_m1 = (a17)[(addr_origin) + (-1030)];
@@ -2249,20 +2167,20 @@ float a602_0_1 = 0.0f;
 float a602_1_1 = 0.0f;
 float a602_0_2 = 0.0f;
 float a602_1_2 = 0.0f;
-float a604_0_m2 = std::max(a602_0_m2, a600_0_m2);
-float a604_1_m2 = std::max(a602_1_m2, a600_1_m2);
-float a604_0_m1 = std::max(a602_0_m1, a600_0_m1);
-float a604_1_m1 = std::max(a602_1_m1, a600_1_m1);
-float a604_m2_0 = std::max(a602_m2_0, a600_m2_0);
-float a604_m1_0 = std::max(a602_m1_0, a600_m1_0);
-float a604_0_0 = std::max(a602_0_0, a600_0_0);
-float a604_1_0 = std::max(a602_1_0, a600_1_0);
-float a604_2_0 = std::max(a602_2_0, a600_2_0);
-float a604_3_0 = std::max(a602_3_0, a600_3_0);
-float a604_0_1 = std::max(a602_0_1, a600_0_1);
-float a604_1_1 = std::max(a602_1_1, a600_1_1);
-float a604_0_2 = std::max(a602_0_2, a600_0_2);
-float a604_1_2 = std::max(a602_1_2, a600_1_2);
+float a604_0_m2 = max(a602_0_m2, a600_0_m2);
+float a604_1_m2 = max(a602_1_m2, a600_1_m2);
+float a604_0_m1 = max(a602_0_m1, a600_0_m1);
+float a604_1_m1 = max(a602_1_m1, a600_1_m1);
+float a604_m2_0 = max(a602_m2_0, a600_m2_0);
+float a604_m1_0 = max(a602_m1_0, a600_m1_0);
+float a604_0_0 = max(a602_0_0, a600_0_0);
+float a604_1_0 = max(a602_1_0, a600_1_0);
+float a604_2_0 = max(a602_2_0, a600_2_0);
+float a604_3_0 = max(a602_3_0, a600_3_0);
+float a604_0_1 = max(a602_0_1, a600_0_1);
+float a604_1_1 = max(a602_1_1, a600_1_1);
+float a604_0_2 = max(a602_0_2, a600_0_2);
+float a604_1_2 = max(a602_1_2, a600_1_2);
 bool a606_0_m2 = (a360_0_m2) <= (a604_0_m2);
 bool a606_1_m2 = (a360_1_m2) <= (a604_1_m2);
 bool a606_0_m1 = (a360_0_m1) <= (a604_0_m1);
@@ -7261,20 +7179,20 @@ float a1322_1_1 = 0.0f;
 float a1322_2_1 = 0.0f;
 float a1322_0_2 = 0.0f;
 float a1322_0_3 = 0.0f;
-float a1324_0_m2 = std::max(a1322_0_m2, a1320_0_m2);
-float a1324_0_m1 = std::max(a1322_0_m1, a1320_0_m1);
-float a1324_m2_0 = std::max(a1322_m2_0, a1320_m2_0);
-float a1324_m1_0 = std::max(a1322_m1_0, a1320_m1_0);
-float a1324_0_0 = std::max(a1322_0_0, a1320_0_0);
-float a1324_1_0 = std::max(a1322_1_0, a1320_1_0);
-float a1324_2_0 = std::max(a1322_2_0, a1320_2_0);
-float a1324_m2_1 = std::max(a1322_m2_1, a1320_m2_1);
-float a1324_m1_1 = std::max(a1322_m1_1, a1320_m1_1);
-float a1324_0_1 = std::max(a1322_0_1, a1320_0_1);
-float a1324_1_1 = std::max(a1322_1_1, a1320_1_1);
-float a1324_2_1 = std::max(a1322_2_1, a1320_2_1);
-float a1324_0_2 = std::max(a1322_0_2, a1320_0_2);
-float a1324_0_3 = std::max(a1322_0_3, a1320_0_3);
+float a1324_0_m2 = max(a1322_0_m2, a1320_0_m2);
+float a1324_0_m1 = max(a1322_0_m1, a1320_0_m1);
+float a1324_m2_0 = max(a1322_m2_0, a1320_m2_0);
+float a1324_m1_0 = max(a1322_m1_0, a1320_m1_0);
+float a1324_0_0 = max(a1322_0_0, a1320_0_0);
+float a1324_1_0 = max(a1322_1_0, a1320_1_0);
+float a1324_2_0 = max(a1322_2_0, a1320_2_0);
+float a1324_m2_1 = max(a1322_m2_1, a1320_m2_1);
+float a1324_m1_1 = max(a1322_m1_1, a1320_m1_1);
+float a1324_0_1 = max(a1322_0_1, a1320_0_1);
+float a1324_1_1 = max(a1322_1_1, a1320_1_1);
+float a1324_2_1 = max(a1322_2_1, a1320_2_1);
+float a1324_0_2 = max(a1322_0_2, a1320_0_2);
+float a1324_0_3 = max(a1322_0_3, a1320_0_3);
 bool a1326_0_m2 = (a1080_0_m2) <= (a1324_0_m2);
 bool a1326_0_m1 = (a1080_0_m1) <= (a1324_0_m1);
 bool a1326_m2_0 = (a1080_m2_0) <= (a1324_m2_0);
@@ -11012,15 +10930,15 @@ float a1900_1_0 = 1.0e-2f;
 float a1900_2_0 = 1.0e-2f;
 float a1900_0_1 = 1.0e-2f;
 float a1900_0_2 = 1.0e-2f;
-float a1902_0_m2 = std::max(a1900_0_m2, a1848_0_m2);
-float a1902_0_m1 = std::max(a1900_0_m1, a1848_0_m1);
-float a1902_m2_0 = std::max(a1900_m2_0, a1848_m2_0);
-float a1902_m1_0 = std::max(a1900_m1_0, a1848_m1_0);
-float a1902_0_0 = std::max(a1900_0_0, a1848_0_0);
-float a1902_1_0 = std::max(a1900_1_0, a1848_1_0);
-float a1902_2_0 = std::max(a1900_2_0, a1848_2_0);
-float a1902_0_1 = std::max(a1900_0_1, a1848_0_1);
-float a1902_0_2 = std::max(a1900_0_2, a1848_0_2);
+float a1902_0_m2 = max(a1900_0_m2, a1848_0_m2);
+float a1902_0_m1 = max(a1900_0_m1, a1848_0_m1);
+float a1902_m2_0 = max(a1900_m2_0, a1848_m2_0);
+float a1902_m1_0 = max(a1900_m1_0, a1848_m1_0);
+float a1902_0_0 = max(a1900_0_0, a1848_0_0);
+float a1902_1_0 = max(a1900_1_0, a1848_1_0);
+float a1902_2_0 = max(a1900_2_0, a1848_2_0);
+float a1902_0_1 = max(a1900_0_1, a1848_0_1);
+float a1902_0_2 = max(a1900_0_2, a1848_0_2);
 float a1904_0_m2 = 1.0e-2f;
 float a1904_0_m1 = 1.0e-2f;
 float a1904_m2_0 = 1.0e-2f;
@@ -11030,15 +10948,15 @@ float a1904_1_0 = 1.0e-2f;
 float a1904_2_0 = 1.0e-2f;
 float a1904_0_1 = 1.0e-2f;
 float a1904_0_2 = 1.0e-2f;
-float a1906_0_m2 = std::max(a1904_0_m2, a1898_0_m2);
-float a1906_0_m1 = std::max(a1904_0_m1, a1898_0_m1);
-float a1906_m2_0 = std::max(a1904_m2_0, a1898_m2_0);
-float a1906_m1_0 = std::max(a1904_m1_0, a1898_m1_0);
-float a1906_0_0 = std::max(a1904_0_0, a1898_0_0);
-float a1906_1_0 = std::max(a1904_1_0, a1898_1_0);
-float a1906_2_0 = std::max(a1904_2_0, a1898_2_0);
-float a1906_0_1 = std::max(a1904_0_1, a1898_0_1);
-float a1906_0_2 = std::max(a1904_0_2, a1898_0_2);
+float a1906_0_m2 = max(a1904_0_m2, a1898_0_m2);
+float a1906_0_m1 = max(a1904_0_m1, a1898_0_m1);
+float a1906_m2_0 = max(a1904_m2_0, a1898_m2_0);
+float a1906_m1_0 = max(a1904_m1_0, a1898_m1_0);
+float a1906_0_0 = max(a1904_0_0, a1898_0_0);
+float a1906_1_0 = max(a1904_1_0, a1898_1_0);
+float a1906_2_0 = max(a1904_2_0, a1898_2_0);
+float a1906_0_1 = max(a1904_0_1, a1898_0_1);
+float a1906_0_2 = max(a1904_0_2, a1898_0_2);
 float a1908_0_0 = a1902_m2_0;
 float a1908_1_0 = a1902_m1_0;
 float a1910_0_0 = a1868_m2_0;
@@ -11085,12 +11003,12 @@ bool a1950_0_0 = (a1946_0_0) <= (a1948_0_0);
 bool a1950_1_0 = (a1946_1_0) <= (a1948_1_0);
 float a1952_0_0 = -(a1940_0_0);
 float a1952_1_0 = -(a1940_1_0);
-float a1954_0_0 = std::max(a1940_0_0, a1952_0_0);
-float a1954_1_0 = std::max(a1940_1_0, a1952_1_0);
+float a1954_0_0 = max(a1940_0_0, a1952_0_0);
+float a1954_1_0 = max(a1940_1_0, a1952_1_0);
 float a1956_0_0 = -(a1942_0_0);
 float a1956_1_0 = -(a1942_1_0);
-float a1958_0_0 = std::max(a1942_0_0, a1956_0_0);
-float a1958_1_0 = std::max(a1942_1_0, a1956_1_0);
+float a1958_0_0 = max(a1942_0_0, a1956_0_0);
+float a1958_1_0 = max(a1942_1_0, a1956_1_0);
 bool a1960_0_0 = (a1954_0_0) < (a1958_0_0);
 bool a1960_1_0 = (a1954_1_0) < (a1958_1_0);
 float a1962_0_0 = (a1960_0_0) ? (a1940_0_0) : (a1942_0_0);
@@ -11107,12 +11025,12 @@ bool a1972_0_0 = (a1968_0_0) <= (a1970_0_0);
 bool a1972_1_0 = (a1968_1_0) <= (a1970_1_0);
 float a1974_0_0 = -(a1942_0_0);
 float a1974_1_0 = -(a1942_1_0);
-float a1976_0_0 = std::max(a1942_0_0, a1974_0_0);
-float a1976_1_0 = std::max(a1942_1_0, a1974_1_0);
+float a1976_0_0 = max(a1942_0_0, a1974_0_0);
+float a1976_1_0 = max(a1942_1_0, a1974_1_0);
 float a1978_0_0 = -(a1944_0_0);
 float a1978_1_0 = -(a1944_1_0);
-float a1980_0_0 = std::max(a1944_0_0, a1978_0_0);
-float a1980_1_0 = std::max(a1944_1_0, a1978_1_0);
+float a1980_0_0 = max(a1944_0_0, a1978_0_0);
+float a1980_1_0 = max(a1944_1_0, a1978_1_0);
 bool a1982_0_0 = (a1976_0_0) < (a1980_0_0);
 bool a1982_1_0 = (a1976_1_0) < (a1980_1_0);
 float a1984_0_0 = (a1982_0_0) ? (a1942_0_0) : (a1944_0_0);
@@ -11147,12 +11065,12 @@ bool a2012_0_0 = (a2008_0_0) <= (a2010_0_0);
 bool a2012_1_0 = (a2008_1_0) <= (a2010_1_0);
 float a2014_0_0 = -(a2002_0_0);
 float a2014_1_0 = -(a2002_1_0);
-float a2016_0_0 = std::max(a2002_0_0, a2014_0_0);
-float a2016_1_0 = std::max(a2002_1_0, a2014_1_0);
+float a2016_0_0 = max(a2002_0_0, a2014_0_0);
+float a2016_1_0 = max(a2002_1_0, a2014_1_0);
 float a2018_0_0 = -(a2004_0_0);
 float a2018_1_0 = -(a2004_1_0);
-float a2020_0_0 = std::max(a2004_0_0, a2018_0_0);
-float a2020_1_0 = std::max(a2004_1_0, a2018_1_0);
+float a2020_0_0 = max(a2004_0_0, a2018_0_0);
+float a2020_1_0 = max(a2004_1_0, a2018_1_0);
 bool a2022_0_0 = (a2016_0_0) < (a2020_0_0);
 bool a2022_1_0 = (a2016_1_0) < (a2020_1_0);
 float a2024_0_0 = (a2022_0_0) ? (a2002_0_0) : (a2004_0_0);
@@ -11169,12 +11087,12 @@ bool a2034_0_0 = (a2030_0_0) <= (a2032_0_0);
 bool a2034_1_0 = (a2030_1_0) <= (a2032_1_0);
 float a2036_0_0 = -(a2004_0_0);
 float a2036_1_0 = -(a2004_1_0);
-float a2038_0_0 = std::max(a2004_0_0, a2036_0_0);
-float a2038_1_0 = std::max(a2004_1_0, a2036_1_0);
+float a2038_0_0 = max(a2004_0_0, a2036_0_0);
+float a2038_1_0 = max(a2004_1_0, a2036_1_0);
 float a2040_0_0 = -(a2006_0_0);
 float a2040_1_0 = -(a2006_1_0);
-float a2042_0_0 = std::max(a2006_0_0, a2040_0_0);
-float a2042_1_0 = std::max(a2006_1_0, a2040_1_0);
+float a2042_0_0 = max(a2006_0_0, a2040_0_0);
+float a2042_1_0 = max(a2006_1_0, a2040_1_0);
 bool a2044_0_0 = (a2038_0_0) < (a2042_0_0);
 bool a2044_1_0 = (a2038_1_0) < (a2042_1_0);
 float a2046_0_0 = (a2044_0_0) ? (a2004_0_0) : (a2006_0_0);
@@ -11209,12 +11127,12 @@ bool a2074_0_0 = (a2070_0_0) <= (a2072_0_0);
 bool a2074_1_0 = (a2070_1_0) <= (a2072_1_0);
 float a2076_0_0 = -(a2064_0_0);
 float a2076_1_0 = -(a2064_1_0);
-float a2078_0_0 = std::max(a2064_0_0, a2076_0_0);
-float a2078_1_0 = std::max(a2064_1_0, a2076_1_0);
+float a2078_0_0 = max(a2064_0_0, a2076_0_0);
+float a2078_1_0 = max(a2064_1_0, a2076_1_0);
 float a2080_0_0 = -(a2066_0_0);
 float a2080_1_0 = -(a2066_1_0);
-float a2082_0_0 = std::max(a2066_0_0, a2080_0_0);
-float a2082_1_0 = std::max(a2066_1_0, a2080_1_0);
+float a2082_0_0 = max(a2066_0_0, a2080_0_0);
+float a2082_1_0 = max(a2066_1_0, a2080_1_0);
 bool a2084_0_0 = (a2078_0_0) < (a2082_0_0);
 bool a2084_1_0 = (a2078_1_0) < (a2082_1_0);
 float a2086_0_0 = (a2084_0_0) ? (a2064_0_0) : (a2066_0_0);
@@ -11231,12 +11149,12 @@ bool a2096_0_0 = (a2092_0_0) <= (a2094_0_0);
 bool a2096_1_0 = (a2092_1_0) <= (a2094_1_0);
 float a2098_0_0 = -(a2066_0_0);
 float a2098_1_0 = -(a2066_1_0);
-float a2100_0_0 = std::max(a2066_0_0, a2098_0_0);
-float a2100_1_0 = std::max(a2066_1_0, a2098_1_0);
+float a2100_0_0 = max(a2066_0_0, a2098_0_0);
+float a2100_1_0 = max(a2066_1_0, a2098_1_0);
 float a2102_0_0 = -(a2068_0_0);
 float a2102_1_0 = -(a2068_1_0);
-float a2104_0_0 = std::max(a2068_0_0, a2102_0_0);
-float a2104_1_0 = std::max(a2068_1_0, a2102_1_0);
+float a2104_0_0 = max(a2068_0_0, a2102_0_0);
+float a2104_1_0 = max(a2068_1_0, a2102_1_0);
 bool a2106_0_0 = (a2100_0_0) < (a2104_0_0);
 bool a2106_1_0 = (a2100_1_0) < (a2104_1_0);
 float a2108_0_0 = (a2106_0_0) ? (a2066_0_0) : (a2068_0_0);
@@ -11271,12 +11189,12 @@ bool a2136_0_0 = (a2132_0_0) <= (a2134_0_0);
 bool a2136_1_0 = (a2132_1_0) <= (a2134_1_0);
 float a2138_0_0 = -(a2126_0_0);
 float a2138_1_0 = -(a2126_1_0);
-float a2140_0_0 = std::max(a2126_0_0, a2138_0_0);
-float a2140_1_0 = std::max(a2126_1_0, a2138_1_0);
+float a2140_0_0 = max(a2126_0_0, a2138_0_0);
+float a2140_1_0 = max(a2126_1_0, a2138_1_0);
 float a2142_0_0 = -(a2128_0_0);
 float a2142_1_0 = -(a2128_1_0);
-float a2144_0_0 = std::max(a2128_0_0, a2142_0_0);
-float a2144_1_0 = std::max(a2128_1_0, a2142_1_0);
+float a2144_0_0 = max(a2128_0_0, a2142_0_0);
+float a2144_1_0 = max(a2128_1_0, a2142_1_0);
 bool a2146_0_0 = (a2140_0_0) < (a2144_0_0);
 bool a2146_1_0 = (a2140_1_0) < (a2144_1_0);
 float a2148_0_0 = (a2146_0_0) ? (a2126_0_0) : (a2128_0_0);
@@ -11293,12 +11211,12 @@ bool a2158_0_0 = (a2154_0_0) <= (a2156_0_0);
 bool a2158_1_0 = (a2154_1_0) <= (a2156_1_0);
 float a2160_0_0 = -(a2128_0_0);
 float a2160_1_0 = -(a2128_1_0);
-float a2162_0_0 = std::max(a2128_0_0, a2160_0_0);
-float a2162_1_0 = std::max(a2128_1_0, a2160_1_0);
+float a2162_0_0 = max(a2128_0_0, a2160_0_0);
+float a2162_1_0 = max(a2128_1_0, a2160_1_0);
 float a2164_0_0 = -(a2130_0_0);
 float a2164_1_0 = -(a2130_1_0);
-float a2166_0_0 = std::max(a2130_0_0, a2164_0_0);
-float a2166_1_0 = std::max(a2130_1_0, a2164_1_0);
+float a2166_0_0 = max(a2130_0_0, a2164_0_0);
+float a2166_1_0 = max(a2130_1_0, a2164_1_0);
 bool a2168_0_0 = (a2162_0_0) < (a2166_0_0);
 bool a2168_1_0 = (a2162_1_0) < (a2166_1_0);
 float a2170_0_0 = (a2168_0_0) ? (a2128_0_0) : (a2130_0_0);
@@ -11543,8 +11461,8 @@ float a2408_0_0 = (a2400_0_0) - (a2406_0_0);
 float a2408_1_0 = (a2400_1_0) - (a2406_1_0);
 float a2410_0_0 = 0.0f;
 float a2410_1_0 = 0.0f;
-float a2412_0_0 = std::max(a2410_0_0, a2408_0_0);
-float a2412_1_0 = std::max(a2410_1_0, a2408_1_0);
+float a2412_0_0 = max(a2410_0_0, a2408_0_0);
+float a2412_1_0 = max(a2410_1_0, a2408_1_0);
 bool a2414_0_0 = (a2180_0_0) <= (a2412_0_0);
 bool a2414_1_0 = (a2180_1_0) <= (a2412_1_0);
 float a2416_0_0 = 1.6666666f;
@@ -12049,12 +11967,12 @@ bool a2914_0_0 = (a2910_0_0) <= (a2912_0_0);
 bool a2914_0_1 = (a2910_0_1) <= (a2912_0_1);
 float a2916_0_0 = -(a2904_0_0);
 float a2916_0_1 = -(a2904_0_1);
-float a2918_0_0 = std::max(a2904_0_0, a2916_0_0);
-float a2918_0_1 = std::max(a2904_0_1, a2916_0_1);
+float a2918_0_0 = max(a2904_0_0, a2916_0_0);
+float a2918_0_1 = max(a2904_0_1, a2916_0_1);
 float a2920_0_0 = -(a2906_0_0);
 float a2920_0_1 = -(a2906_0_1);
-float a2922_0_0 = std::max(a2906_0_0, a2920_0_0);
-float a2922_0_1 = std::max(a2906_0_1, a2920_0_1);
+float a2922_0_0 = max(a2906_0_0, a2920_0_0);
+float a2922_0_1 = max(a2906_0_1, a2920_0_1);
 bool a2924_0_0 = (a2918_0_0) < (a2922_0_0);
 bool a2924_0_1 = (a2918_0_1) < (a2922_0_1);
 float a2926_0_0 = (a2924_0_0) ? (a2904_0_0) : (a2906_0_0);
@@ -12071,12 +11989,12 @@ bool a2936_0_0 = (a2932_0_0) <= (a2934_0_0);
 bool a2936_0_1 = (a2932_0_1) <= (a2934_0_1);
 float a2938_0_0 = -(a2906_0_0);
 float a2938_0_1 = -(a2906_0_1);
-float a2940_0_0 = std::max(a2906_0_0, a2938_0_0);
-float a2940_0_1 = std::max(a2906_0_1, a2938_0_1);
+float a2940_0_0 = max(a2906_0_0, a2938_0_0);
+float a2940_0_1 = max(a2906_0_1, a2938_0_1);
 float a2942_0_0 = -(a2908_0_0);
 float a2942_0_1 = -(a2908_0_1);
-float a2944_0_0 = std::max(a2908_0_0, a2942_0_0);
-float a2944_0_1 = std::max(a2908_0_1, a2942_0_1);
+float a2944_0_0 = max(a2908_0_0, a2942_0_0);
+float a2944_0_1 = max(a2908_0_1, a2942_0_1);
 bool a2946_0_0 = (a2940_0_0) < (a2944_0_0);
 bool a2946_0_1 = (a2940_0_1) < (a2944_0_1);
 float a2948_0_0 = (a2946_0_0) ? (a2906_0_0) : (a2908_0_0);
@@ -12111,12 +12029,12 @@ bool a2976_0_0 = (a2972_0_0) <= (a2974_0_0);
 bool a2976_0_1 = (a2972_0_1) <= (a2974_0_1);
 float a2978_0_0 = -(a2966_0_0);
 float a2978_0_1 = -(a2966_0_1);
-float a2980_0_0 = std::max(a2966_0_0, a2978_0_0);
-float a2980_0_1 = std::max(a2966_0_1, a2978_0_1);
+float a2980_0_0 = max(a2966_0_0, a2978_0_0);
+float a2980_0_1 = max(a2966_0_1, a2978_0_1);
 float a2982_0_0 = -(a2968_0_0);
 float a2982_0_1 = -(a2968_0_1);
-float a2984_0_0 = std::max(a2968_0_0, a2982_0_0);
-float a2984_0_1 = std::max(a2968_0_1, a2982_0_1);
+float a2984_0_0 = max(a2968_0_0, a2982_0_0);
+float a2984_0_1 = max(a2968_0_1, a2982_0_1);
 bool a2986_0_0 = (a2980_0_0) < (a2984_0_0);
 bool a2986_0_1 = (a2980_0_1) < (a2984_0_1);
 float a2988_0_0 = (a2986_0_0) ? (a2966_0_0) : (a2968_0_0);
@@ -12133,12 +12051,12 @@ bool a2998_0_0 = (a2994_0_0) <= (a2996_0_0);
 bool a2998_0_1 = (a2994_0_1) <= (a2996_0_1);
 float a3000_0_0 = -(a2968_0_0);
 float a3000_0_1 = -(a2968_0_1);
-float a3002_0_0 = std::max(a2968_0_0, a3000_0_0);
-float a3002_0_1 = std::max(a2968_0_1, a3000_0_1);
+float a3002_0_0 = max(a2968_0_0, a3000_0_0);
+float a3002_0_1 = max(a2968_0_1, a3000_0_1);
 float a3004_0_0 = -(a2970_0_0);
 float a3004_0_1 = -(a2970_0_1);
-float a3006_0_0 = std::max(a2970_0_0, a3004_0_0);
-float a3006_0_1 = std::max(a2970_0_1, a3004_0_1);
+float a3006_0_0 = max(a2970_0_0, a3004_0_0);
+float a3006_0_1 = max(a2970_0_1, a3004_0_1);
 bool a3008_0_0 = (a3002_0_0) < (a3006_0_0);
 bool a3008_0_1 = (a3002_0_1) < (a3006_0_1);
 float a3010_0_0 = (a3008_0_0) ? (a2968_0_0) : (a2970_0_0);
@@ -12173,12 +12091,12 @@ bool a3038_0_0 = (a3034_0_0) <= (a3036_0_0);
 bool a3038_0_1 = (a3034_0_1) <= (a3036_0_1);
 float a3040_0_0 = -(a3028_0_0);
 float a3040_0_1 = -(a3028_0_1);
-float a3042_0_0 = std::max(a3028_0_0, a3040_0_0);
-float a3042_0_1 = std::max(a3028_0_1, a3040_0_1);
+float a3042_0_0 = max(a3028_0_0, a3040_0_0);
+float a3042_0_1 = max(a3028_0_1, a3040_0_1);
 float a3044_0_0 = -(a3030_0_0);
 float a3044_0_1 = -(a3030_0_1);
-float a3046_0_0 = std::max(a3030_0_0, a3044_0_0);
-float a3046_0_1 = std::max(a3030_0_1, a3044_0_1);
+float a3046_0_0 = max(a3030_0_0, a3044_0_0);
+float a3046_0_1 = max(a3030_0_1, a3044_0_1);
 bool a3048_0_0 = (a3042_0_0) < (a3046_0_0);
 bool a3048_0_1 = (a3042_0_1) < (a3046_0_1);
 float a3050_0_0 = (a3048_0_0) ? (a3028_0_0) : (a3030_0_0);
@@ -12195,12 +12113,12 @@ bool a3060_0_0 = (a3056_0_0) <= (a3058_0_0);
 bool a3060_0_1 = (a3056_0_1) <= (a3058_0_1);
 float a3062_0_0 = -(a3030_0_0);
 float a3062_0_1 = -(a3030_0_1);
-float a3064_0_0 = std::max(a3030_0_0, a3062_0_0);
-float a3064_0_1 = std::max(a3030_0_1, a3062_0_1);
+float a3064_0_0 = max(a3030_0_0, a3062_0_0);
+float a3064_0_1 = max(a3030_0_1, a3062_0_1);
 float a3066_0_0 = -(a3032_0_0);
 float a3066_0_1 = -(a3032_0_1);
-float a3068_0_0 = std::max(a3032_0_0, a3066_0_0);
-float a3068_0_1 = std::max(a3032_0_1, a3066_0_1);
+float a3068_0_0 = max(a3032_0_0, a3066_0_0);
+float a3068_0_1 = max(a3032_0_1, a3066_0_1);
 bool a3070_0_0 = (a3064_0_0) < (a3068_0_0);
 bool a3070_0_1 = (a3064_0_1) < (a3068_0_1);
 float a3072_0_0 = (a3070_0_0) ? (a3030_0_0) : (a3032_0_0);
@@ -12235,12 +12153,12 @@ bool a3100_0_0 = (a3096_0_0) <= (a3098_0_0);
 bool a3100_0_1 = (a3096_0_1) <= (a3098_0_1);
 float a3102_0_0 = -(a3090_0_0);
 float a3102_0_1 = -(a3090_0_1);
-float a3104_0_0 = std::max(a3090_0_0, a3102_0_0);
-float a3104_0_1 = std::max(a3090_0_1, a3102_0_1);
+float a3104_0_0 = max(a3090_0_0, a3102_0_0);
+float a3104_0_1 = max(a3090_0_1, a3102_0_1);
 float a3106_0_0 = -(a3092_0_0);
 float a3106_0_1 = -(a3092_0_1);
-float a3108_0_0 = std::max(a3092_0_0, a3106_0_0);
-float a3108_0_1 = std::max(a3092_0_1, a3106_0_1);
+float a3108_0_0 = max(a3092_0_0, a3106_0_0);
+float a3108_0_1 = max(a3092_0_1, a3106_0_1);
 bool a3110_0_0 = (a3104_0_0) < (a3108_0_0);
 bool a3110_0_1 = (a3104_0_1) < (a3108_0_1);
 float a3112_0_0 = (a3110_0_0) ? (a3090_0_0) : (a3092_0_0);
@@ -12257,12 +12175,12 @@ bool a3122_0_0 = (a3118_0_0) <= (a3120_0_0);
 bool a3122_0_1 = (a3118_0_1) <= (a3120_0_1);
 float a3124_0_0 = -(a3092_0_0);
 float a3124_0_1 = -(a3092_0_1);
-float a3126_0_0 = std::max(a3092_0_0, a3124_0_0);
-float a3126_0_1 = std::max(a3092_0_1, a3124_0_1);
+float a3126_0_0 = max(a3092_0_0, a3124_0_0);
+float a3126_0_1 = max(a3092_0_1, a3124_0_1);
 float a3128_0_0 = -(a3094_0_0);
 float a3128_0_1 = -(a3094_0_1);
-float a3130_0_0 = std::max(a3094_0_0, a3128_0_0);
-float a3130_0_1 = std::max(a3094_0_1, a3128_0_1);
+float a3130_0_0 = max(a3094_0_0, a3128_0_0);
+float a3130_0_1 = max(a3094_0_1, a3128_0_1);
 bool a3132_0_0 = (a3126_0_0) < (a3130_0_0);
 bool a3132_0_1 = (a3126_0_1) < (a3130_0_1);
 float a3134_0_0 = (a3132_0_0) ? (a3092_0_0) : (a3094_0_0);
@@ -12507,8 +12425,8 @@ float a3372_0_0 = (a3364_0_0) - (a3370_0_0);
 float a3372_0_1 = (a3364_0_1) - (a3370_0_1);
 float a3374_0_0 = 0.0f;
 float a3374_0_1 = 0.0f;
-float a3376_0_0 = std::max(a3374_0_0, a3372_0_0);
-float a3376_0_1 = std::max(a3374_0_1, a3372_0_1);
+float a3376_0_0 = max(a3374_0_0, a3372_0_0);
+float a3376_0_1 = max(a3374_0_1, a3372_0_1);
 bool a3378_0_0 = (a3144_0_0) <= (a3376_0_0);
 bool a3378_0_1 = (a3144_0_1) <= (a3376_0_1);
 float a3380_0_0 = 1.6666666f;
@@ -13022,10 +12940,141 @@ float a3938_0_0 = (a3936_0_0) * (a3934_0_0);
 float a3940_0_0 = (a3910_0_0) - (a3938_0_0);
 float a3942_0_0 = (a3920_0_0) * (a3940_0_0);
 float a3944_0_0 = 1.0e-2f;
-((a3946)[addr_origin]) = (std::max(a3944_0_0, a3892_0_0));
+((a3946)[addr_origin]) = (max(a3944_0_0, a3892_0_0));
 float a3948_0_0 = 1.0e-2f;
-((a3950)[addr_origin]) = (std::max(a3948_0_0, a3942_0_0));
+((a3950)[addr_origin]) = (max(a3948_0_0, a3942_0_0));
 }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void Hydro::Hydro_sub_0 (const float & a1, const float & a3, const float & a6, thrust::device_vector<float>  & a8, thrust::device_vector<float>  & a10, thrust::device_vector<float>  & a12)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_0_inner<<<128,128>>>(a1, a3, a6, thrust::raw_pointer_cast(&*((a8).begin())), thrust::raw_pointer_cast(&*((a10).begin())), thrust::raw_pointer_cast(&*((a12).begin())));
+}
+void Hydro::Hydro_sub_1 (const thrust::device_vector<float>  & a8, const thrust::device_vector<float>  & a10, const thrust::device_vector<float>  & a12, thrust::device_vector<float>  & a46, thrust::device_vector<float>  & a52, thrust::device_vector<float>  & a86, thrust::device_vector<float>  & a93)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_1_inner<<<128,128>>>(thrust::raw_pointer_cast(&*((a8).begin())), thrust::raw_pointer_cast(&*((a10).begin())), thrust::raw_pointer_cast(&*((a12).begin())), thrust::raw_pointer_cast(&*((a46).begin())), thrust::raw_pointer_cast(&*((a52).begin())), thrust::raw_pointer_cast(&*((a86).begin())), thrust::raw_pointer_cast(&*((a93).begin())));
+}
+void Hydro::Hydro_sub_2 (const float & a13, const float & a15, const float & a65, const float & a67, const float & a70, thrust::device_vector<float>  & a17, thrust::device_vector<float>  & a19, thrust::device_vector<float>  & a72, thrust::device_vector<float>  & a74, thrust::device_vector<float>  & a76)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_2_inner<<<128,128>>>(a13, a15, a65, a67, a70, thrust::raw_pointer_cast(&*((a17).begin())), thrust::raw_pointer_cast(&*((a19).begin())), thrust::raw_pointer_cast(&*((a72).begin())), thrust::raw_pointer_cast(&*((a74).begin())), thrust::raw_pointer_cast(&*((a76).begin())));
+}
+void Hydro::Hydro_sub_3 (const thrust::device_vector<float>  & a1, const thrust::device_vector<float>  & a3, const thrust::device_vector<float>  & a5, const thrust::device_vector<float>  & a7, const thrust::device_vector<float>  & a72, const thrust::device_vector<float>  & a74, const thrust::device_vector<float>  & a76, thrust::device_vector<float>  & a308, thrust::device_vector<float>  & a310, thrust::device_vector<float>  & a312, thrust::device_vector<float>  & a322, thrust::device_vector<float>  & a324, thrust::device_vector<float>  & a326, thrust::device_vector<float>  & a344, thrust::device_vector<float>  & a348, thrust::device_vector<float>  & a352, thrust::device_vector<float>  & a358, thrust::device_vector<float>  & a362, thrust::device_vector<float>  & a366, thrust::device_vector<float>  & a370, thrust::device_vector<float>  & a376, thrust::device_vector<float>  & a1064, thrust::device_vector<float>  & a1068, thrust::device_vector<float>  & a1072, thrust::device_vector<float>  & a1078, thrust::device_vector<float>  & a1082, thrust::device_vector<float>  & a1086, thrust::device_vector<float>  & a1090, thrust::device_vector<float>  & a1096, thrust::device_vector<float>  & a1798, thrust::device_vector<float>  & a1806, thrust::device_vector<float>  & a1814, thrust::device_vector<float>  & a1822, thrust::device_vector<float>  & a3846, thrust::device_vector<float>  & a3854, thrust::device_vector<float>  & a3862, thrust::device_vector<float>  & a3870)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_3_inner<<<128,128>>>(thrust::raw_pointer_cast(&*((a1).begin())), thrust::raw_pointer_cast(&*((a3).begin())), thrust::raw_pointer_cast(&*((a5).begin())), thrust::raw_pointer_cast(&*((a7).begin())), thrust::raw_pointer_cast(&*((a72).begin())), thrust::raw_pointer_cast(&*((a74).begin())), thrust::raw_pointer_cast(&*((a76).begin())), thrust::raw_pointer_cast(&*((a308).begin())), thrust::raw_pointer_cast(&*((a310).begin())), thrust::raw_pointer_cast(&*((a312).begin())), thrust::raw_pointer_cast(&*((a322).begin())), thrust::raw_pointer_cast(&*((a324).begin())), thrust::raw_pointer_cast(&*((a326).begin())), thrust::raw_pointer_cast(&*((a344).begin())), thrust::raw_pointer_cast(&*((a348).begin())), thrust::raw_pointer_cast(&*((a352).begin())), thrust::raw_pointer_cast(&*((a358).begin())), thrust::raw_pointer_cast(&*((a362).begin())), thrust::raw_pointer_cast(&*((a366).begin())), thrust::raw_pointer_cast(&*((a370).begin())), thrust::raw_pointer_cast(&*((a376).begin())), thrust::raw_pointer_cast(&*((a1064).begin())), thrust::raw_pointer_cast(&*((a1068).begin())), thrust::raw_pointer_cast(&*((a1072).begin())), thrust::raw_pointer_cast(&*((a1078).begin())), thrust::raw_pointer_cast(&*((a1082).begin())), thrust::raw_pointer_cast(&*((a1086).begin())), thrust::raw_pointer_cast(&*((a1090).begin())), thrust::raw_pointer_cast(&*((a1096).begin())), thrust::raw_pointer_cast(&*((a1798).begin())), thrust::raw_pointer_cast(&*((a1806).begin())), thrust::raw_pointer_cast(&*((a1814).begin())), thrust::raw_pointer_cast(&*((a1822).begin())), thrust::raw_pointer_cast(&*((a3846).begin())), thrust::raw_pointer_cast(&*((a3854).begin())), thrust::raw_pointer_cast(&*((a3862).begin())), thrust::raw_pointer_cast(&*((a3870).begin())));
+}
+void Hydro::Hydro_sub_4 (const thrust::device_vector<float>  & a17, const thrust::device_vector<float>  & a19, const thrust::device_vector<float>  & a308, const thrust::device_vector<float>  & a310, const thrust::device_vector<float>  & a312, const thrust::device_vector<float>  & a322, const thrust::device_vector<float>  & a324, const thrust::device_vector<float>  & a326, thrust::device_vector<float>  & a336)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_4_inner<<<128,128>>>(thrust::raw_pointer_cast(&*((a17).begin())), thrust::raw_pointer_cast(&*((a19).begin())), thrust::raw_pointer_cast(&*((a308).begin())), thrust::raw_pointer_cast(&*((a310).begin())), thrust::raw_pointer_cast(&*((a312).begin())), thrust::raw_pointer_cast(&*((a322).begin())), thrust::raw_pointer_cast(&*((a324).begin())), thrust::raw_pointer_cast(&*((a326).begin())), thrust::raw_pointer_cast(&*((a336).begin())));
+}
+void Hydro::Hydro_sub_5 (const thrust::device_vector<float>  & a336, float & a338)  {
+(a338) = (reduce_min(a336));
+}
+void Hydro::Hydro_sub_6 (const float & a11, const float & a338, float & a340)  {
+float a11_0_0 = a11;
+float a338_0_0 = a338;
+(a340) = ((a11_0_0) * (a338_0_0));
+}
+void Hydro::Hydro_sub_7 (const float & a340, thrust::device_vector<float>  & a342)  {
+/*
+lowerMargin = (Vec :~ 0) :~ 0
+upperMargin = (Vec :~ 0) :~ 0
+*/
+Hydro_sub_7_inner<<<128,128>>>(a340, thrust::raw_pointer_cast(&*((a342).begin())));
+}
+void Hydro::Hydro_sub_8 (const thrust::device_vector<float>  & a17, const thrust::device_vector<float>  & a19, const thrust::device_vector<float>  & a342, const thrust::device_vector<float>  & a344, const thrust::device_vector<float>  & a348, const thrust::device_vector<float>  & a352, const thrust::device_vector<float>  & a358, const thrust::device_vector<float>  & a362, const thrust::device_vector<float>  & a366, const thrust::device_vector<float>  & a370, const thrust::device_vector<float>  & a376, const thrust::device_vector<float>  & a1064, const thrust::device_vector<float>  & a1068, const thrust::device_vector<float>  & a1072, const thrust::device_vector<float>  & a1078, const thrust::device_vector<float>  & a1082, const thrust::device_vector<float>  & a1086, const thrust::device_vector<float>  & a1090, const thrust::device_vector<float>  & a1096, const thrust::device_vector<float>  & a1798, const thrust::device_vector<float>  & a1806, const thrust::device_vector<float>  & a1814, const thrust::device_vector<float>  & a1822, const thrust::device_vector<float>  & a3846, const thrust::device_vector<float>  & a3854, const thrust::device_vector<float>  & a3862, const thrust::device_vector<float>  & a3870, thrust::device_vector<float>  & a3912, thrust::device_vector<float>  & a3914, thrust::device_vector<float>  & a3946, thrust::device_vector<float>  & a3950)  {
+/*
+lowerMargin = (Vec :~ 3) :~ 3
+upperMargin = (Vec :~ 3) :~ 3
+*/
+Hydro_sub_8_inner<<<128,128>>>(thrust::raw_pointer_cast(&*((a17).begin())), thrust::raw_pointer_cast(&*((a19).begin())), thrust::raw_pointer_cast(&*((a342).begin())), thrust::raw_pointer_cast(&*((a344).begin())), thrust::raw_pointer_cast(&*((a348).begin())), thrust::raw_pointer_cast(&*((a352).begin())), thrust::raw_pointer_cast(&*((a358).begin())), thrust::raw_pointer_cast(&*((a362).begin())), thrust::raw_pointer_cast(&*((a366).begin())), thrust::raw_pointer_cast(&*((a370).begin())), thrust::raw_pointer_cast(&*((a376).begin())), thrust::raw_pointer_cast(&*((a1064).begin())), thrust::raw_pointer_cast(&*((a1068).begin())), thrust::raw_pointer_cast(&*((a1072).begin())), thrust::raw_pointer_cast(&*((a1078).begin())), thrust::raw_pointer_cast(&*((a1082).begin())), thrust::raw_pointer_cast(&*((a1086).begin())), thrust::raw_pointer_cast(&*((a1090).begin())), thrust::raw_pointer_cast(&*((a1096).begin())), thrust::raw_pointer_cast(&*((a1798).begin())), thrust::raw_pointer_cast(&*((a1806).begin())), thrust::raw_pointer_cast(&*((a1814).begin())), thrust::raw_pointer_cast(&*((a1822).begin())), thrust::raw_pointer_cast(&*((a3846).begin())), thrust::raw_pointer_cast(&*((a3854).begin())), thrust::raw_pointer_cast(&*((a3862).begin())), thrust::raw_pointer_cast(&*((a3870).begin())), thrust::raw_pointer_cast(&*((a3912).begin())), thrust::raw_pointer_cast(&*((a3914).begin())), thrust::raw_pointer_cast(&*((a3946).begin())), thrust::raw_pointer_cast(&*((a3950).begin())));
 }
 void Hydro::Hydro_sub_9 (const float & a9, const float & a340, float & a3952)  {
 float a9_0_0 = a9;
