@@ -1,4 +1,4 @@
-{-# LANGUAGE KindSignatures, 
+{-# LANGUAGE DeriveDataTypeable, KindSignatures, 
 MultiParamTypeClasses, NoImplicitPrelude, RankNTypes
  #-}
 {-# OPTIONS -Wall #-}
@@ -11,9 +11,12 @@ module Language.Paraiso.Optimization (
   Ready
   ) where
 
-import           Language.Paraiso.Annotation
-import           Language.Paraiso.OM
+import           Data.Typeable
+import qualified Language.Paraiso.Annotation as Anot
+import           Language.Paraiso.OM (OM(..))
+import           Language.Paraiso.OM.Graph (globalAnnotation)
 import           Language.Paraiso.Optimization.BoundaryAnalysis
+import           Language.Paraiso.Optimization.DeadCodeElimination
 import           Language.Paraiso.Optimization.DecideAllocation
 import           Language.Paraiso.Optimization.DependencyAnalysis
 import           Language.Paraiso.Optimization.Graph
@@ -24,15 +27,34 @@ import           Language.Paraiso.Prelude
 
 optimize :: (Ready v g)            
             => Level 
-            -> OM v g Annotation 
-            -> OM v g Annotation
+            -> OM v g Anot.Annotation 
+            -> OM v g Anot.Annotation
             
-optimize level = case level of
-  O0 -> gmap identity . writeGrouping . gmap boundaryAnalysis . gmap decideAllocation
-  _  -> optimize O0
+optimize level om = 
+  if (Just level > maybeOldLevel) 
+  then recordLevel $ optimizer om 
+  else om
+  where
+    maybeOldLevel = Anot.toMaybe $ globalAnnotation $ setup om
+    
+    recordLevel om = 
+      om
+      { setup = (setup om)
+        { globalAnnotation = Anot.set (level) $ globalAnnotation (setup om)
+        }
+      }
+
+    optimizer = case level of
+      O0 -> gmap identity . 
+            writeGrouping . 
+            gmap boundaryAnalysis . 
+            gmap decideAllocation . 
+            gmap deadCodeElimination 
+      _  -> optimize O0
 
 data Level 
   = O0 -- perform mandatory code analysis
   | O1
   | O2
   | O3
+    deriving (Eq, Ord, Show, Typeable)

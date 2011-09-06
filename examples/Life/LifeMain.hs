@@ -123,10 +123,17 @@ myOM =  optimize O3 $
      ]
 
 
-genSetup :: Native.Setup Vec2 Int
-genSetup = 
+cpuSetup :: Native.Setup Vec2 Int
+cpuSetup = 
   (Native.defaultSetup $ Vec :~ 128 :~ 128)
   { Native.directory = "./dist/" 
+  }
+  
+gpuSetup :: Native.Setup Vec2 Int
+gpuSetup = 
+  (Native.defaultSetup $ Vec :~ 128 :~ 128)
+  { Native.directory = "./dist-cuda/" ,
+    Native.language  = Native.CUDA
   }
 
 main :: IO ()
@@ -135,6 +142,10 @@ main = do
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
 
   -- generate the library 
-  _ <- generateIO genSetup myOM
+  _ <- generateIO cpuSetup myOM
+
+
+  -- generate the library 
+  _ <- generateIO gpuSetup myOM
 
   return ()

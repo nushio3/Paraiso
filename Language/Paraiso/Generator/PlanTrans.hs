@@ -34,19 +34,21 @@ import           Language.Paraiso.Tensor
 type AnAn = Anot.Annotation
 data Env v g = Env (Native.Setup v g) (Plan.Plan v g AnAn)
 
+-- translate the plan to Claris
 translate :: Opt.Ready v g => Native.Setup v g -> Plan.Plan v g AnAn -> C.Program
 translate setup plan = 
   C.Program 
   { C.progName = name plan,
     C.topLevel = 
       map include stlHeaders ++ 
-      library ++ 
+      library env ++ 
       comments ++
+      subHelperFuncs ++ 
       [ C.ClassDef $ C.Class (name plan) $
         storageVars ++ 
         constructorDef ++ 
         memberFuncForSize env ++
-        subKernelFuncs ++ memberFuncs 
+        subMemberFuncs ++ memberFuncs 
       ]
   }
   where
@@ -69,15 +71,20 @@ translate setup plan =
              _ -> []
       }
 
-    memberFuncs = V.toList $ V.imap (\idx ker -> makeFunc env idx ker) $ Plan.kernels plan
+    memberFuncs = 
+      V.toList $ 
+      V.imap (\idx ker -> makeFunc env idx ker) $ 
+      Plan.kernels plan
 
-    subKernelFuncs = V.toList $ V.map (makeSubFunc env) $ Plan.subKernels plan
+    subHelperFuncs = concat $ V.toList $ V.map snd $ subKernelFuncs   
+    subMemberFuncs = concat $ V.toList $ V.map fst $ subKernelFuncs   
+    subKernelFuncs = V.map (makeSubFunc env) $ Plan.subKernels plan
 
 
     include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
     stlHeaders = case Native.language setup of
       Native.CPlusPlus -> ["algorithm", "cmath", "vector"]
-      Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h"]
+      Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h", "thrust/functional.h", "thrust/extrema.h", "thrust/reduce.h"]
 
     storageVars = 
       V.toList $
@@ -86,9 +93,10 @@ translate setup plan =
     storageRefToMenber stRef =  
       C.MemberVar  C.Public $ 
       C.Var 
-        (mkCtyp env $ Plan.storageType stRef) 
+        (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
+-- Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
   makeMami False  "size" size ++ 
@@ -102,7 +110,7 @@ memberFuncForSize env@(Env setup plan) =
     uM = toList $ Plan.upperMargin plan
 
     makeMami alone label xs = 
-      (if alone then id else (finale label xs :))  $
+      (if not alone then (finale label xs :) else id)  $
       map (\(i,x) -> tiro (label ++  show i) x) $
       zip [(0::Int)..] xs
 
@@ -148,7 +156,7 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $
            filter ((Plan.ManifestRef kerIdx preIdx==) . Plan.storageIdx) $ V.toList $ Plan.storages plan) of
        ([stRef],[maRef]) -> 
          C.StmtExpr $ C.Op2Infix "="
-         (C.VarExpr $ C.Var (mkCtyp env $ Plan.storageType stRef) (name stRef) )
+         (C.VarExpr $ C.Var (mkCppType env $ Plan.storageType stRef) (name stRef) )
          (C.VarExpr $ C.Var C.UnknownType (name maRef) )
        _ -> error $ "mismatch in storage phase: " ++ show (idx, statIdx) 
    findVar idx = 
@@ -167,39 +175,132 @@ makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $
          | otherwise                            = False
        stRef = V.head $ V.filter ( match . Plan.storageIdx ) $ Plan.storages plan
      in C.VarExpr $ C.Var 
-        (mkCtyp env $ Plan.storageType stRef) 
+        (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
 
--- | Create a subKernel: a function that performs a portion of actual calculations.
-makeSubFunc :: Opt.Ready v g => Env v g -> Plan.SubKernelRef v g AnAn -> C.MemberDef
-makeSubFunc env subker = 
-  C.MemberFunc C.Public False $ 
-  (C.function tVoid (name subker))
-  { C.funcArgs = 
-     makeSubArg env True (Plan.labNodesIn subker) ++
-     makeSubArg env False (Plan.labNodesOut subker),
-    C.funcBody = let r = Realm.realm subker in
-      if r == Realm.Global 
-      then loopMaker env r subker
+-- | Create a subKernel: a member function that performs a portion of
+--   actual calculations. It may also generate some helper functions
+--   called from the subKernel body.
+makeSubFunc :: Opt.Ready v g 
+            => Env v g 
+            -> Plan.SubKernelRef v g AnAn 
+            -> ([C.MemberDef], [C.Statement])
+makeSubFunc env@(Env setup plan) subker = 
+  case Native.language setup of
+    Native.CPlusPlus -> cppSolution
+    Native.CUDA      -> cudaSolution
+  where
+    rlm = Realm.realm subker 
+    
+    cudaHelperName = mkName $ nameText subker ++ "_inner"
+    
+    cudaBodys = 
+      if rlm == Realm.Global 
+      then []
       else
-        [ C.Comment $ LL.unlines 
-          [ "",
-            "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
-            "upperMargin = " ++ showT (Plan.upperBoundary subker)
-          ]
-        ] ++ loopMaker env r subker
-  }
+        (:[]) $
+        C.FuncDef $
+        (C.function 
+         (C.QualifiedType [C.CudaGlobal] tVoid) 
+         cudaHelperName)
+        { C.funcArgs = 
+           makeRawSubArg env True  (Plan.labNodesIn subker) ++
+           makeRawSubArg env False (Plan.labNodesOut subker),
+          C.funcBody = 
+          [ C.Comment $ LL.unlines 
+            [ "",
+              "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+              "upperMargin = " ++ showT (Plan.upperBoundary subker)
+            ]
+          ] ++ loopMaker env rlm subker
+        }
+    
+    (gridDim, blockDim) = Native.cudaGridSize setup
+    
+    cudaSolution = 
+      (,cudaBodys) $
+      (:[]) $
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = 
+          if rlm == Realm.Global 
+          then loopMaker env rlm subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ],
+              C.StmtExpr $ C.CudaFuncCallUsr cudaHelperName (C.toDyn gridDim) (C.toDyn blockDim) $
+              map takeRaw $ 
+              (V.toList $ Plan.labNodesIn subker) ++ (V.toList $ Plan.labNodesOut subker)
+            ] 
+      }
 
+    takeRaw (idx, nd)= 
+      case nd of
+        OM.NValue typ _ -> 
+          extractor typ $
+          C.VarExpr $
+          C.Var (mkCppType env typ) (nodeNameUniversal idx)
+        _ -> error "NValue expected" 
+
+    extractor typ = case Realm.realm typ of
+      Realm.Local ->           
+        C.FuncCallStd "thrust::raw_pointer_cast" .
+        (:[]) .
+        C.Op1Prefix "&*" .
+        flip C.MemberAccess (C.FuncCallStd "begin" []) 
+      Realm.Global ->
+        id
+
+    cppSolution = 
+      (,[]) $
+      (:[]) $
+      C.MemberFunc C.Public False $ 
+      (C.function tVoid (name subker))
+      { C.funcArgs = 
+         makeSubArg env True (Plan.labNodesIn subker) ++
+         makeSubArg env False (Plan.labNodesOut subker),
+        C.funcBody = 
+          if rlm == Realm.Global 
+          then loopMaker env rlm subker
+          else
+            [ C.Comment $ LL.unlines 
+              [ "",
+                "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
+                "upperMargin = " ++ showT (Plan.upperBoundary subker)
+              ]
+            ] ++ loopMaker env rlm subker
+      }
+
+    
+    
 -- | make a subroutine argument list.
 makeSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g AnAn)) -> [C.Var]
 makeSubArg env isConst lnodes =
   let f = (if isConst then C.Const else id) . C.RefOf
   in
   map (\(idx,nd)-> case nd of
-            OM.NValue typ _ -> C.Var (f $ mkCtyp env typ) (nodeNameUniversal idx)
+            OM.NValue typ _ -> C.Var (f $ mkCppType env typ) (nodeNameUniversal idx)
             _ -> error "NValue expected" ) $
   V.toList lnodes
+
+-- | make a subroutine argument list, using raw pointers.
+makeRawSubArg :: Opt.Ready v g => Env v g -> Bool -> V.Vector (FGL.LNode (OM.Node v g AnAn)) -> [C.Var]
+makeRawSubArg env isConst lnodes =
+  let f = (if isConst then C.Const else id) 
+  in
+  map (\(idx,nd)-> case nd of
+          OM.NValue typ _ -> 
+            C.Var (f $ mkCudaRawType env typ) (nodeNameUniversal idx)
+          _ -> error "NValue expected" ) $
+  V.toList lnodes
+
 
 
 
@@ -207,16 +308,27 @@ makeSubArg env isConst lnodes =
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
   Realm.Local ->
+    pragma ++
     [ C.StmtFor 
-      (C.VarDefSub loopCounter (intImm 0)) 
-      (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
-      (C.Op1Prefix "++" (C.VarExpr loopCounter)) $
+      (C.VarDefSub loopCounter loopBegin) 
+      (C.Op2Infix "<"  (C.VarExpr loopCounter) loopEnd)
+      (C.Op2Infix "+=" (C.VarExpr loopCounter) loopStride) $
       [C.VarDefSub addrCounter codecAddr] ++
       loopContent
     ]
   Realm.Global -> loopContent
 
   where
+    pragma = 
+      if Native.language setup == Native.CPlusPlus 
+      then [C.StmtPrpr $ C.PrprPragma "omp parallel for"]
+      else []
+    (loopBegin, loopEnd, loopStride) = case Native.language setup of
+      Native.CPlusPlus -> (intImm 0, C.toDyn (product boundarySize), intImm 1)
+      Native.CUDA -> (loopBeginCuda, C.toDyn (product boundarySize), loopStrideCuda)      
+    loopBeginCuda = mkVarExpr "blockIdx.x * blockDim.x + threadIdx.x"
+    loopStrideCuda   = mkVarExpr "blockDim.x * gridDim.x"    
+    
     loopCounter = C.Var tSizet (mkName "i")
     memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
     boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
@@ -309,7 +421,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         Realm.Local -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])
         Realm.Global -> (creatVar idx, [])
       OM.Imm dyn      -> (C.Imm dyn, [])
-      OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
+      OM.Arith op     -> (rhsArith env' op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
       OM.Shift v      -> case prepre of
         [pre1] -> (nodeToRhs env' cursor' pre1, [(pre1,cursor')]) where cursor' = cursor - v
@@ -349,8 +461,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
     graph = Plan.dataflow subker
 
 -- | convert a DynValue to C type representation
-mkCtyp :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
-mkCtyp env x = case x of
+mkCppType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
+mkCppType env x = case x of
   DVal.DynValue Realm.Global c -> C.UnitType c
   DVal.DynValue Realm.Local  c -> containerType env c          
 
@@ -358,6 +470,20 @@ containerType :: Env v g -> TypeRep -> C.TypeRep
 containerType (Env setup _) c = case Native.language setup of
   Native.CPlusPlus -> C.TemplateType "std::vector" [C.UnitType c]
   Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
+
+
+-- | convert a DynValue to raw-pointer type representation 
+--   for example used within CUDA kernel
+mkCudaRawType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
+mkCudaRawType env x = case x of
+  DVal.DynValue Realm.Global c -> C.UnitType c
+  DVal.DynValue Realm.Local  c -> containerRawType env c          
+
+containerRawType :: Env v g -> TypeRep -> C.TypeRep
+containerRawType (Env setup _) c = case Native.language setup of
+  Native.CPlusPlus -> C.PtrOf $ C.UnitType c
+  Native.CUDA      -> C.PtrOf $ C.UnitType c
+
 
 
 -- | a universal naming rule for a node.
@@ -394,6 +520,8 @@ tInt = C.typeOf (undefined :: Int)
 tSizet :: C.TypeRep
 tSizet = C.typeOf (undefined :: Int)
 
+mkVarExpr :: Text -> C.Expr
+mkVarExpr = C.VarExpr . C.Var C.UnknownType . mkName
 
 tVoid :: C.TypeRep
 tVoid = C.typeOf ()
@@ -404,8 +532,8 @@ tHostVecInt = C.TemplateType "thrust::host_vector" [tInt]
 tDeviceVecInt :: C.TypeRep
 tDeviceVecInt = C.TemplateType "thrust::device_vector" [tInt]
 
-rhsArith :: Arith.Operator -> [C.Expr] -> C.Expr
-rhsArith op argExpr = case (op, argExpr) of
+rhsArith :: Opt.Ready v g => Env v g -> Arith.Operator -> [C.Expr] -> C.Expr
+rhsArith (Env setup _) op argExpr = case (op, argExpr) of
   (Arith.Identity, [x]) ->  x
   (Arith.Add    , [x,y]) -> C.Op2Infix "+" x y
   (Arith.Sub    , [x,y]) -> C.Op2Infix "-" x y
@@ -424,8 +552,8 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.GT     , [x,y]) -> C.Op2Infix ">" x y    
   (Arith.GE     , [x,y]) -> C.Op2Infix ">=" x y    
   (Arith.Select , [x,y,z]) -> C.Op3Infix "?" ":" x y z   
-  (Arith.Max    , [x,y])  -> C.FuncCallStd "std::max" [x,y]
-  (Arith.Min    , [x,y])  -> C.FuncCallStd "std::min" [x,y]
+  (Arith.Max    , [x,y])  -> C.FuncCallStd (nmsp "std::max" "max") [x,y]
+  (Arith.Min    , [x,y])  -> C.FuncCallStd (nmsp "std::min" "min") [x,y]
   (Arith.Abs    , [x])  -> C.FuncCallStd "abs" [x]
   (Arith.Sqrt   , [x])  -> C.FuncCallStd "sqrt" [x]
   (Arith.Exp    , [x])  -> C.FuncCallStd "exp" [x]
@@ -438,7 +566,17 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.Atan   , [x])  -> C.FuncCallStd "atan" [x]
   (Arith.Atan2  , [x,y])  -> C.FuncCallStd "atan2" [x,y]
   _ -> C.FuncCallStd (T.map toLower $ showT op) argExpr
+  where
+    nmsp a b = case Native.language setup of
+      Native.CPlusPlus -> a
+      Native.CUDA      -> b
 
+library :: Opt.Ready v g => Env v g -> [C.Statement]
+library (Env setup _) = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement $ lib
+  where
+    lib = case Native.language setup of
+      Native.CPlusPlus -> cpuLib
+      Native.CUDA      -> gpuLib
+    cpuLib = "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
 
-library :: [C.Statement]
-library = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement  "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
+    gpuLib =  "template <class T>\n__device__ __host__\nT broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n" ++ "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"

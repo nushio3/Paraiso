@@ -17,3 +17,17 @@ template <class T> T reduce_max (const std::vector<T> &xs) {
   return ret;
 }
 
+
+template <class T> T broadcast (const T& x) {
+  return x;
+}
+template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {
+  return thurust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());
+}
+template <class T> T reduce_min (const thrust::device_vector<T> &xs) {
+  return *(thurust::min_element(xs.begin(), xs.end()));
+}
+template <class T> T reduce_max (const thrust::device_vector<T> &xs) {
+  return *(thurust::max_element(xs.begin(), xs.end()));
+}
+

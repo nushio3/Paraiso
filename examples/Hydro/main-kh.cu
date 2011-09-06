@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <thrust/host_vector.h>
 #include <unistd.h>
 
 #include "Hydro.hpp"
@@ -16,16 +17,23 @@ int W,H;
 
 void dump (string fn, Hydro &sim) {
   ofstream ofs (fn.c_str()); 
+  thrust::host_vector<float> dens, vx, vy, p;
+
+  dens = sim.static_7_density;
+  vx = sim.static_8_velocity0;
+  vy = sim.static_9_velocity1;
+  p = sim.static_10_pressure;
+
   for (int iy = antiAlias/2; iy < H; iy+=antiAlias) {
     for (int ix = antiAlias/2; ix < W; ix+=antiAlias) {
       double x = sim.static_3_dR0 * (ix+0.5);
       double y = sim.static_4_dR1 * (iy+0.5);
       int i = sim.memorySize0() * (iy+sim.lowerMargin1()) + ix + sim.lowerMargin0();
       ofs << x << " " << y << " "
-          << sim.static_7_density[i] << " "
-          << sim.static_8_velocity0[i] << " "
-          << sim.static_9_velocity1[i] << " "
-          << sim.static_10_pressure[i] << endl;
+          << dens[i] << " "
+          << vx[i] << " "
+          << vy[i] << " "
+          << p[i] << endl;
     }
     ofs << endl;
   }
@@ -44,7 +52,7 @@ int main () {
   sim.static_4_dR1 = sim.static_6_extent1 / H;
   sim.init();
   char buf[256];
-  sprintf(buf, "mkdir -p output%d", antiAlias);
+  sprintf(buf, "mkdir -p output-g%d", antiAlias);
   system(buf);
   int ctr = 0;
   while (ctr <= 100) {
@@ -53,7 +61,7 @@ int main () {
     if (!isfinite(t)) return -1;
     sim.proceed();
     if (t > 0.01 * ctr) {
-      sprintf(buf, "output%d/snapshot%04d.txt", antiAlias, ctr);
+      sprintf(buf, "output-g%d/snapshot%04d.txt", antiAlias, ctr);
       dump(buf, sim);
       ++ctr;
     }

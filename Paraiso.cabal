@@ -136,6 +136,7 @@ Library
                        Language.Paraiso.OM.Value
                        Language.Paraiso.Optimization
                        Language.Paraiso.Optimization.BoundaryAnalysis
+                       Language.Paraiso.Optimization.DeadCodeElimination
                        Language.Paraiso.Optimization.DecideAllocation
                        Language.Paraiso.Optimization.DependencyAnalysis
                        Language.Paraiso.Optimization.Graph
@@ -158,7 +159,6 @@ Library
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
-                       repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12,
                        vector                >= 0.7.1  && < 0.7.2
   -- Modules not exported by this package.
@@ -191,7 +191,6 @@ test-suite runtests
                        numeric-prelude       >= 0.2.1  && < 0.3,
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
-                       repa                  >= 2.1.1  && < 2.2,
                        text                  >= 0.11.1 && < 0.12,
                        vector                >= 0.7.1  && < 0.7.2,
 

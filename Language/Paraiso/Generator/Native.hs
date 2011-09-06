@@ -16,7 +16,8 @@ data Setup (vector :: * -> *) (gauge :: *)
     { language  :: Language, -- ^ the preferred native language
       directory :: FilePath, -- ^ the directory on which programs are to be generated
       optLevel  :: Opt.Level, -- ^ the intensity of optimization
-      localSize :: vector gauge -- ^ the dimension of the physically meaningful region
+      localSize :: vector gauge, -- ^ the dimension of the physically meaningful region
+      cudaGridSize :: (Int, Int) -- ^ CUDA grid x block size (will be variable of subkernel in the future)
     }
 
 defaultSetup :: (Opt.Ready v g) => v g -> Setup v g
@@ -25,11 +26,12 @@ defaultSetup sz
   { language = CPlusPlus,
     directory = "./",
     optLevel = Opt.O3,
-    localSize = sz
+    localSize = sz,
+    cudaGridSize = (128, 128)
   }
 
 data Language
   = CPlusPlus 
-  | CUDA
+  | CUDA 
   deriving (Eq, Show)
 
