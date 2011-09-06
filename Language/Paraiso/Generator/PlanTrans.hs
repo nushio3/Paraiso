@@ -302,17 +302,27 @@ makeRawSubArg env isConst lnodes =
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
   Realm.Local ->
-    [ C.StmtPrpr $ C.PrprPragma "omp parallel for",
-      C.StmtFor 
-      (C.VarDefSub loopCounter (intImm 0)) 
-      (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
-      (C.Op1Prefix "++" (C.VarExpr loopCounter)) $
+    pragma ++
+    [ C.StmtFor 
+      (C.VarDefSub loopCounter loopBegin) 
+      (C.Op2Infix "<"  (C.VarExpr loopCounter) loopEnd)
+      (C.Op2Infix "+=" (C.VarExpr loopCounter) loopStride) $
       [C.VarDefSub addrCounter codecAddr] ++
       loopContent
     ]
   Realm.Global -> loopContent
 
   where
+    pragma = 
+      if Native.language setup == Native.CPlusPlus 
+      then [C.StmtPrpr $ C.PrprPragma "omp parallel for"]
+      else []
+    (loopBegin, loopEnd, loopStride) = case Native.language setup of
+      Native.CPlusPlus -> (intImm 0, C.toDyn (product boundarySize), intImm 1)
+      Native.CUDA -> (loopBeginCuda, C.toDyn (product boundarySize), loopStrideCuda)      
+    loopBeginCuda = mkVarExpr "blockIdx.x * blockDim.x + threadIdx.x"
+    loopStrideCuda   = mkVarExpr "blockDim.x * gridDim.x"    
+    
     loopCounter = C.Var tSizet (mkName "i")
     memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
     boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
@@ -504,6 +514,8 @@ tInt = C.typeOf (undefined :: Int)
 tSizet :: C.TypeRep
 tSizet = C.typeOf (undefined :: Int)
 
+mkVarExpr :: Text -> C.Expr
+mkVarExpr = C.VarExpr . C.Var C.UnknownType . mkName
 
 tVoid :: C.TypeRep
 tVoid = C.typeOf ()
