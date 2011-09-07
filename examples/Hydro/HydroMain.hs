@@ -117,6 +117,7 @@ boundaryCondition cell = do
        (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
        (foldl1 (||) $ compose (\i -> (icoord !i) `ge` (isize !i)))
   return $ (\a b -> Anot.add Alloc.Manifest <?> (select outOf a b)) <$> cell0 <*> cell
+--  return $ (\a b -> (select outOf a b)) <$> cell0 <*> cell
 
 buildProceed :: B ()
 buildProceed = do
@@ -217,7 +218,8 @@ interpolateSingle order x0 x1 x2 x3 =
          d2 <- bind $ absmaller d12 d23
          l <- bind $ x1 + d1/2
          r <- bind $ x2 - d2/2
-         return ( Anot.add Alloc.Manifest <?> l,  Anot.add Alloc.Manifest <?> r)
+--         return ( Anot.add Alloc.Manifest <?> l,  Anot.add Alloc.Manifest <?> r)
+         return (l,r)
        else error $ show order ++ "th order spatial interpolation is not yet implemented"
 
 hllc :: Axis Dim -> Hydro BR -> Hydro BR -> B (Hydro BR)
