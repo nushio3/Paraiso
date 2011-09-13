@@ -26,13 +26,13 @@ module Language.Paraiso.OM.Graph
     )where
 
 import           Data.Dynamic
+import           Data.Tensor.TypeLevel
 import qualified Data.Vector as V
 import qualified Data.Graph.Inductive as FGL
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM.Arithmetic as A
 import           Language.Paraiso.OM.Reduce as R
 import           Language.Paraiso.OM.DynValue
-import           Language.Paraiso.Tensor
 import           NumericPrelude
 
 

@@ -112,7 +112,6 @@ Library
                        Language.Paraiso.Annotation.Boundary
                        Language.Paraiso.Annotation.Comment
                        Language.Paraiso.Annotation.Dependency
-                       Language.Paraiso.Axis
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Claris
@@ -144,7 +143,6 @@ Library
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude
-                       Language.Paraiso.Tensor
                           
   -- Packages needed in order to build this package.
   Build-depends:       base                  == 4.*,
@@ -160,6 +158,7 @@ Library
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
                        text                  >= 0.11.1 && < 0.12,
+                       typelevel-tensor      >= 0.1,
                        vector                >= 0.7.1  && < 0.7.2
   -- Modules not exported by this package.
   -- Other-modules:       
@@ -192,6 +191,7 @@ test-suite runtests
                        process               >= 1.0.1  && < 1.0.2,
                        random                >= 1.0.0  && < 1.1,
                        text                  >= 0.11.1 && < 0.12,
+                       typelevel-tensor      >= 0.1,
                        vector                >= 0.7.1  && < 0.7.2,
 
                        test-framework,
