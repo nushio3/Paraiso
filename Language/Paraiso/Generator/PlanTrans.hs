@@ -245,13 +245,19 @@ makeSubFunc env@(Env setup plan) subker =
     takeRaw (idx, nd)= 
       case nd of
         OM.NValue typ _ -> 
-          C.FuncCallStd "thrust::raw_pointer_cast" $
-          (:[]) $
-          C.Op1Prefix "&*" $
-          flip C.MemberAccess (C.FuncCallStd "begin" []) $
+          extractor typ $
           C.VarExpr $
           C.Var (mkCppType env typ) (nodeNameUniversal idx)
         _ -> error "NValue expected" 
+
+    extractor typ = case Realm.realm typ of
+      Realm.Local ->           
+        C.FuncCallStd "thrust::raw_pointer_cast" .
+        (:[]) .
+        C.Op1Prefix "&*" .
+        flip C.MemberAccess (C.FuncCallStd "begin" []) 
+      Realm.Global ->
+        id
 
     cppSolution = 
       (,[]) $
@@ -303,17 +309,27 @@ makeRawSubArg env isConst lnodes =
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
   Realm.Local ->
-    [ C.StmtPrpr $ C.PrprPragma "omp parallel for",
-      C.StmtFor 
-      (C.VarDefSub loopCounter (intImm 0)) 
-      (C.Op2Infix "<" (C.VarExpr loopCounter) (C.toDyn (product boundarySize)))
-      (C.Op1Prefix "++" (C.VarExpr loopCounter)) $
+    pragma ++
+    [ C.StmtFor 
+      (C.VarDefSub loopCounter loopBegin) 
+      (C.Op2Infix "<"  (C.VarExpr loopCounter) loopEnd)
+      (C.Op2Infix "+=" (C.VarExpr loopCounter) loopStride) $
       [C.VarDefSub addrCounter codecAddr] ++
       loopContent
     ]
   Realm.Global -> loopContent
 
   where
+    pragma = 
+      if Native.language setup == Native.CPlusPlus 
+      then [C.StmtPrpr $ C.PrprPragma "omp parallel for"]
+      else []
+    (loopBegin, loopEnd, loopStride) = case Native.language setup of
+      Native.CPlusPlus -> (intImm 0, C.toDyn (product boundarySize), intImm 1)
+      Native.CUDA -> (loopBeginCuda, C.toDyn (product boundarySize), loopStrideCuda)      
+    loopBeginCuda = mkVarExpr "blockIdx.x * blockDim.x + threadIdx.x"
+    loopStrideCuda   = mkVarExpr "blockDim.x * gridDim.x"    
+    
     loopCounter = C.Var tSizet (mkName "i")
     memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
     boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
@@ -406,7 +422,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         Realm.Local -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])
         Realm.Global -> (creatVar idx, [])
       OM.Imm dyn      -> (C.Imm dyn, [])
-      OM.Arith op     -> (rhsArith op (map (nodeToRhs env' cursor) prepre),  
+      OM.Arith op     -> (rhsArith env' op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
       OM.Shift v      -> case prepre of
         [pre1] -> (nodeToRhs env' cursor' pre1, [(pre1,cursor')]) where cursor' = cursor - v
@@ -505,6 +521,8 @@ tInt = C.typeOf (undefined :: Int)
 tSizet :: C.TypeRep
 tSizet = C.typeOf (undefined :: Int)
 
+mkVarExpr :: Text -> C.Expr
+mkVarExpr = C.VarExpr . C.Var C.UnknownType . mkName
 
 tVoid :: C.TypeRep
 tVoid = C.typeOf ()
@@ -515,8 +533,8 @@ tHostVecInt = C.TemplateType "thrust::host_vector" [tInt]
 tDeviceVecInt :: C.TypeRep
 tDeviceVecInt = C.TemplateType "thrust::device_vector" [tInt]
 
-rhsArith :: Arith.Operator -> [C.Expr] -> C.Expr
-rhsArith op argExpr = case (op, argExpr) of
+rhsArith :: Opt.Ready v g => Env v g -> Arith.Operator -> [C.Expr] -> C.Expr
+rhsArith (Env setup _) op argExpr = case (op, argExpr) of
   (Arith.Identity, [x]) ->  x
   (Arith.Add    , [x,y]) -> C.Op2Infix "+" x y
   (Arith.Sub    , [x,y]) -> C.Op2Infix "-" x y
@@ -535,8 +553,8 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.GT     , [x,y]) -> C.Op2Infix ">" x y    
   (Arith.GE     , [x,y]) -> C.Op2Infix ">=" x y    
   (Arith.Select , [x,y,z]) -> C.Op3Infix "?" ":" x y z   
-  (Arith.Max    , [x,y])  -> C.FuncCallStd "std::max" [x,y]
-  (Arith.Min    , [x,y])  -> C.FuncCallStd "std::min" [x,y]
+  (Arith.Max    , [x,y])  -> C.FuncCallStd (nmsp "std::max" "max") [x,y]
+  (Arith.Min    , [x,y])  -> C.FuncCallStd (nmsp "std::min" "min") [x,y]
   (Arith.Abs    , [x])  -> C.FuncCallStd "abs" [x]
   (Arith.Sqrt   , [x])  -> C.FuncCallStd "sqrt" [x]
   (Arith.Exp    , [x])  -> C.FuncCallStd "exp" [x]
@@ -549,14 +567,17 @@ rhsArith op argExpr = case (op, argExpr) of
   (Arith.Atan   , [x])  -> C.FuncCallStd "atan" [x]
   (Arith.Atan2  , [x,y])  -> C.FuncCallStd "atan2" [x,y]
   _ -> C.FuncCallStd (T.map toLower $ showT op) argExpr
-
+  where
+    nmsp a b = case Native.language setup of
+      Native.CPlusPlus -> a
+      Native.CUDA      -> b
 
 library :: Opt.Ready v g => Env v g -> [C.Statement]
 library (Env setup _) = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement $ lib
   where
     lib = case Native.language setup of
       Native.CPlusPlus -> cpuLib
-      Native.CUDA      -> cpuLib ++"\n" ++ gpuLib
+      Native.CUDA      -> gpuLib
     cpuLib = "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
 
-    gpuLib = "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"
+    gpuLib =  "template <class T>\n__device__ __host__\nT broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n" ++ "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"
