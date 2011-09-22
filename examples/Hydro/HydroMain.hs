@@ -3,6 +3,7 @@
 
 module Main(main) where
 
+import           Data.Tensor.TypeLevel
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
@@ -21,7 +22,6 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
-import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
@@ -99,7 +99,7 @@ boundaryCondition cell = do
   icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
   isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Real) axis)        
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
-  
+
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
@@ -147,8 +147,8 @@ buildProceed = do
   store (mkName "time") $ timeG + dtG
   store (mkName "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
-    
-  
+
+
   store (mkName "pressure") $ pressure cell3
 
 

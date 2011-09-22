@@ -5,6 +5,7 @@ module Main(main) where
 
 import qualified Data.Text.IO as T
 import           Data.Typeable
+import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.Name
 import           Language.Paraiso.Generator (generateIO)
@@ -18,7 +19,6 @@ import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
 
 
 -- a dynamic representation for a local static value (an array)
@@ -128,7 +128,7 @@ cpuSetup =
   (Native.defaultSetup $ Vec :~ 128 :~ 128)
   { Native.directory = "./dist/" 
   }
-  
+
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
   (Native.defaultSetup $ Vec :~ 128 :~ 128)

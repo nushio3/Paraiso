@@ -36,37 +36,26 @@ Description: The purpose of this project is to design a high-level language
              > How to use
 	     .
 
-             The module "Language.Paraiso.OM.Builder" contains the @Builder@
-             monad, its typeclass instance declarations and functions that can
-             be used to build Paraiso programs. Reserved words are @load@,
-             @store@, @imm@, @loadIndex@, @shift@, @reduce@ and @broadcast@.
+             The module "Language.Paraiso.OM.Builder" contains the
+             @Builder@ monad, its typeclass instance declarations and
+             functions that can be used to build Paraiso
+             programs. Reserved words are @load@, @store@, @imm@,
+             @loadIndex@, @loadSize@, @shift@, @reduce@ and
+             @broadcast@. 
              .
-
-             "Language.Paraiso.Tensor" is the library for tensor calculus of
+             Paraiso frontend uses "Data.Tensor.Typelevel"
+             <http://hackage.haskell.org/package/typelevel-tensor>,
+             the library for tensor calculus of
 	     arbitrary rank and dimension. @Vector@ and @Axis@ are two main
 	     concepts. The type @Vector@ represents rank-1 tensor, and tensors
 	     of higher ranks are recursively defined as @Vector@ of
 	     @Vector@s. With @Axis@ you can refer to the components of
-	     @Vector@s, compose them, or contract them. Standalone usecases of
-	     @Tensor@ library and other components of Paraiso are found in:
-	     <https://github.com/nushio3/Paraiso/tree/master/attic>
-
-             .
-
-             * A document describing the current and the future designs :
-             <https://github.com/nushio3/Paraiso/blob/master/paper/om.pdf> 
-             .
-
-             * Sample programs written in Paraiso :
-             <https://github.com/nushio3/Paraiso/tree/master/examples> 
-             .
-
-             * The codes generated from the samples :
-             <https://github.com/nushio3/Paraiso/tree/exampled/examples>
-             .
-
-             * The wiki :
+	     @Vector@s, compose them, or contract them. See the wiki for more detail:
              <http://www.paraiso-lang.org/wiki/>
+             .
+             * 0.1.0.0 /Binary/ : enhanced backend, code generator for OpenMP and CUDA
+             .
+             * 0.0.0.0 /Atmosphere/ : code generator for single CPU
 
 -- URL for the project homepage or repository.
 Homepage:            http://www.paraiso-lang.org/wiki/index.php/Main_Page
