@@ -18,12 +18,12 @@ module Hydro(Real, Dim, B, BR, BGR, bind,
 import qualified Algebra.Additive  as Additive
 import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
+import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.Prelude 
-import           Language.Paraiso.Tensor
 
 ----------------------------------------------------------------
 -- Binder monad utilities
@@ -37,7 +37,7 @@ type BGR = B (Value TGlobal Real)
 
 bind :: B a -> B (B a)
 bind = fmap return
-       
+
 ----------------------------------------------------------------
 -- Hydro utility functions.
 ----------------------------------------------------------------
@@ -55,11 +55,11 @@ soundSpeed' dens0 pres0 = sqrt (kGamma * pres0 / dens0)
 bindPrimitive :: BR -> Dim BR -> BR -> B (Hydro BR)
 bindPrimitive density0 velocity0 pressure0 = 
   bindHydro $ PrimitiveVar density0 velocity0 pressure0
-  
+
 bindConserved :: BR -> Dim BR -> BR -> B (Hydro BR)
 bindConserved density0 momentum0 energy0 = 
   bindHydro $ ConservedVar density0 momentum0 energy0
-  
+
 
 bindHydro :: (Hydrable a) => a -> B (Hydro BR)
 bindHydro x = do
@@ -89,7 +89,7 @@ bindHydro x = do
     kineticEnergyHydro = kineticEnergyBound,
     internalEnergyHydro = internalEnergyBound
              }
-  
+
 
 class Hydrable a where
   density  :: a -> BR
@@ -162,7 +162,7 @@ instance Applicative Hydro where
 -- in other words,  
 -- (<*>)((<*>) <$> momentumFluxHydro hf) $ momentumFluxHydro hx  
     }                           
-    
+
 data PrimitiveVar = PrimitiveVar
     {densityPrim::BR, velocityPrim::Dim BR, pressurePrim::BR}
 

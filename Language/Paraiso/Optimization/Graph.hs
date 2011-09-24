@@ -12,13 +12,13 @@ module Language.Paraiso.Optimization.Graph (
 
 import qualified Algebra.Additive        as Additive
 import qualified Algebra.Ring            as Ring
+import qualified Data.Tensor.TypeLevel   as Tensor
 import           Data.Typeable
 import qualified Data.Vector             as V
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM
 import           Language.Paraiso.Prelude
-import qualified Language.Paraiso.Tensor as Tensor
 import Prelude (Num)
 
 

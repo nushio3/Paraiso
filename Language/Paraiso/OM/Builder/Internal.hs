@@ -34,6 +34,7 @@ import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive as FGL
 import           Data.Dynamic (Typeable)
 import qualified Data.Dynamic as Dynamic
+import           Data.Tensor.TypeLevel
 import qualified Data.Vector  as V
 import           Language.Paraiso.Name
 import qualified Language.Paraiso.OM.Arithmetic as A
@@ -43,7 +44,6 @@ import           Language.Paraiso.OM.Realm as Realm
 import           Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
 import qualified Prelude (Num(..), Fractional(..))
 
 -- | Create a 'Kernel' from a 'Builder' monad.
@@ -327,7 +327,7 @@ annotate f builder1 = do
     target = FGL.gmap annotator (target stat0)
     }
   return $ FromNode r1 c1 n1 
-  
+
 -- | (<?>) = annotate
 infix 0 <?>
 (<?>) :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
