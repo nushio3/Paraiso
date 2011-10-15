@@ -1,4 +1,4 @@
 cabal configure --enable-tests
 cabal build
-./dist/build/runtests/runtests $@
+./dist/build/runtests/runtests --plain $@
 

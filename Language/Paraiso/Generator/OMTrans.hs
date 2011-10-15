@@ -9,6 +9,7 @@ import qualified Algebra.Additive                       as Additive
 import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe (catMaybes)
 import qualified Data.Set                               as Set
+import           Data.Tensor.TypeLevel
 import qualified Data.Vector                            as V
 import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
@@ -25,7 +26,7 @@ import qualified Language.Paraiso.OM.Realm              as Realm
 import qualified Language.Paraiso.Optimization          as Opt
 import qualified Language.Paraiso.PiSystem              as Pi
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
+
 
 
 data Triplet v g 
@@ -126,8 +127,8 @@ translate setup omBeforeOptimize = ret
           OM.NValue _ _ -> []
           OM.NInst (OM.Store _) a -> Anot.toList a
           OM.NInst _ _ -> []
-          
-          
+
+
     subKernelSize = 
       (1 +) $ 
       maximum $ 
@@ -178,28 +179,28 @@ translate setup omBeforeOptimize = ret
           catMaybes $
           V.toList $
           V.map (Anot.toMaybe . OM.getA . tNode) myNodes
-        
+
         skRealm :: Realm.Realm
         skRealm = 
           assertAllSame $
           map (getRealm . tNode) $
           V.toList myNodes
-        
+
         skValid :: (Opt.Ready v g) => OM.OM v g Anot.Annotation -> Boundary.Valid g
         skValid _ =
           assertAllSame $
           concat $
           map (Anot.toList . OM.getA . tNode) $
           V.toList myNodes          
-    
+
 -- | check if all the elements are the same and returns it
 assertAllSame :: Eq a => [a] -> a
 assertAllSame xs = case xs of
   []     -> error "no elements!"
   (x:ys) -> if all (==x) ys then x
             else error "elements are different. mismatch."
-    
-    
+
+
 
 {-
 

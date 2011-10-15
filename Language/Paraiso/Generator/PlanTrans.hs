@@ -16,6 +16,7 @@ import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
 import           Data.Maybe
 import qualified Data.Set                            as Set
+import           Data.Tensor.TypeLevel
 import qualified Data.Text                           as T
 import qualified Data.Vector                         as V
 import qualified Language.Paraiso.Annotation         as Anot
@@ -29,7 +30,7 @@ import qualified Language.Paraiso.OM.Realm           as Realm
 import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
+
 
 type AnAn = Anot.Annotation
 data Env v g = Env (Native.Setup v g) (Plan.Plan v g AnAn)
