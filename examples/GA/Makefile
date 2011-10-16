@@ -1,10 +1,4 @@
-all: lib kh.out
-
-cuda: kh-cuda.out
-
-kh.out: main-kh.cpp  dist/Hydro.cpp
-	g++ main-kh.cpp dist/Hydro.cpp -O3  --openmp -Idist/ -o kh.out
-
+all: lib kh-cuda.out
 
 kh-cuda.out: main-kh.cu  dist-cuda/Hydro.cu
 	nvcc main-kh.cu dist-cuda/Hydro.cu -O3   -Idist-cuda/ -o kh-cuda.out -arch=sm_20
