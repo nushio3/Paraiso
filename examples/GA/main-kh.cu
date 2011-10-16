@@ -67,12 +67,12 @@ int simulate () {
   sim.static_4_dR1 = sim.static_6_extent1 / H;
   sim.init();
   int ctr = 0;
-  while (ctr <= 1) {
+  while (ctr <= 100) {
     double t = sim.static_1_time;
-    cerr << sim.static_1_time << endl;
+    //cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
     sim.proceed();
-    if (t > 1.0 * ctr) {
+    if (t >= 0.01 * ctr) {
       check(sim);
       ++ctr;
     }
