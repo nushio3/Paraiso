@@ -67,14 +67,23 @@ int simulate () {
   sim.static_4_dR1 = sim.static_6_extent1 / H;
   sim.init();
   int ctr = 0;
-  while (ctr <= 100) {
-    double t = sim.static_1_time;
-    //cerr << sim.static_1_time << endl;
-    if (!isfinite(t)) return -1;
-    sim.proceed();
-    if (t >= 0.01 * ctr) {
+  const int batch = 16;
+  double time_begin = get_time<double>();
+  
+  for(;;) {
+    for (int i = 0; i < batch; ++i) {
+      sim.proceed();
+    }
+    ctr += batch;
+    //double t = sim.static_1_time;
+    double time_elapse = get_time<double>() - time_begin;
+    if (time_elapse > 10) {
       check(sim);
-      ++ctr;
+      double meshes = double(W)*H*ctr;
+      cerr << W << " x " << H << " x " << ctr << endl;
+      cerr << meshes << "/" << time_elapse <<  " = " <<
+	meshes / time_elapse << " mps" << endl;
+      return 0;
     }
   }
   return 0;
