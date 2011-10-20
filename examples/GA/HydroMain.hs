@@ -10,7 +10,6 @@ import           Hydro
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import           Language.Paraiso.Name
-import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
@@ -22,7 +21,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
-import qualified Language.Paraiso.Tuning.Genome as Genome
+import qualified Language.Paraiso.Tuning.Genetic as GA
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
@@ -272,15 +271,9 @@ hllc i left right = do
 myOM :: OM Dim Int Anot.Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
-    [(mkName "init"   , buildInit),
-     (mkName "proceed", buildProceed)]
-
-
-cpuSetup :: Native.Setup Vec2 Int
-cpuSetup = 
-  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
-  { Native.directory = "./dist/" 
-  }
+    [(mkName "init"   , buildInit)
+--     ,(mkName "proceed", buildProceed)
+    ]
 
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
@@ -297,13 +290,15 @@ main = do
   createDirectoryIfMissing True "output"
   -- output the intermediate state.
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
-  T.writeFile "output/Genome.txt" $ showT $ Genome.extract $ myOM
-
-  -- generate the cpu library 
-  _ <- generateIO cpuSetup myOM
+  let izanagi    = GA.makeSpecies gpuSetup myOM
+      izanagiDNA = GA.readGenome $ izanagi
+      izanamiDNA = read $ show $ GA.mutate izanagiDNA
+      izanami    = GA.overwriteGenome izanamiDNA izanagi
+  T.writeFile "output/Izanagi.txt" $ (++"\n") $ showT $ izanagiDNA
+  T.writeFile "output/Izanami.txt" $ (++"\n") $ showT $ izanamiDNA
 
   -- generate the gpu library 
-  _ <- generateIO gpuSetup myOM
+  _ <- GA.generateIO izanami
 
   return ()
 

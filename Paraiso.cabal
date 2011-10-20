@@ -133,7 +133,7 @@ Library
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude
-                       Language.Paraiso.Tuning.Genome
+                       Language.Paraiso.Tuning.Genetic
 
   -- Packages needed in order to build this package.
   Build-depends:       base                  == 4.*,
