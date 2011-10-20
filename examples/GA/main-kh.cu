@@ -89,7 +89,7 @@ int simulate (int gpu_id) {
     }
     //double t = sim.static_1_time;
     time_elapse = get_time<double>() - time_begin;
-    if (time_elapse > 10) break;
+    if (time_elapse > 100) break;
   }
   
   bool ok = isWorking(sim);

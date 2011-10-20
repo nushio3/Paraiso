@@ -243,7 +243,7 @@ hllc i left right = do
   lesta <- starState shockStar shockLeft  left
   rista <- starState shockStar shockRight right
   let selector a b c d =
-        (Anot.add Alloc.Manifest <?> ) $
+--        (Anot.add Alloc.Manifest <?> ) $
         select (0 `lt` shockLeft) a $ 
         select (0 `lt` shockStar) b $
         select (0 `lt` shockRight) c d

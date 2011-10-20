@@ -132,7 +132,7 @@ Library
                        Language.Paraiso.Orthotope
                        Language.Paraiso.PiSystem
                        Language.Paraiso.Prelude
-                          
+
   -- Packages needed in order to build this package.
   Build-depends:       base                  == 4.*,
                        containers            >= 0.4.0  && < 0.5,
