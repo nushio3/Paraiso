@@ -272,7 +272,7 @@ myOM :: OM Dim Int Anot.Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
     [(mkName "init"   , buildInit)
---     ,(mkName "proceed", buildProceed)
+    ,(mkName "proceed", buildProceed)
     ]
 
 gpuSetup :: Native.Setup Vec2 Int

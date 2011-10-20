@@ -10,7 +10,10 @@ module Language.Paraiso.Tuning.Genetic
   ) where
 
 import qualified Control.Monad.State as State
+import qualified Data.Graph.Inductive                   as FGL
+import qualified Data.Vector as V
 import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Generator.Native as Native
 import qualified Language.Paraiso.OM as OM
 import qualified Language.Paraiso.OM.Graph as OM
@@ -78,6 +81,9 @@ readGenome spec =
     let (x,y) = Native.cudaGridSize $ setup spec
     putInt 16 x
     putInt 16 y
+    let om    = machine spec
+        kerns = OM.kernels om
+    V.mapM_ (putGraph . OM.dataflow) kerns
 
 overwriteGenome :: Genome -> Species v g -> Species v g
 overwriteGenome dna oldSpec = 
@@ -133,3 +139,26 @@ getInt bit
     x <- get
     y <- getInt (bit-1)
     return $ y + 2^(fromIntegral $ bit-1) * (if x then 1 else 0)
+
+putGraph :: OM.Graph v g Anot.Annotation -> Put ()
+putGraph graph = do
+  V.mapM_ put focus
+  where
+    focus = 
+      V.map (isManifest . snd) $
+      V.filter (hasChoice . snd) anots
+
+    anots :: V.Vector (FGL.Node, Anot.Annotation)
+    anots = V.fromList $ map (\(n, lab) -> (n, OM.getA lab)) $ FGL.labNodes graph
+    
+    hasChoice :: Anot.Annotation -> Bool
+    hasChoice anot = 
+      case Anot.toMaybe anot of
+        Just (Alloc.AllocationChoice _) -> True
+        _                               -> False
+    
+    isManifest :: Anot.Annotation -> Bool
+    isManifest anot = 
+      case Anot.toMaybe anot of
+        Just Alloc.Manifest -> True
+        _                   -> False

@@ -33,13 +33,22 @@ decideAllocation graph = imap update graph
                   = Anot.set Alloc.Manifest
       | (isGlobal || beforeShift || afterShift ) && False -- warehouse
                   = Anot.weakSet Alloc.Delayed
-      | otherwise = Anot.weakSet Alloc.Delayed
+      | otherwise = Anot.weakSet Alloc.Delayed . setChoice
         where
           self0 = FGL.lab graph i
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph i) 
           suc0  = FGL.lab graph =<<(listToMaybe $ FGL.suc graph i) 
           pres  = catMaybes $ map (FGL.lab graph) $ FGL.pre graph i
           sucs  = catMaybes $ map (FGL.lab graph) $ FGL.suc graph i
+
+          setChoice 
+            | isValue   = Anot.set $ Alloc.AllocationChoice [Alloc.Delayed, Alloc.Manifest]
+            | otherwise = id
+
+          isValue  = case self0 of
+            Just (NValue _ _) -> True
+            _                 -> False
+
           isGlobal  = case self0 of
             Just (NValue (DVal.DynValue Realm.Global _) _) -> True
             _                                              -> False
