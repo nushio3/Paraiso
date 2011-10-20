@@ -77,12 +77,13 @@ int simulate () {
     ctr += batch;
     //double t = sim.static_1_time;
     double time_elapse = get_time<double>() - time_begin;
-    if (time_elapse > 10) {
+    if (time_elapse > 100) {
       check(sim);
       double meshes = double(W)*H*ctr;
       cerr << W << " x " << H << " x " << ctr << endl;
       cerr << meshes << "/" << time_elapse <<  " = " <<
 	meshes / time_elapse << " mps" << endl;
+      cout << meshes / time_elapse << endl;
       return 0;
     }
   }
@@ -100,6 +101,7 @@ int main (int argc, char **argv) {
   int gpu_id;
   istr >> gpu_id;
   cudaSetDevice(gpu_id);
-  simulate();
+  for (;;)
+    simulate();
   return 0;
 }
