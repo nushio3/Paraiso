@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -16,7 +17,7 @@ using namespace std;
 const int antiAlias = 1;
 int W,H;
 
-void check (Hydro &sim) {
+bool isWorking (Hydro &sim) {
   thrust::host_vector<float> dens, vx, vy, p;
 
   dens = sim.static_7_density;
@@ -31,8 +32,8 @@ void check (Hydro &sim) {
   
   for (int iy = antiAlias/2; iy < H; iy+=antiAlias) {
     for (int ix = antiAlias/2; ix < W; ix+=antiAlias) {
-      double x = sim.static_3_dR0 * (ix+0.5);
-      double y = sim.static_4_dR1 * (iy+0.5);
+      //double x = sim.static_3_dR0 * (ix+0.5);
+      //double y = sim.static_4_dR1 * (iy+0.5);
       int i = sim.memorySize0() * (iy+sim.lowerMargin1()) + ix + sim.lowerMargin0();
       hasNan = hasNan || not
 	(isfinite(dens[i]) &&
@@ -52,9 +53,14 @@ void check (Hydro &sim) {
     vxNegaCnt<<"\t" <<
     vyPosiCnt<<"\t" <<
     vyNegaCnt<<endl;
+  return (not hasNan)
+    && (vxPosiCnt > 50)
+    && (vxNegaCnt > 50)
+    && (vyPosiCnt > 50)
+    && (vyNegaCnt > 50);
 }
 
-int simulate () {
+int simulate (int gpu_id) {
   Hydro sim;
   W = sim.size0();
   H = sim.size1();
@@ -68,25 +74,33 @@ int simulate () {
   sim.init();
   int ctr = 0;
   const int batch = 16;
-  double time_begin = get_time<double>();
+  bool first = true;
+  double time_begin, time_elapse;
   
   for(;;) {
     for (int i = 0; i < batch; ++i) {
       sim.proceed();
     }
-    ctr += batch;
-    //double t = sim.static_1_time;
-    double time_elapse = get_time<double>() - time_begin;
-    if (time_elapse > 100) {
-      check(sim);
-      double meshes = double(W)*H*ctr;
-      cerr << W << " x " << H << " x " << ctr << endl;
-      cerr << meshes << "/" << time_elapse <<  " = " <<
-	meshes / time_elapse << " mps" << endl;
-      cout << meshes / time_elapse << endl;
-      return 0;
+    if(first) {
+      first = false;
+      time_begin = get_time<double>();
+    } else {
+      ctr += batch;
     }
+    //double t = sim.static_1_time;
+    time_elapse = get_time<double>() - time_begin;
+    if (time_elapse > 10) break;
   }
+  
+  bool ok = isWorking(sim);
+  double meshes = double(W)*H*ctr;
+  cerr << W << " x " << H << " x " << ctr << endl;
+  cerr << meshes << "/" << time_elapse <<  " = " <<
+    meshes / time_elapse << " mps" << endl;
+  double score =  meshes / time_elapse;
+  if (not ok) score = 0;
+  cout << setprecision(30);
+  cout << gpu_id << " " << score << endl;
   return 0;
 }
 
@@ -101,7 +115,7 @@ int main (int argc, char **argv) {
   int gpu_id;
   istr >> gpu_id;
   cudaSetDevice(gpu_id);
-  for (;;)
-    simulate();
+  for (int cnt = 0;cnt < 10;++cnt)
+    simulate(gpu_id);
   return 0;
 }
