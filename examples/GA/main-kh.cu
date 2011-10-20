@@ -66,7 +66,7 @@ int simulate (int gpu_id) {
   H = sim.size1();
 
   sim.static_1_time = 0;
-  sim.static_2_cfl = 1.5;
+  sim.static_2_cfl = 1.0;
   sim.static_5_extent0 = 1.0;
   sim.static_6_extent1 = 1.0;
   sim.static_3_dR0 = sim.static_5_extent0 / W;

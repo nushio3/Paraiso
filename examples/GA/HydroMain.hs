@@ -22,6 +22,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
+import qualified Language.Paraiso.Tuning.Genome as Genome
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
@@ -296,6 +297,7 @@ main = do
   createDirectoryIfMissing True "output"
   -- output the intermediate state.
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
+  T.writeFile "output/Genome.txt" $ showT $ Genome.extract $ myOM
 
   -- generate the cpu library 
   _ <- generateIO cpuSetup myOM
