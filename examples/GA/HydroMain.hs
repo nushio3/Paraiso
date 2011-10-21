@@ -4,6 +4,7 @@
 module Main(main) where
 
 import           Data.Tensor.TypeLevel
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
@@ -272,7 +273,7 @@ myOM :: OM Dim Int Anot.Annotation
 myOM = optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
     [(mkName "init"   , buildInit)
---    ,(mkName "proceed", buildProceed)
+    ,(mkName "proceed", buildProceed)
     ]
 
 gpuSetup :: Native.Setup Vec2 Int
@@ -293,10 +294,12 @@ main = do
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
   let izanagi    = GA.makeSpecies gpuSetup myOM
       izanagiDNA = GA.readGenome $ izanagi
-      izanamiDNA = read $ show $ GA.mutate izanagiDNA
-      izanami    = GA.overwriteGenome izanamiDNA izanagi
+  izanamiDNA <- GA.mutate izanagiDNA
+--  kamiDNAs   <- mapM GA.mutate $ replicate 1024 izanagiDNA
+  let izanami    = GA.overwriteGenome izanamiDNA izanagi
   T.writeFile "output/Izanagi.txt" $ (++"\n") $ showT $ izanagiDNA
   T.writeFile "output/Izanami.txt" $ (++"\n") $ showT $ izanamiDNA
+--  T.writeFile "output/Kami.txt"    $ (T.unlines) $ map showT $ kamiDNAs
 
   -- generate the gpu library 
   _ <- GA.generateIO izanami

@@ -21,6 +21,8 @@ import qualified Language.Paraiso.OM.Graph as OM
 import qualified Language.Paraiso.Optimization          as Opt
 import           Language.Paraiso.Prelude
 import qualified Language.Paraiso.Generator as Gen  (generateIO) 
+import qualified Prelude as Prelude
+import           System.Random 
 import qualified Text.Read as Read
 
 data Species v g = 
@@ -73,8 +75,21 @@ fromDNA xss@(x:xs)
     inner1 'T' = [True , True ]
     inner1 _   = error "bad DNA"
 
-mutate :: Genome -> Genome
-mutate (Genome xs) = Genome $ map not xs
+mutate :: Genome -> IO Genome
+mutate (Genome xs) = do
+  let oldVector = V.fromList xs
+      n = length xs
+      logN :: Double
+      logN = log (fromIntegral n)
+  logRand <- randomRIO (0, logN)
+  let randN :: Int
+      randN = Prelude.max 1 $ ceiling $ exp logRand
+      randRanges = V.replicate randN (0, n - 1)
+      randUpd range = do
+        idx <- randomRIO range
+        return (idx, not $ oldVector ! idx)
+  randUpds <- V.mapM randUpd randRanges
+  return $ Genome $ V.toList $ V.update oldVector randUpds
 
 readGenome :: Species v g -> Genome
 readGenome spec =
@@ -89,6 +104,7 @@ readGenome spec =
 overwriteGenome :: (Opt.Ready v g) => Genome -> Species v g -> Species v g
 overwriteGenome dna oldSpec = 
   decode dna $ do
+    -- load cuda grid topology from the genome
     x <- getInt 16
     y <- getInt 16
     let oldSetup = setup oldSpec
@@ -99,9 +115,11 @@ overwriteGenome dna oldSpec =
                  let graph = OM.dataflow kern
                  newGraph <- overwriteGraph graph
                  return $ kern{OM.dataflow = newGraph}
+    -- load manifesto from the genome
     newKernels <- V.mapM overwriteKernel oldKernels
     let newGrid = (x,y)
         newSetup = oldSetup {Native.cudaGridSize = newGrid}
+        -- reset the optimization flag and cause the optimization again
         newFlags = Anot.set Opt.Unoptimized oldFlags
         newOM = oldOM 
           { OM.kernels = newKernels, 
