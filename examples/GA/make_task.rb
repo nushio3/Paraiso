@@ -119,7 +119,7 @@ $genomeRanking.each{|spec|
 
 def randTemp()
   lo = Math::log($topDevi)
-  hi = Math::log($topMean) 
+  hi = Math::log($topMean)  + 2
   return Math::exp(lo + rand() * (hi-lo))
 end
 
@@ -175,6 +175,7 @@ SCRIPT
   temp = randTemp()
   STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
   coin = rand()
+  modifiedTemp = ''
   if coin < 0.333
     a = randSpec(temp)
     STDERR.puts "mutate #{a.id}"
@@ -192,8 +193,9 @@ TREE
     while a.id == b.id
       temp *= 2
       b = randSpec(temp)
+      modifiedTemp = "(#{temp})"
     end
-    STDERR.puts "cross  #{a.id} #{b.id}"
+    STDERR.puts "cross  #{a.id} #{b.id}  #{modifiedTemp}"
 
     `./mutate.hs #{a.dna} #{b.dna} > #{pwd}/your.dna`
     open("#{pwd}/family-tree.txt",'w'){|fp|
@@ -214,9 +216,10 @@ TREE
       a = xs[0]
       b = xs[1]
       c = xs[2]
+      modifiedTemp = "(#{temp})"
     end
 
-    STDERR.puts "triang #{a.id} #{b.id} #{c.id}"
+    STDERR.puts "triang #{a.id} #{b.id} #{c.id} #{modifiedTemp}"
 
     `./mutate.hs #{a.dna} #{b.dna} #{c.dna}> #{pwd}/your.dna`
     open("#{pwd}/family-tree.txt",'w'){|fp|
