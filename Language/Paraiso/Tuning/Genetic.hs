@@ -86,17 +86,28 @@ readGenome spec =
         kerns = OM.kernels om
     V.mapM_ (putGraph . OM.dataflow) kerns
 
-overwriteGenome :: Genome -> Species v g -> Species v g
+overwriteGenome :: (Opt.Ready v g) => Genome -> Species v g -> Species v g
 overwriteGenome dna oldSpec = 
   decode dna $ do
     x <- getInt 16
     y <- getInt 16
     let oldSetup = setup oldSpec
         oldOM = machine oldSpec
+        oldKernels = OM.kernels oldOM
+        oldFlags = OM.globalAnnotation $ OM.setup $ oldOM
+    let overwriteKernel kern = do
+                 let graph = OM.dataflow kern
+                 newGraph <- overwriteGraph graph
+                 return $ kern{OM.dataflow = newGraph}
+    newKernels <- V.mapM overwriteKernel oldKernels
     let newGrid = (x,y)
         newSetup = oldSetup {Native.cudaGridSize = newGrid}
-        newOM = oldOM
-    return $ Species newSetup newOM
+        newFlags = Anot.set Opt.Unoptimized oldFlags
+        newOM = oldOM 
+          { OM.kernels = newKernels, 
+            OM.setup   = (OM.setup oldOM){ OM.globalAnnotation = newFlags }
+          }
+    return $ Species newSetup (Opt.optimize Opt.O3 newOM)
 
 
 
@@ -163,6 +174,7 @@ putGraph graph = do
       case Anot.toMaybe anot of
         Just Alloc.Manifest -> True
         _                   -> False
+
 
 
 overwriteGraph :: OM.Graph v g Anot.Annotation -> Get (OM.Graph v g Anot.Annotation)

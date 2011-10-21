@@ -269,7 +269,7 @@ hllc i left right = do
 
 -- compose the machine.
 myOM :: OM Dim Int Anot.Annotation
-myOM =  optimize O3 $ 
+myOM = optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
     [(mkName "init"   , buildInit)
 --    ,(mkName "proceed", buildProceed)
