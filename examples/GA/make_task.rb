@@ -29,7 +29,7 @@ class Species
     @scores += other.scores
   end
   def stat()
-    return sprintf("id:%08d\tn=%d\tscore = %f+-%f",@id, @scores.length, mean(), devi())
+    return sprintf("id:%08d\tn=%d\tscore = %f +/- %f",@id, @scores.length, mean(), devi())
   end
   attr_accessor :id, :dna, :scores, :m_mean, :m_devi
 end

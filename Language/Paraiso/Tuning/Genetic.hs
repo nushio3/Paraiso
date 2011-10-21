@@ -5,7 +5,7 @@ module Language.Paraiso.Tuning.Genetic
    Genome, Species(..),
    makeSpecies,
    readGenome, overwriteGenome,
-   mutate, 
+   mutate, cross, triangulate,
    generateIO
   ) where
 
@@ -90,6 +90,30 @@ mutate (Genome xs) = do
         return (idx, not $ oldVector ! idx)
   randUpds <- V.mapM randUpd randRanges
   return $ Genome $ V.toList $ V.update oldVector randUpds
+
+cross :: Genome -> Genome -> IO Genome
+cross (Genome xs) (Genome ys) = do
+  let n = length xs
+      vx = V.fromList xs
+      vy = V.fromList ys
+      atLeast :: Int -> IO Int
+      atLeast n = do
+        coin <- randomRIO (0,1)
+        if coin < (0.5 :: Double) 
+           then return n
+           else atLeast (n+1)
+  randN <- atLeast 1
+  let randRanges = replicate randN (-1, n + 1)
+  crossPoints <- mapM randomRIO randRanges
+  let vz = V.generate n $ \i ->
+           if odd $ length $ filter (<i) crossPoints then vx!i else vy!i
+  return $ Genome $ V.toList $ vz
+
+triangulate :: Genome -> Genome -> Genome -> IO Genome
+triangulate (Genome base) (Genome left) (Genome right) = do
+  return $ Genome $ zipWith3 f base left right
+    where
+      f b l r = if b/=l then l else r
 
 readGenome :: Species v g -> Genome
 readGenome spec =
