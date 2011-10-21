@@ -76,12 +76,12 @@ fromDNA xss@(x:xs)
     inner1 _   = error "bad DNA"
 
 mutate :: Genome -> IO Genome
-mutate (Genome xs) = do
+mutate original@(Genome xs) = do
   let oldVector = V.fromList xs
       n = length xs
       logN :: Double
       logN = log (fromIntegral n)
-  logRand <- randomRIO (0, logN - 2)
+  logRand <- randomRIO (-1, logN)
   let randN :: Int
       randN = Prelude.max 1 $ ceiling $ exp logRand
       randRanges = V.replicate randN (0, n - 1)
@@ -89,19 +89,25 @@ mutate (Genome xs) = do
         idx <- randomRIO range
         return (idx, not $ oldVector ! idx)
   randUpds <- V.mapM randUpd randRanges
-  return $ Genome $ V.toList $ V.update oldVector randUpds
+  let pureMutant = Genome $ V.toList $ V.update oldVector randUpds
+  if logRand > logN - 2 
+     then return pureMutant >>= cross original >>= cross original
+     else return pureMutant
 
 cross :: Genome -> Genome -> IO Genome
-cross (Genome xs) (Genome ys) = do
-  let n = length xs
-      vx = V.fromList xs
-      vy = V.fromList ys
-      atLeast :: Int -> IO Int
-      atLeast n = do
-        coin <- randomRIO (0,1)
-        if coin < (0.5 :: Double) 
-           then return n
-           else atLeast (n+1)
+cross (Genome xs0) (Genome ys0) = do
+  swapCoin <- randomRIO (0,1)
+  let 
+    (xs,ys) = if swapCoin < (0.5::Double) then (xs0, ys0) else (ys0, xs0)
+    n = length xs
+    vx = V.fromList xs
+    vy = V.fromList ys
+    atLeast :: Int -> IO Int
+    atLeast n = do
+      coin <- randomRIO (0,1)
+      if coin < (0.5 :: Double) 
+         then return n
+         else atLeast (n+1)
   randN <- atLeast 1
   let randRanges = replicate randN (-1, n + 1)
   crossPoints <- mapM randomRIO randRanges
