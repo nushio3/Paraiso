@@ -53,7 +53,7 @@ def loadSpecies(id, dir)
   begin
     ret = Species.new
     ret.id = id
-    ret.dna = open(dir + '/your.dna','r'){|fp| fp.read }
+    ret.dna = open(dir + '/your.dna','r'){|fp| fp.read.strip }
     scores = []
     3.times{|gpuid|
       tmp = []
@@ -104,7 +104,32 @@ loop {
 }
 
 
-$genomeBank.values.sort_by{|spec|spec.mean}.each{|spec| puts spec.stat}
+$genomeRanking = $genomeBank.values.sort_by{|spec|spec.mean}.reverse
+
+$genomeRanking.each{|spec| puts spec.stat}
+
+$topMean = $genomeRanking[0].mean
+$topDevi = 0
+$genomeRanking.each{|spec| 
+  if spec.devi > 0
+    $topDevi = spec.devi
+    break
+  end
+}
+
+def randTemp()
+  lo = Math::log($topDevi)
+  hi = Math::log($topMean) 
+  return Math::exp(lo + rand() * (hi-lo))
+end
+
+def randSpec(temp)
+  $genomeBank.values.sort_by{|spec|
+    rand() * Math::exp((spec.mean - $topMean)/(temp+$topDevi+spec.devi))
+  }[-1]
+end
+
+
 STDERR.puts "free index is #{freeIndex}"
 
 
@@ -117,7 +142,7 @@ $newTasks.times {|i0|
   
   open(pwd + '/submit.sh','w') {|fp|
     fp.puts <<SCRIPT
-t2sub -N #{rand_dna()} -q G -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:10:00 #{pwd}/exec.sh
+t2sub -N #{rand_dna()} -q G -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:20:00 #{pwd}/exec.sh
 SCRIPT
   }
   
@@ -145,16 +170,65 @@ SCRIPT
   `cp get_time.h #{pwd}/`
   `ln -s #{Home}/.nvcc/include/thrust #{pwd}/thrust`
   `mkdir -p #{pwd}/output`
-  `./mutate.hs < Izanami.dna > #{pwd}/your.dna`
 
-  open("#{pwd}/family-tree.txt",'w'){|fp|
-    parent = open('Izanami.dna','r').read.strip
-    fp.puts <<TREE
+
+  temp = randTemp()
+  STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
+  coin = rand()
+  if coin < 0.333
+    a = randSpec(temp)
+    STDERR.puts "mutate #{a.id}"
+
+    `./mutate.hs #{a.dna} > #{pwd}/your.dna`
+    open("#{pwd}/family-tree.txt",'w'){|fp|
+      fp.puts <<TREE
 1P
-#{parent}
+#{a.dna}
 TREE
-  }
-  
+    }
+  elsif coin < 0.666
+    a = randSpec(temp)
+    b = randSpec(temp)
+    while a.id == b.id
+      temp *= 2
+      b = randSpec(temp)
+    end
+    STDERR.puts "cross  #{a.id} #{b.id}"
+
+    `./mutate.hs #{a.dna} #{b.dna} > #{pwd}/your.dna`
+    open("#{pwd}/family-tree.txt",'w'){|fp|
+      fp.puts <<TREE
+2P
+#{a.dna}
+#{b.dna}
+TREE
+    }
+  else
+    xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
+    a = xs[0]
+    b = xs[1]
+    c = xs[2]
+    while a.id == b.id || a.id == c.id || b.id == c.id
+      temp *= 2
+      xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
+      a = xs[0]
+      b = xs[1]
+      c = xs[2]
+    end
+
+    STDERR.puts "triang #{a.id} #{b.id} #{c.id}"
+
+    `./mutate.hs #{a.dna} #{b.dna} #{c.dna}> #{pwd}/your.dna`
+    open("#{pwd}/family-tree.txt",'w'){|fp|
+      fp.puts <<TREE
+3P
+#{a.dna}
+#{b.dna}
+#{c.dna}
+TREE
+    }
+  end
+
 
   `bash #{pwd}/submit.sh`
 }
