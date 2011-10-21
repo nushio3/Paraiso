@@ -243,7 +243,7 @@ hllc i left right = do
   lesta <- starState shockStar shockLeft  left
   rista <- starState shockStar shockRight right
   let selector a b c d =
---        (Anot.add Alloc.Manifest <?> ) $
+        (Anot.add Alloc.Manifest <?> ) $
         select (0 `lt` shockLeft) a $ 
         select (0 `lt` shockStar) b $
         select (0 `lt` shockRight) c d
@@ -272,7 +272,7 @@ myOM :: OM Dim Int Anot.Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
     [(mkName "init"   , buildInit)
-    ,(mkName "proceed", buildProceed)
+--    ,(mkName "proceed", buildProceed)
     ]
 
 gpuSetup :: Native.Setup Vec2 Int
@@ -280,8 +280,8 @@ gpuSetup =
   (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
---    Native.cudaGridSize = (256, 448)
-    Native.cudaGridSize = (32, 32)
+    Native.cudaGridSize = (256, 448)
+--    Native.cudaGridSize = (32, 32)
   }
 
 
@@ -299,7 +299,7 @@ main = do
   T.writeFile "output/Izanami.txt" $ (++"\n") $ showT $ izanamiDNA
 
   -- generate the gpu library 
-  _ <- GA.generateIO izanagi
+  _ <- GA.generateIO izanami
 
   return ()
 
