@@ -26,7 +26,7 @@ bool isWorking (Hydro &sim) {
   p = sim.static_10_pressure;
 
   bool hasNan = false;
-  const float vThre = 1.0;
+  const float vThre = 0.1;
   int vxPosiCnt = 0, vxNegaCnt = 0;
   int vyPosiCnt = 0, vyNegaCnt = 0;
   
@@ -54,10 +54,10 @@ bool isWorking (Hydro &sim) {
     vyPosiCnt<<"\t" <<
     vyNegaCnt<<endl;
   return (not hasNan)
-    && (vxPosiCnt > 50)
-    && (vxNegaCnt > 50)
-    && (vyPosiCnt > 50)
-    && (vyNegaCnt > 50);
+    && (vxPosiCnt > 10)
+    && (vxNegaCnt > 10)
+    && (vyPosiCnt > 10)
+    && (vyNegaCnt > 10);
 }
 
 int simulate (int gpu_id) {
@@ -87,9 +87,8 @@ int simulate (int gpu_id) {
     } else {
       ctr += batch;
     }
-    //double t = sim.static_1_time;
     time_elapse = get_time<double>() - time_begin;
-    if (time_elapse > 60) break;
+    if (time_elapse > 10) break;
   }
   
   bool ok = isWorking(sim);

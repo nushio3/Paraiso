@@ -280,7 +280,8 @@ gpuSetup =
   (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
-    Native.cudaGridSize = (256, 448)
+--    Native.cudaGridSize = (256, 448)
+    Native.cudaGridSize = (32, 32)
   }
 
 
@@ -298,7 +299,7 @@ main = do
   T.writeFile "output/Izanami.txt" $ (++"\n") $ showT $ izanamiDNA
 
   -- generate the gpu library 
-  _ <- GA.generateIO izanami
+  _ <- GA.generateIO izanagi
 
   return ()
 

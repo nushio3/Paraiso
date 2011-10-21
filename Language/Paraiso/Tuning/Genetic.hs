@@ -12,6 +12,7 @@ module Language.Paraiso.Tuning.Genetic
 import qualified Control.Monad.State as State
 import qualified Data.Graph.Inductive                   as FGL
 import qualified Data.Vector as V
+import           Data.Vector ((!))
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Generator.Native as Native
@@ -162,3 +163,45 @@ putGraph graph = do
       case Anot.toMaybe anot of
         Just Alloc.Manifest -> True
         _                   -> False
+
+
+overwriteGraph :: OM.Graph v g Anot.Annotation -> Get (OM.Graph v g Anot.Annotation)
+overwriteGraph graph = do
+  ovs <- V.mapM getAt focusIndices
+  return $ overwritten ovs
+  where
+    overwritten ovs = 
+      let newManifest ::  V.Vector (Maybe Alloc.Allocation)
+          newManifest = 
+            flip V.update ovs $
+            V.map (const Nothing) anots in
+      flip OM.imap graph $ \idx anot -> 
+        case newManifest ! idx of
+          Nothing -> anot
+          Just x  -> Anot.set x anot
+
+    getAt idx = do
+      ret <- get
+      return (idx, Just $ if ret then Alloc.Manifest else Alloc.Delayed)
+
+    focusIndices = 
+      V.map fst $
+      V.filter (hasChoice . snd) anots
+
+    anots :: V.Vector (FGL.Node, Anot.Annotation)
+    anots = V.fromList $ map (\(n, lab) -> (n, OM.getA lab)) $ FGL.labNodes graph
+
+    
+    hasChoice :: Anot.Annotation -> Bool
+    hasChoice anot = 
+      case Anot.toMaybe anot of
+        Just (Alloc.AllocationChoice _) -> True
+        _                               -> False
+    
+    isManifest :: Anot.Annotation -> Bool
+    isManifest anot = 
+      case Anot.toMaybe anot of
+        Just Alloc.Manifest -> True
+        _                   -> False
+
+
