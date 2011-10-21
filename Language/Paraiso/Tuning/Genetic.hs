@@ -81,7 +81,7 @@ mutate (Genome xs) = do
       n = length xs
       logN :: Double
       logN = log (fromIntegral n)
-  logRand <- randomRIO (0, logN)
+  logRand <- randomRIO (0, logN - 2)
   let randN :: Int
       randN = Prelude.max 1 $ ceiling $ exp logRand
       randRanges = V.replicate randN (0, n - 1)

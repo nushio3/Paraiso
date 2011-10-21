@@ -88,7 +88,7 @@ int simulate (int gpu_id) {
       ctr += batch;
     }
     time_elapse = get_time<double>() - time_begin;
-    if (time_elapse > 10) break;
+    if (time_elapse > 20) break;
   }
   
   bool ok = isWorking(sim);
