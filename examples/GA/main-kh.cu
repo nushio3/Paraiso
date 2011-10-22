@@ -73,7 +73,7 @@ int simulate (int gpu_id) {
   sim.static_4_dR1 = sim.static_6_extent1 / H;
   sim.init();
   int ctr = 0;
-  const int batch = 16;
+  const int batch = 32;
   bool first = true;
   double time_begin, time_elapse;
   
@@ -83,10 +83,12 @@ int simulate (int gpu_id) {
     }
     if(first) {
       first = false;
+      cudaThreadSynchronize();      
       time_begin = get_time<double>();
     } else {
       ctr += batch;
     }
+    cudaThreadSynchronize();
     time_elapse = get_time<double>() - time_begin;
     if (time_elapse > 20) break;
   }

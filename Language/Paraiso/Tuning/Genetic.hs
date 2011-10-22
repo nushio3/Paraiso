@@ -81,16 +81,25 @@ mutate original@(Genome xs) = do
       n = length xs
       logN :: Double
       logN = log (fromIntegral n)
-  logRand <- randomRIO (-1, logN)
+  -- 20% of the mutations are single point mutation
+  logRand <- randomRIO (-0.2 * logN, logN)
+  mutaCoin <- randomRIO (0, 1::Double)
   let randN :: Int
       randN = Prelude.max 1 $ ceiling $ exp logRand
       randRanges = V.replicate randN (0, n - 1)
       randUpd range = do
         idx <- randomRIO range
-        return (idx, not $ oldVector ! idx)
+        let newVal
+              -- 50% are negating mutations
+              | mutaCoin < 0.5 || randN <= 1 = not $ oldVector ! idx
+              -- 25% are all True mutation
+              | mutaCoin < 0.75              = True
+              -- other 25% are all False mutation
+              | otherwise                    = False 
+        return (idx, newVal)
   randUpds <- V.mapM randUpd randRanges
   let pureMutant = Genome $ V.toList $ V.update oldVector randUpds
-  if logRand > logN - 2 
+  if randN > 8
      then return pureMutant >>= cross original >>= cross original
      else return pureMutant
 

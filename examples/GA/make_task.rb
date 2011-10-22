@@ -5,6 +5,16 @@ require 'optparse'
 Home = `echo $HOME`.strip
 WorkDir = '/work0/t2g-ppc-all/nushio/GA'
 
+opt = OptionParser.new
+$newTasks = 0
+opt.on('-n VAL') {|val| $newTasks = val.to_i}
+
+$statFn = nil
+opt.on('-s FILENAME') {|val| $statFn = val}
+
+opt.parse!(ARGV)
+
+
 $genomeBank = {}
 
 class Species
@@ -77,15 +87,11 @@ def loadSpecies(id, dir)
   end
 end
 
-opt = OptionParser.new
-$newTasks = 0
-opt.on('-n VAL') {|val| $newTasks = val.to_i}
-
-opt.parse!(ARGV)
 
 
 ctr = 1
 freeIndex = 0
+ctr2 = 1
 loop {
   dir = indexToDir(ctr)
   unless File.exist?(dir)
@@ -93,6 +99,10 @@ loop {
     break
   end
   spec = loadSpecies(ctr, dir)
+  if (ctr > ctr2 || ctr%1000 == 0) && $newTasks > 0
+    STDERR.puts "scanning: #{ctr}"
+    ctr2=2*ctr
+  end
   if spec
     if $genomeBank[spec.dna]
       $genomeBank[spec.dna].merge(spec)
@@ -104,8 +114,10 @@ loop {
 }
 
 
-$genomeRanking = $genomeBank.values.sort_by{|spec|spec.mean}.reverse
+STDERR.puts "sorting..."
+$genomeRanking = $genomeBank.values.sort_by{|spec| [spec.mean, -spec.id]}.reverse
 
+STDERR.puts "sorted"
 $genomeRanking.each{|spec| puts spec.stat}
 
 $topMean = $genomeRanking[0].mean
@@ -117,15 +129,28 @@ $genomeRanking.each{|spec|
   end
 }
 
+if $statFn
+  open($statFn, 'w') {|fp|
+    $genomeRanking.each{|spec|
+      fp.puts "#{spec.id} #{spec.scores.length} #{spec.mean} #{spec.devi}"
+    }
+  }
+end
+
 def randTemp()
   lo = Math::log($topDevi)
-  hi = Math::log($topMean)  + 2
+  hi = Math::log($topMean) +2 # + Math::log($genomeBank.length.to_f)   
   return Math::exp(lo + rand() * (hi-lo))
 end
 
 def randSpec(temp)
   $genomeBank.values.sort_by{|spec|
-    rand() * Math::exp((spec.mean - $topMean)/(temp+$topDevi+spec.devi))
+    diff = $topMean - spec.mean
+    modTemp = temp+$topDevi+spec.devi
+
+    envy = [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
+
+    rand() * Math::exp((-diff)/modTemp) * envy
   }[-1]
 end
 
@@ -155,6 +180,9 @@ make kh-cuda.out > stdout 2> stderr
 ./kh-cuda.out 1 > stdout1 2> stderr1 &
 ./kh-cuda.out 2 > stdout2 2> stderr2 
 sleep 10
+rm ./HydroMain
+rm *.o
+rm ./kh-cuda.out
 SCRIPT
   }
   
@@ -190,11 +218,12 @@ TREE
   elsif coin < 0.666
     a = randSpec(temp)
     b = randSpec(temp)
-    while a.id == b.id
+    100.times{
+      break if a.id != b.id
       temp *= 2
       b = randSpec(temp)
       modifiedTemp = "(#{temp})"
-    end
+    }
     STDERR.puts "cross  #{a.id} #{b.id}  #{modifiedTemp}"
 
     `./mutate.hs #{a.dna} #{b.dna} > #{pwd}/your.dna`
@@ -210,15 +239,16 @@ TREE
     a = xs[0]
     b = xs[1]
     c = xs[2]
-    while a.id == b.id || a.id == c.id || b.id == c.id
+    100.times{
+      break if a.id != b.id && a.id != c.id && b.id != c.id
       temp *= 2
       xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
       a = xs[0]
       b = xs[1]
       c = xs[2]
       modifiedTemp = "(#{temp})"
-    end
-
+    }
+    
     STDERR.puts "triang #{a.id} #{b.id} #{c.id} #{modifiedTemp}"
 
     `./mutate.hs #{a.dna} #{b.dna} #{c.dna}> #{pwd}/your.dna`
