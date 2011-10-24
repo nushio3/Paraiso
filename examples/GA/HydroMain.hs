@@ -244,7 +244,7 @@ hllc i left right = do
   lesta <- starState shockStar shockLeft  left
   rista <- starState shockStar shockRight right
   let selector a b c d =
---        (Anot.add Alloc.Manifest <?> ) $
+        (Anot.add Alloc.Manifest <?> ) $
         select (0 `lt` shockLeft) a $ 
         select (0 `lt` shockStar) b $
         select (0 `lt` shockRight) c d
@@ -281,8 +281,8 @@ gpuSetup =
   (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
---    Native.cudaGridSize = (256, 448)
-    Native.cudaGridSize = (32, 32)
+    Native.cudaGridSize = (256, 448)
+--    Native.cudaGridSize = (32, 32)
   }
 
 
@@ -290,14 +290,16 @@ gpuSetup =
 main :: IO ()
 main = do
   createDirectoryIfMissing True "output"
-  currentDNA <- fmap read $ readFile "your.dna"
 
   -- output the intermediate state.
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
-  let izanami    = GA.makeSpecies gpuSetup myOM
-      izanamiDNA = GA.readGenome $ izanami
-  let currentSpecies = GA.overwriteGenome currentDNA izanami
-  T.writeFile "output/Izanami.txt" $ (++"\n") $ showT $ currentDNA
+  let originalSpecies = GA.makeSpecies gpuSetup myOM
+      originalDNA     = GA.readGenome $ originalSpecies
+  T.writeFile "output/Shinatsuhiko.dna" $ (++"\n") $ showT $ originalDNA
+
+  currentDNA <- fmap read $ readFile "your.dna"
+  let currentSpecies = GA.overwriteGenome currentDNA originalSpecies
+  T.writeFile "output/my.dna" $ (++"\n") $ showT $ currentDNA
 
   _ <- GA.generateIO currentSpecies
 

@@ -204,7 +204,7 @@ SCRIPT
   STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
   coin = rand()
   modifiedTemp = ''
-  if coin < 0.333
+  if coin < 0.6
     a = randSpec(temp)
     STDERR.puts "mutate #{a.id}"
 
@@ -215,7 +215,7 @@ SCRIPT
 #{a.dna}
 TREE
     }
-  elsif coin < 0.666
+  elsif coin < 0.8
     a = randSpec(temp)
     b = randSpec(temp)
     100.times{
