@@ -116,6 +116,8 @@ int main (int argc, char **argv) {
   int gpu_id;
   istr >> gpu_id;
   cudaSetDevice(gpu_id);
+
+  
   for (int cnt = 0;cnt < 10;++cnt)
     simulate(gpu_id);
   return 0;

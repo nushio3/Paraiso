@@ -130,7 +130,7 @@ $genomeRanking = $genomeBank.values.sort_by{|spec| [spec.mean, -spec.id]}.revers
 STDERR.puts "sorted"
 $genomeRanking.each{|spec| puts spec.stat}
 
-$topMean = $genomeRanking[0].mean
+$topMean = $genomeRanking[0].mean if $genomeRanking[0]
 $topDevi = 0
 $genomeRanking.each{|spec| 
   if spec.devi > 0
@@ -148,6 +148,8 @@ if $statFn
 end
 
 def randTemp()
+  return 0 if $injectDNA
+  
   lo = Math::log($topDevi)
   hi = Math::log($topMean) +2 # + Math::log($genomeBank.length.to_f)   
   return Math::exp(lo + rand() * (hi-lo))

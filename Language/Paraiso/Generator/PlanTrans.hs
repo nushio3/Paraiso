@@ -237,6 +237,10 @@ makeSubFunc env@(Env setup plan) subker =
                 "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
                 "upperMargin = " ++ showT (Plan.upperBoundary subker)
               ],
+              C.RawStatement "{static bool fst = false;",
+              C.StmtExpr $ C.FuncCallStd "if (fst) cudaFuncSetCacheConfig" 
+                 [mkVarExpr $ nameText cudaHelperName, mkVarExpr "cudaFuncCachePreferL1"],
+              C.RawStatement "fst = true;}",
               C.StmtExpr $ C.CudaFuncCallUsr cudaHelperName (C.toDyn gridDim) (C.toDyn blockDim) $
               map takeRaw $ 
               (V.toList $ Plan.labNodesIn subker) ++ (V.toList $ Plan.labNodesOut subker)

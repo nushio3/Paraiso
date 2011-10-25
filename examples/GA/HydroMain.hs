@@ -295,10 +295,10 @@ main = do
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
   let originalSpecies = GA.makeSpecies gpuSetup myOM
       originalDNA     = GA.readGenome $ originalSpecies
-  T.writeFile "output/Shinatsuhiko.dna" $ (++"\n") $ showT $ originalDNA
+  T.writeFile "output/original.dna" $ (++"\n") $ showT $ originalDNA
 
-  --currentDNA <- fmap read $ readFile "your.dna"
-  let currentSpecies = {-GA.overwriteGenome currentDNA-} originalSpecies
+  currentDNA <- fmap read $ readFile "your.dna"
+  let currentSpecies = GA.overwriteGenome currentDNA originalSpecies
   T.writeFile "output/my.dna" $ (++"\n") $ showT $ GA.readGenome $ currentSpecies
 
   _ <- GA.generateIO currentSpecies
