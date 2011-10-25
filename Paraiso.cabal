@@ -102,6 +102,7 @@ Library
                        Language.Paraiso.Annotation.Comment
                        Language.Paraiso.Annotation.Dependency
                        Language.Paraiso.Annotation.Execution
+                       Language.Paraiso.Annotation.SyncThreads
                        Language.Paraiso.Failure
                        Language.Paraiso.Generator
                        Language.Paraiso.Generator.Claris

@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, NoImplicitPrelude #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, NoImplicitPrelude,   PackageImports #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Tuning.Genetic
   (
@@ -9,12 +9,13 @@ module Language.Paraiso.Tuning.Genetic
    generateIO
   ) where
 
-import qualified Control.Monad.State as State
+import qualified "mtl" Control.Monad.State as State
 import qualified Data.Graph.Inductive                   as FGL
 import qualified Data.Vector as V
 import           Data.Vector ((!))
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
+import qualified Language.Paraiso.Annotation.SyncThreads as Sync
 import qualified Language.Paraiso.Generator.Native as Native
 import qualified Language.Paraiso.OM as OM
 import qualified Language.Paraiso.OM.Graph as OM
@@ -173,9 +174,12 @@ newtype Put a = Put { getPut :: State.State [Bool] a } deriving (Monad)
 
 get :: Get Bool
 get = Get $ do
-  (x:xs) <- State.get
-  State.put xs
-  return x
+  dat <- State.get
+  case dat of
+    (x:xs) -> do
+      State.put xs
+      return x
+    _ -> return False -- When the data is depleted default to False
 
 put :: Bool -> Put ()
 put x = Put $ do
@@ -212,13 +216,74 @@ getInt bit
 putGraph :: OM.Graph v g Anot.Annotation -> Put ()
 putGraph graph = do
   V.mapM_ put focus
+  V.mapM_ put2 focus2
   where
     focus = 
-      V.map (isManifest . snd) $
-      V.filter (hasChoice . snd) anots
+      V.map (isManifest . OM.getA . snd) $
+      V.filter (hasChoice . OM.getA . snd) idxNodes
 
-    anots :: V.Vector (FGL.Node, Anot.Annotation)
-    anots = V.fromList $ map (\(n, lab) -> (n, OM.getA lab)) $ FGL.labNodes graph
+    -- idxNodes :: V.Vector (FGL.Node, OM.Node v g a)
+    idxNodes = V.fromList $ FGL.labNodes graph
+    
+    hasChoice :: Anot.Annotation -> Bool
+    hasChoice anot = 
+      case Anot.toMaybe anot of
+        Just (Alloc.AllocationChoice _) -> True
+        _                               -> False
+    
+    isManifest :: Anot.Annotation -> Bool
+    isManifest anot = 
+      case Anot.toMaybe anot of
+        Just Alloc.Manifest -> True
+        _                   -> False
+    
+    focus2 = 
+      V.map (getSyncBools . OM.getA . snd) $
+      V.filter (isValue . snd) idxNodes
+    
+    isValue nd = case nd of
+      OM.NValue _ _ -> True
+      _             -> False
+
+    getSyncBools :: Anot.Annotation -> (Bool, Bool)
+    getSyncBools xs = let ys = Anot.toList xs in
+      (Sync.Pre `elem` ys, Sync.Post `elem` ys)
+      
+    put2 (a,b) = put a >> put b
+
+
+
+overwriteGraph :: OM.Graph v g Anot.Annotation -> Get (OM.Graph v g Anot.Annotation)
+overwriteGraph graph = do
+  ovs  <- V.mapM getAt  focusIndices
+  ovs2 <- V.mapM getAt2 focus2Indices  
+  return $ overwrite ovs2 $ overwrite ovs graph
+  where
+    overwrite ovs = 
+      let updater :: V.Vector (Anot.Annotation -> Anot.Annotation)
+          updater = 
+            flip V.update ovs $
+            V.map (const id) idxNodes in
+      OM.imap $ \idx anot -> updater ! idx $ anot
+
+    getAt idx = do
+      ret <- get
+      return (idx, Anot.set $ if ret then Alloc.Manifest else Alloc.Delayed)
+
+    getAt2 idx = do
+      a <- get
+      b <- get
+      return (idx, (if a then Anot.set Sync.Pre else id) . (if b then Anot.set Sync.Post else id))
+
+    focusIndices = 
+      V.map fst $
+      V.filter (hasChoice . OM.getA . snd) idxNodes
+
+    focus2Indices = 
+      V.map fst $
+      V.filter (isValue . snd) idxNodes
+
+    idxNodes = V.fromList $ FGL.labNodes graph
     
     hasChoice :: Anot.Annotation -> Bool
     hasChoice anot = 
@@ -232,8 +297,13 @@ putGraph graph = do
         Just Alloc.Manifest -> True
         _                   -> False
 
+    isValue nd = case nd of
+      OM.NValue _ _ -> True
+      _             -> False
 
 
+
+{-
 overwriteGraph :: OM.Graph v g Anot.Annotation -> Get (OM.Graph v g Anot.Annotation)
 overwriteGraph graph = do
   ovs <- V.mapM getAt focusIndices
@@ -274,3 +344,4 @@ overwriteGraph graph = do
         _                   -> False
 
 
+-}

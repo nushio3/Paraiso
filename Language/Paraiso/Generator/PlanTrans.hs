@@ -20,6 +20,7 @@ import           Data.Tensor.TypeLevel
 import qualified Data.Text                           as T
 import qualified Data.Vector                         as V
 import qualified Language.Paraiso.Annotation         as Anot
+import qualified Language.Paraiso.Annotation.SyncThreads as Sync
 import qualified Language.Paraiso.Generator.Claris   as C
 import qualified Language.Paraiso.Generator.Native   as Native
 import qualified Language.Paraiso.Generator.Plan     as Plan
@@ -373,6 +374,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       Set.toList allIdxSet
 
     buildExprs (idx, val@(DVal.DynValue r c)) = 
+      addSyncFunctions idx  $
       map (\cursor -> 
             lhs cursor
             (fst $ rhsAndRequest env idx cursor)
@@ -388,6 +390,20 @@ loopMaker env@(Env setup plan) realm subker = case realm of
               C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)
           else flip C.VarDefSub expr 
                (C.Var (C.UnitType c) $ nodeNameCursored env idx cursor)
+
+    addSyncFunctions :: FGL.Node -> [C.Statement] -> [C.Statement] 
+    addSyncFunctions idx = 
+      if realm /= Realm.Local ||
+         Native.language setup /= Native.CUDA 
+         then id
+         else foldl (.) id $ map adder anot
+      where
+        anot :: [Sync.Timing]
+        anot =  (maybeToList $ FGL.lab graph idx) >>= (Anot.toList . OM.getA)
+          
+        adder :: Sync.Timing -> [C.Statement] -> [C.Statement]  
+        adder Sync.Pre  = ([C.RawStatement "__syncthreads();"] ++ )
+        adder Sync.Post = ( ++ [C.RawStatement "__syncthreads();"])
 
     -- lhsCursors :: (Opt.Ready v g) => V.Vector(Set.Set(v g))
     lhsCursors = V.generate idxSize f

@@ -297,9 +297,9 @@ main = do
       originalDNA     = GA.readGenome $ originalSpecies
   T.writeFile "output/Shinatsuhiko.dna" $ (++"\n") $ showT $ originalDNA
 
-  currentDNA <- fmap read $ readFile "your.dna"
-  let currentSpecies = GA.overwriteGenome currentDNA originalSpecies
-  T.writeFile "output/my.dna" $ (++"\n") $ showT $ currentDNA
+  --currentDNA <- fmap read $ readFile "your.dna"
+  let currentSpecies = {-GA.overwriteGenome currentDNA-} originalSpecies
+  T.writeFile "output/my.dna" $ (++"\n") $ showT $ GA.readGenome $ currentSpecies
 
   _ <- GA.generateIO currentSpecies
 
