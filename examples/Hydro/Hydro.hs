@@ -29,7 +29,7 @@ import           Language.Paraiso.Tensor
 -- Binder monad utilities
 ----------------------------------------------------------------
 
-type Real = Float
+type Real = Double
 type Dim = Vec2
 type B a = Builder Dim Int Annotation a
 type BR = B (Value TLocal Real)
