@@ -12,8 +12,18 @@ opt.on('-n VAL') {|val| $newTasks = val.to_i}
 $statFn = nil
 opt.on('-s FILENAME') {|val| $statFn = val}
 
-opt.parse!(ARGV)
+$injectDNA = nil
+opt.on('-i INJECT_FN') {|fn|
+  $injectDNA = []
+  open(fn.to_s, 'r') {|fp|
+    while line = fp.gets
+      $injectDNA << line.strip
+    end
+  }
+}
 
+opt.parse!(ARGV)
+$newTasks = $injectDNA.length  if $injectDNA 
 
 $genomeBank = {}
 
@@ -204,7 +214,24 @@ SCRIPT
   STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
   coin = rand()
   modifiedTemp = ''
-  if coin < 0.6
+  
+  if $injectDNA
+    dna = $injectDNA[i0]
+    STDERR.puts "injection #{dna}"
+    open("#{pwd}/your.dna", 'w') {|fp|
+      fp.puts <<DNA
+#{dna}
+DNA
+    }
+    
+    open("#{pwd}/family-tree.txt",'w'){|fp|
+      fp.puts <<TREE
+OP
+TREE
+    }
+    
+    
+  elsif coin < 0.6
     a = randSpec(temp)
     STDERR.puts "mutate #{a.id}"
 
