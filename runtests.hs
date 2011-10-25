@@ -7,14 +7,11 @@ import qualified Test.Paraiso.Option as Option
 import Test.Paraiso.Annotation
 import Test.Paraiso.Claris 
 import Test.Paraiso.QuickCheckItself
-import Test.Paraiso.Tensor
-
 
 main :: IO ()
 main = 
   flip defaultMainWithArgs Option.argv 
     [testQuickCheckItself, 
      testAnnotation, 
-     testTensor,
      testClaris]
     `finally` when Option.help Option.printHelp

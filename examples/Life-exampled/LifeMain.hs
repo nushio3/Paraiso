@@ -5,7 +5,6 @@ module Main(main) where
 
 import qualified Data.Text.IO as T
 import           Data.Typeable
-import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.Name
 import           Language.Paraiso.Generator (generateIO)
@@ -19,6 +18,7 @@ import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude
+import           Language.Paraiso.Tensor
 
 
 -- a dynamic representation for a local static value (an array)
@@ -123,17 +123,10 @@ myOM =  optimize O3 $
      ]
 
 
-cpuSetup :: Native.Setup Vec2 Int
-cpuSetup = 
+genSetup :: Native.Setup Vec2 Int
+genSetup = 
   (Native.defaultSetup $ Vec :~ 128 :~ 128)
   { Native.directory = "./dist/" 
-  }
-
-gpuSetup :: Native.Setup Vec2 Int
-gpuSetup = 
-  (Native.defaultSetup $ Vec :~ 128 :~ 128)
-  { Native.directory = "./dist-cuda/" ,
-    Native.language  = Native.CUDA
   }
 
 main :: IO ()
@@ -142,10 +135,6 @@ main = do
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
 
   -- generate the library 
-  _ <- generateIO cpuSetup myOM
-
-
-  -- generate the library 
-  _ <- generateIO gpuSetup myOM
+  _ <- generateIO genSetup myOM
 
   return ()

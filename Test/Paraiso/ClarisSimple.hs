@@ -65,9 +65,9 @@ adderProgram x1 x2 =
        C.StmtReturn $ C.toDyn (0::Int) ]
     
     calcBody = 
-      [C.StmtExpr $ C.VarDefSub varZ (C.Imm $ toDyn(0::Int)),
-       C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) 
-       $ C.Op2Infix "+" (C.VarExpr varX) (C.VarExpr varY),
+      [C.VarDefSub varZ (C.Imm $ toDyn(0::Int)),
+       C.StmtExpr $ C.Op2Infix "+=" (C.VarExpr varZ) $
+       C.Op2Infix "+" (C.VarExpr varX) (C.VarExpr varY),
        C.StmtReturn $ (C.VarExpr varZ) 
       ]
 

@@ -3,7 +3,6 @@
 
 module Main(main) where
 
-import           Data.Tensor.TypeLevel
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
@@ -22,6 +21,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
+import           Language.Paraiso.Tensor
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
@@ -99,7 +99,7 @@ boundaryCondition cell = do
   icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
   isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Real) axis)        
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
-
+  
   let ex = Axis 0
       ey = Axis 1
       vplus, vminus :: Dim BR
@@ -117,7 +117,6 @@ boundaryCondition cell = do
        (foldl1 (||) $ compose (\i -> icoord !i `lt` 0)) ||
        (foldl1 (||) $ compose (\i -> (icoord !i) `ge` (isize !i)))
   return $ (\a b -> Anot.add Alloc.Manifest <?> (select outOf a b)) <$> cell0 <*> cell
---  return $ (\a b -> (select outOf a b)) <$> cell0 <*> cell
 
 buildProceed :: B ()
 buildProceed = do
@@ -147,8 +146,8 @@ buildProceed = do
   store (mkName "time") $ timeG + dtG
   store (mkName "density") $ density cell3
   _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
-
-
+    
+  
   store (mkName "pressure") $ pressure cell3
 
 
@@ -218,8 +217,7 @@ interpolateSingle order x0 x1 x2 x3 =
          d2 <- bind $ absmaller d12 d23
          l <- bind $ x1 + d1/2
          r <- bind $ x2 - d2/2
---         return ( Anot.add Alloc.Manifest <?> l,  Anot.add Alloc.Manifest <?> r)
-         return (l,r)
+         return (l, r)
        else error $ show order ++ "th order spatial interpolation is not yet implemented"
 
 hllc :: Axis Dim -> Hydro BR -> Hydro BR -> B (Hydro BR)
@@ -243,10 +241,9 @@ hllc i left right = do
   lesta <- starState shockStar shockLeft  left
   rista <- starState shockStar shockRight right
   let selector a b c d =
-        (Anot.add Alloc.Manifest <?> ) $
-        select (0 `lt` shockLeft) a $ 
-        select (0 `lt` shockStar) b $
-        select (0 `lt` shockRight) c d
+          select (0 `lt` shockLeft) a $ 
+          select (0 `lt` shockStar) b $
+          select (0 `lt` shockRight) c d
   mapM bind $ selector <$> left <*> lesta <*> rista <*> right
     where
       hllcQ sp p = select (p `le` sp) 1 $
@@ -285,8 +282,7 @@ gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
   (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
   { Native.directory = "./dist-cuda/" ,
-    Native.language  = Native.CUDA,
-    Native.cudaGridSize = (256, 448)
+    Native.language  = Native.CUDA
   }
 
 

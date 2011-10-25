@@ -6,9 +6,9 @@ module Language.Paraiso.PiSystem (
   PiSystem(..)
   ) where
 
-import Prelude hiding (null)
 import qualified Data.Foldable as F
-import Language.Paraiso.Tensor
+import           Data.Tensor.TypeLevel
+import           Prelude hiding (null)
 
 class PiSystem a where
   -- | an empty set.

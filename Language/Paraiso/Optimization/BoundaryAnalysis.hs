@@ -16,6 +16,7 @@ module Language.Paraiso.Optimization.BoundaryAnalysis (
 import qualified Algebra.Additive            as Additive
 import qualified Data.Graph.Inductive        as FGL
 import           Data.Maybe
+import           Data.Tensor.TypeLevel
 import           Data.Typeable
 import qualified Data.Vector                 as V
 import qualified Language.Paraiso.Annotation as Anot
@@ -26,7 +27,6 @@ import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm as Realm
 import           Language.Paraiso.PiSystem
 import           Language.Paraiso.Prelude
-import           Language.Paraiso.Tensor
 
 
 boundaryAnalysis :: (Vector v, Additive.C g, Ord g, Typeable g)

@@ -11,8 +11,8 @@ module Language.Paraiso.Orthotope(
   Orthotope1,Orthotope2,Orthotope3
 ) where
 
-import Language.Paraiso.Tensor
-import Language.Paraiso.Interval
+import           Data.Tensor.TypeLevel
+import           Language.Paraiso.Interval
 
 
 
