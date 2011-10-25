@@ -3,7 +3,7 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-WorkDir = '/work0/t2g-ppc-all/nushio/GA'
+WorkDir = '/work0/t2g-ppc-all/nushio/GA-S'
 
 opt = OptionParser.new
 $newTasks = 0
@@ -109,11 +109,11 @@ loop {
     break
   end
   spec = loadSpecies(ctr, dir)
-  if (ctr > ctr2 || ctr%1000 == 0) && $newTasks > 0
+  if (ctr > ctr2 || ctr%1000 == 0) 
     STDERR.puts "scanning: #{ctr}"
     ctr2=2*ctr
   end
-  if spec
+  if spec && spec.scores.length > 0
     if $genomeBank[spec.dna]
       $genomeBank[spec.dna].merge(spec)
     else
@@ -170,6 +170,8 @@ end
 STDERR.puts "free index is #{freeIndex}"
 
 
+newGenomeBank = {}
+
 $newTasks.times {|i0|
   i = i0 + freeIndex
 
@@ -179,7 +181,7 @@ $newTasks.times {|i0|
   
   open(pwd + '/submit.sh','w') {|fp|
     fp.puts <<SCRIPT
-t2sub -N #{rand_dna()} -q G -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:10:00 #{pwd}/exec.sh
+t2sub -N #{rand_dna()} -q S -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:15:00 #{pwd}/exec.sh
 SCRIPT
   }
   
@@ -214,10 +216,21 @@ SCRIPT
 
   temp = randTemp()
   STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
-  coin = rand()
   modifiedTemp = ''
   
-  if $injectDNA
+  coin = rand()
+
+  cmd = if $injectDNA
+          :inject
+        elsif coin < 0.333333
+          :mutate
+        elsif coin < 0.666666
+          :cross
+        else
+          :triang
+        end
+
+  if cmd == :inject
     dna = $injectDNA[i0]
     STDERR.puts "injection #{dna}"
     open("#{pwd}/your.dna", 'w') {|fp|
@@ -233,18 +246,8 @@ TREE
     }
     
     
-  elsif coin < 0.6
-    a = randSpec(temp)
-    STDERR.puts "mutate #{a.id}"
-
-    `./mutate.hs #{a.dna} > #{pwd}/your.dna`
-    open("#{pwd}/family-tree.txt",'w'){|fp|
-      fp.puts <<TREE
-1P
-#{a.dna}
-TREE
-    }
-  elsif coin < 0.8
+  end
+  while cmd == :cross
     a = randSpec(temp)
     b = randSpec(temp)
     100.times{
@@ -253,9 +256,16 @@ TREE
       b = randSpec(temp)
       modifiedTemp = "(#{temp})"
     }
-    STDERR.puts "cross  #{a.id} #{b.id}  #{modifiedTemp}"
 
-    `./mutate.hs #{a.dna} #{b.dna} > #{pwd}/your.dna`
+    dna = `./mutate.hs #{a.dna} #{b.dna}`.strip
+    STDERR.puts "cross  #{a.id} #{b.id}  #{modifiedTemp}"
+    if $genomeBank[dna] || newGenomeBank[dna]
+      STDERR.puts 'duplicate'
+      cmd = :mutate
+      break
+    end
+    STDERR.puts 'not duplicate'
+    open("#{pwd}/your.dna",'w'){|fp| fp.puts dna}
     open("#{pwd}/family-tree.txt",'w'){|fp|
       fp.puts <<TREE
 2P
@@ -263,7 +273,9 @@ TREE
 #{b.dna}
 TREE
     }
-  else
+    break
+  end
+  while cmd == :triang
     xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
     a = xs[0]
     b = xs[1]
@@ -278,9 +290,16 @@ TREE
       modifiedTemp = "(#{temp})"
     }
     
+    dna = `./mutate.hs #{a.dna} #{b.dna} #{c.dna}`.strip
     STDERR.puts "triang #{a.id} #{b.id} #{c.id} #{modifiedTemp}"
+    if $genomeBank[dna] || newGenomeBank[dna]
+      STDERR.puts 'duplicate'
+      cmd = :mutate
+      break
+    end
+    STDERR.puts 'not duplicate'
+    open("#{pwd}/your.dna",'w'){|fp| fp.puts dna}
 
-    `./mutate.hs #{a.dna} #{b.dna} #{c.dna}> #{pwd}/your.dna`
     open("#{pwd}/family-tree.txt",'w'){|fp|
       fp.puts <<TREE
 3P
@@ -289,8 +308,30 @@ TREE
 #{c.dna}
 TREE
     }
+    break
+  end
+  while cmd == :mutate
+    a = randSpec(temp)
+
+    STDERR.puts "mutate #{a.id}"
+    dna = `./mutate.hs #{a.dna}`.strip
+    if $genomeBank[dna] || newGenomeBank[dna]
+      STDERR.puts 'duplicate'
+      next
+    end
+
+    STDERR.puts 'not duplicate'
+    open("#{pwd}/your.dna",'w'){|fp| fp.puts dna}
+    open("#{pwd}/family-tree.txt",'w'){|fp|
+      fp.puts <<TREE
+1P
+#{a.dna}
+TREE
+    }
+    break
   end
 
-
+  STDERR.puts "submitting..."
   exit() unless system("bash #{pwd}/submit.sh")
+  newGenomeBank[dna] = true
 }
