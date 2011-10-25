@@ -181,7 +181,7 @@ $newTasks.times {|i0|
   
   open(pwd + '/submit.sh','w') {|fp|
     fp.puts <<SCRIPT
-t2sub -N #{rand_dna()} -q S -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:15:00 #{pwd}/exec.sh
+t2sub -N #{rand_dna()} -q S -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:10:00 #{pwd}/exec.sh
 SCRIPT
   }
   
