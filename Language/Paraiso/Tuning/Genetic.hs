@@ -109,9 +109,9 @@ cross (Genome xs0) (Genome ys0) = do
   swapCoin <- randomRIO (0,1)
   let 
     (xs,ys) = if swapCoin < (0.5::Double) then (xs0, ys0) else (ys0, xs0)
-    n = length xs
-    vx = V.fromList xs
-    vy = V.fromList ys
+    n =  Prelude.max (length xs) (length ys)
+    vx = V.fromList $ take n $ xs ++ repeat False
+    vy = V.fromList $ take n $ ys ++ repeat False
     atLeast :: Int -> IO Int
     atLeast n = do
       coin <- randomRIO (0,1)

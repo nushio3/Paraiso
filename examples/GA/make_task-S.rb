@@ -54,6 +54,44 @@ class Species
   attr_accessor :id, :dna, :scores, :m_mean, :m_devi
 end
 
+class FsCache
+  def initialize()
+    @record = []
+  end
+
+  def loadSpecies(id, dir)
+    begin
+      return @record[id] if id < @record.length - 1000
+      
+      ret = Species.new
+      ret.id = id
+      ret.dna = open(dir + '/your.dna','r'){|fp| fp.read.strip }
+      scores = []
+      3.times{|gpuid|
+        tmp = []
+        open(dir + "/stdout#{gpuid}", 'r') {|fp|
+          while line = fp.gets
+            tmp << line.split(/\s+/)[1].to_f
+          end
+        }
+        scores << tmp
+      }
+      n = scores.map{|xs|xs.length}.min
+      
+      ret.scores = []
+      n.times{|i| 
+        avg = (scores[0][i] + scores[1][i] + scores[2][i])/3
+        ret.scores << avg
+      }
+      return @record[id] = ret
+    rescue
+      return nil
+    end
+  end
+
+  attr_accessor :record
+end
+
 def rand_dna()
   ret = 'AT'
   8.times{
@@ -69,46 +107,29 @@ def indexToDir(i0)
   return  WorkDir + "/" + sprintf("%04d/%04d", top, bot)
 end
 
-def loadSpecies(id, dir)
-  begin
-    ret = Species.new
-    ret.id = id
-    ret.dna = open(dir + '/your.dna','r'){|fp| fp.read.strip }
-    scores = []
-    3.times{|gpuid|
-      tmp = []
-      open(dir + "/stdout#{gpuid}", 'r') {|fp|
-        while line = fp.gets
-          tmp << line.split(/\s+/)[1].to_f
-        end
-      }
-      scores << tmp
-    }
-    n = scores.map{|xs|xs.length}.min
-    
-    ret.scores = []
-    n.times{|i| 
-      avg = (scores[0][i] + scores[1][i] + scores[2][i])/3
-      ret.scores << avg
-    }
-    return ret
-  rescue
-    return nil
-  end
-end
+
 
 
 
 ctr = 1
 freeIndex = 0
 ctr2 = 1
+
+CacheFn = "#{WorkDir}/fs.cache"
+$fsCache = FsCache.new
+if File.exist?(CacheFn)
+  open(CacheFn, 'r'){|fp|
+    $fsCache = Marshal.load(fp)
+  }
+end
+
 loop {
   dir = indexToDir(ctr)
   unless File.exist?(dir)
     freeIndex = ctr
     break
   end
-  spec = loadSpecies(ctr, dir)
+  spec = $fsCache.loadSpecies(ctr, dir)
   if (ctr > ctr2 || ctr%1000 == 0) 
     STDERR.puts "scanning: #{ctr}"
     ctr2=2*ctr
@@ -121,6 +142,10 @@ loop {
     end
   end
   ctr+=1
+}
+
+open(CacheFn, 'w'){|fp|
+  Marshal.dump($fsCache, fp)
 }
 
 
