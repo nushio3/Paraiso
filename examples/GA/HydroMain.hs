@@ -244,7 +244,7 @@ hllc i left right = do
   lesta <- starState shockStar shockLeft  left
   rista <- starState shockStar shockRight right
   let selector a b c d =
-        (Anot.add Alloc.Manifest <?> ) $
+--        (Anot.add Alloc.Manifest <?> ) $
         select (0 `lt` shockLeft) a $ 
         select (0 `lt` shockStar) b $
         select (0 `lt` shockRight) c d
@@ -278,14 +278,16 @@ myOM = optimize O3 $
 
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
-  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
+  (Native.defaultSetup $ Vec :~ 512 :~ 512)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
-    Native.cudaGridSize = (256, 448)
---    Native.cudaGridSize = (32, 32)
+    Native.cudaGridSize = (256, 224)
   }
 
-
+cpuSetup :: Native.Setup Vec2 Int
+cpuSetup = gpuSetup { 
+             Native.language = Native.CPlusPlus,
+             Native.directory = "./dist-cpp/"  }
 
 main :: IO ()
 main = do

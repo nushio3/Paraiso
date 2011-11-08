@@ -3,7 +3,9 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-WorkDir = '/work0/t2g-ppc-all/nushio/GA'
+WorkDir = '/work0/t2g-ppc-all/nushio/GA-F'
+
+`mkdir -p #{WorkDir}`
 
 opt = OptionParser.new
 $newTasks = 0
@@ -61,7 +63,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 1000
+      return @record[id] if id < @record.length - 300
       
       ret = Species.new
       ret.id = id
@@ -175,8 +177,8 @@ end
 def randTemp()
   return 0 if $injectDNA
   
-  lo = Math::log($topDevi)
-  hi = Math::log($topMean) +2 # + Math::log($genomeBank.length.to_f)   
+  lo = Math::log($topDevi) 
+  hi = Math::log($topMean) + Math::log($genomeBank.length.to_f)   
   return Math::exp(lo + rand() * (hi-lo))
 end
 
@@ -185,7 +187,7 @@ def randSpec(temp)
     diff = $topMean - spec.mean
     modTemp = temp+$topDevi+spec.devi
 
-    envy = [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
+    envy = 1 # [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
 
     rand() * Math::exp((-diff)/modTemp) * envy
   }[-1]
@@ -239,7 +241,7 @@ SCRIPT
   `mkdir -p #{pwd}/output`
 
 
-  temp = randTemp()
+  temp = tempOrig = randTemp()
   STDERR.print "             #{sprintf('%0.3f',temp)} "[-16..-1]
   modifiedTemp = ''
   
@@ -336,6 +338,7 @@ TREE
     break
   end
   while cmd == :mutate
+    temp = tempOrig
     a = randSpec(temp)
 
     STDERR.puts "mutate #{a.id}"
