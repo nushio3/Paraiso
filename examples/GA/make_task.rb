@@ -3,7 +3,7 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-WorkDir = '/work0/t2g-ppc-all/nushio/GA-F'
+WorkDir = '/work0/t2g-ppc-all/nushio/GA-D'
 
 `mkdir -p #{WorkDir}`
 
