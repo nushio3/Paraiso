@@ -4,7 +4,7 @@
 -- stored globally on memory or to be calculated.
 
 module Language.Paraiso.Annotation.Allocation (
-  Allocation(..)
+  Allocation(..), AllocationChoice(..)
   ) where
 
 import Data.Dynamic
@@ -14,4 +14,7 @@ data Allocation
   = Existing -- ^ This entity is already allocated as a static variable.
   | Manifest -- ^ Allocate additional memory for this entity. 
   | Delayed  -- ^ Do not allocate, re-compute it whenever if needed.
+  deriving (Eq, Show, Typeable)
+
+data AllocationChoice = AllocationChoice [Allocation]
   deriving (Eq, Show, Typeable)

@@ -6,8 +6,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <thrust/host_vector.h>
 #include <unistd.h>
+#include <vector>
 
 #include "get_time.h"
 #include "Hydro.hpp"
@@ -18,7 +18,7 @@ const int antiAlias = 1;
 int W,H;
 
 bool isWorking (Hydro &sim) {
-  thrust::host_vector<double> dens, vx, vy, p;
+  vector<double> dens, vx, vy, p;
 
   dens = sim.static_7_density;
   vx = sim.static_8_velocity0;
@@ -73,22 +73,21 @@ int simulate (int gpu_id) {
   sim.static_4_dR1 = sim.static_6_extent1 / H;
   sim.init();
   int ctr = 0;
-  const int batch = 32;
+  const int batch = 1;
   bool first = true;
   double time_begin, time_elapse;
   
   for(;;) {
     for (int i = 0; i < batch; ++i) {
+      cerr <<"gogo"<< endl;
       sim.proceed();
     }
     if(first) {
       first = false;
-      cudaThreadSynchronize();      
       time_begin = get_time<double>();
     } else {
       ctr += batch;
     }
-    cudaThreadSynchronize();
     time_elapse = get_time<double>() - time_begin;
     if (time_elapse > 20) break;
   }
@@ -108,17 +107,8 @@ int simulate (int gpu_id) {
 
 
 int main (int argc, char **argv) {
-  if (argc < 2) {
-    cerr << "USAGE: " << argv[0] << " GPU_ID" << endl;
-    return -1;
-  }
-  istringstream istr(argv[1]);
-  int gpu_id;
-  istr >> gpu_id;
-  cudaSetDevice(gpu_id);
-
   
   for (int cnt = 0;cnt < 10;++cnt)
-    simulate(gpu_id);
+    simulate(0);
   return 0;
 }

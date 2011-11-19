@@ -18,7 +18,7 @@ data Setup (vector :: * -> *) (gauge :: *)
       optLevel  :: Opt.Level, -- ^ the intensity of optimization
       localSize :: vector gauge, -- ^ the dimension of the physically meaningful region
       cudaGridSize :: (Int, Int) -- ^ CUDA grid x block size (will be variable of subkernel in the future)
-    }
+    } deriving (Show)
 
 defaultSetup :: (Opt.Ready v g) => v g -> Setup v g
 defaultSetup sz

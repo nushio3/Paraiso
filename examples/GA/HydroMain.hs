@@ -4,13 +4,13 @@
 module Main(main) where
 
 import           Data.Tensor.TypeLevel
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import           Language.Paraiso.Name
-import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
@@ -22,6 +22,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
+import qualified Language.Paraiso.Tuning.Genetic as GA
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
@@ -269,39 +270,40 @@ hllc i left right = do
 
 -- compose the machine.
 myOM :: OM Dim Int Anot.Annotation
-myOM =  optimize O3 $ 
+myOM = optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
-    [(mkName "init"   , buildInit),
-     (mkName "proceed", buildProceed)]
-
-
-cpuSetup :: Native.Setup Vec2 Int
-cpuSetup = 
-  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
-  { Native.directory = "./dist/" 
-  }
+    [(mkName "init"   , buildInit)
+    ,(mkName "proceed", buildProceed)
+    ]
 
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
-  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
+  (Native.defaultSetup $ Vec :~ 512 :~ 512)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
-    Native.cudaGridSize = (256, 448)
+    Native.cudaGridSize = (256, 224)
   }
 
-
+cpuSetup :: Native.Setup Vec2 Int
+cpuSetup = gpuSetup { 
+             Native.language = Native.CPlusPlus,
+             Native.directory = "./dist-cpp/"  }
 
 main :: IO ()
 main = do
   createDirectoryIfMissing True "output"
+
   -- output the intermediate state.
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
+  let originalSpecies = GA.makeSpecies gpuSetup myOM
+      originalDNA     = GA.readGenome $ originalSpecies
+  T.writeFile "output/original.dna" $ (++"\n") $ showT $ originalDNA
 
-  -- generate the cpu library 
-  _ <- generateIO cpuSetup myOM
+  currentDNA <- fmap read $ readFile "your.dna"
+  let currentSpecies = GA.overwriteGenome currentDNA originalSpecies
+  T.writeFile "output/my.dna" $ (++"\n") $ showT $ GA.readGenome $ currentSpecies
 
-  -- generate the gpu library 
-  _ <- generateIO gpuSetup myOM
+  _ <- GA.generateIO currentSpecies
 
   return ()
 

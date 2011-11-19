@@ -3,7 +3,7 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-WorkDir = '/work0/t2g-ppc-all/nushio/GA-D'
+WorkDir = '/work0/t2g-ppc-all/nushio/GA-S'
 
 `mkdir -p #{WorkDir}`
 
@@ -177,7 +177,8 @@ end
 def randTemp()
   return 0 if $injectDNA
   
-  lo = Math::log($topDevi) 
+  lo = Math::log($topDevi) - 4
+  #hi = Math::log($topMean) +2 # + Math::log($genomeBank.length.to_f)   
   hi = Math::log($topMean) + Math::log($genomeBank.length.to_f)   
   return Math::exp(lo + rand() * (hi-lo))
 end
@@ -187,7 +188,7 @@ def randSpec(temp)
     diff = $topMean - spec.mean
     modTemp = temp+$topDevi+spec.devi
 
-    envy = 1 # [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
+    envy = 1 #[1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
 
     rand() * Math::exp((-diff)/modTemp) * envy
   }[-1]
@@ -208,7 +209,7 @@ $newTasks.times {|i0|
   
   open(pwd + '/submit.sh','w') {|fp|
     fp.puts <<SCRIPT
-t2sub -N #{rand_dna()} -q G -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:10:00 #{pwd}/exec.sh
+t2sub -N #{rand_dna()} -q S -W group_list=t2g-ppc-all -l select=1:gpus=3:mem=21gb -l walltime=0:10:00 #{pwd}/exec.sh
 SCRIPT
   }
   
@@ -216,14 +217,11 @@ SCRIPT
   open(pwd + '/exec.sh','w') {|fp|
     fp.puts <<SCRIPT
 cd #{pwd}
-make kh-cuda.out > stdout 2> stderr
-./kh-cuda.out 0 > stdout0 2> stderr0 &
-./kh-cuda.out 1 > stdout1 2> stderr1 &
-./kh-cuda.out 2 > stdout2 2> stderr2 
-sleep 10
+make kh-cpp.out > stdout 2> stderr
+OMP_NUM_THREADS=24 ./kh-cpp.out 0 > stdout0 2> stderr0 
 rm ./HydroMain
 rm *.o
-rm ./kh-cuda.out
+rm ./kh-cpp.out
 SCRIPT
   }
   
@@ -236,6 +234,7 @@ SCRIPT
   `cp Hydro.hs #{pwd}/`
   `cp HydroMain.hs #{pwd}/`
   `cp main-kh.cu #{pwd}/`
+  `cp main-kh.cpp #{pwd}/`
   `cp get_time.h #{pwd}/`
   `ln -s #{Home}/.nvcc/include/thrust #{pwd}/thrust`
   `mkdir -p #{pwd}/output`
@@ -249,9 +248,9 @@ SCRIPT
 
   cmd = if $injectDNA
           :inject
-        elsif coin < 0.333333
+        elsif coin < 0.33333333
           :mutate
-        elsif coin < 0.666666
+        elsif coin < 0.66666666
           :cross
         else
           :triang

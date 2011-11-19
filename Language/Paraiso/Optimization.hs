@@ -53,7 +53,8 @@ optimize level om =
       _  -> optimize O0
 
 data Level 
-  = O0 -- perform mandatory code analysis
+  = Unoptimized -- even mandatory code analyses are not performed
+  | O0 -- perform mandatory code analyses
   | O1
   | O2
   | O3
