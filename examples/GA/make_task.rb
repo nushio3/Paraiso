@@ -3,16 +3,21 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-WorkDir = '/work0/t2g-ppc-all/nushio/GA-F2'
-
-`mkdir -p #{WorkDir}`
+$workDir = '/work0/t2g-ppc-all/nushio/GA-F2'
 
 opt = OptionParser.new
 $newTasks = 0
 opt.on('-n VAL') {|val| $newTasks = val.to_i}
 
 $statFn = nil
-opt.on('-s FILENAME') {|val| $statFn = val}
+opt.on('-s StatFileName') {|val| $statFn = val}
+
+$statDir = nil
+opt.on('--stat StatDirName') {|val|
+  $statDir = val
+  $statFn = val + '/stat.txt'
+  `mkdir -p #{$statDir}`
+}
 
 $injectDNA = nil
 opt.on('-i INJECT_FN') {|fn|
@@ -24,10 +29,21 @@ opt.on('-i INJECT_FN') {|fn|
   }
 }
 
+opt.on('-w WorkDir') {|dirn|
+  $workDir = dirn
+}
+
 opt.parse!(ARGV)
+
+`mkdir -p #{$workDir}`
+
+
+
+
 $newTasks = $injectDNA.length  if $injectDNA 
 
-$genomeBank = {}
+$genomeBank  = {}
+$genomeArray = []
 
 class Species
   def mean()
@@ -53,7 +69,7 @@ class Species
   def stat()
     return sprintf("id:%08d\tn=%d\tscore = %f +/- %f",@id, @scores.length, mean(), devi())
   end
-  attr_accessor :id, :dna, :scores, :m_mean, :m_devi
+  attr_accessor :id, :dna, :scores, :m_mean, :m_devi, :parents, :parentFormat
 end
 
 class FsCache
@@ -85,6 +101,18 @@ class FsCache
         avg = (scores[0][i] + scores[1][i] + scores[2][i])/3
         ret.scores << avg
       }
+
+      ret.parentFormat = ''
+      ret.parents = []
+
+      familyStr = open(dir + '/family-tree.txt', 'r') {|fp| fp.read.split(/\n/) }
+      ret.parentFormat = familyStr[0]
+      familyStr[1..-1].each{|dna|
+        if $genomeBank.key?(dna)
+          ret.parents << $genomeBank[dna].id
+        end
+      }
+      
       return @record[id] = ret
     rescue
       return nil
@@ -106,7 +134,7 @@ def indexToDir(i0)
   i = i0.to_i
   top = i / 1000
   bot = i % 1000
-  return  WorkDir + "/" + sprintf("%04d/%04d", top, bot)
+  return  $workDir + "/" + sprintf("%04d/%04d", top, bot)
 end
 
 
@@ -117,13 +145,14 @@ ctr = 1
 freeIndex = 0
 ctr2 = 1
 
-CacheFn = "#{WorkDir}/fs.cache"
+CacheFn = "#{$workDir}/fs.cache"
 $fsCache = FsCache.new
 if File.exist?(CacheFn)
   open(CacheFn, 'r'){|fp|
     $fsCache = Marshal.load(fp)
   }
 end
+
 
 loop {
   dir = indexToDir(ctr)
@@ -140,22 +169,27 @@ loop {
     if $genomeBank[spec.dna]
       $genomeBank[spec.dna].merge(spec)
     else
-      $genomeBank[spec.dna] = spec
+      $genomeBank[spec.dna] = spec.clone
     end
   end
   ctr+=1
 }
+
 
 open(CacheFn, 'w'){|fp|
   Marshal.dump($fsCache, fp)
 }
 
 
+$genomeBank.each{|k,v|
+  $genomeArray[v.id] = v
+}
+
 STDERR.puts "sorting..."
 $genomeRanking = $genomeBank.values.sort_by{|spec| [spec.mean, -spec.id]}.reverse
 
 STDERR.puts "sorted"
-$genomeRanking.each{|spec| puts spec.stat}
+# $genomeRanking.each{|spec| puts spec.stat}
 
 $topMean = $genomeRanking[0].mean if $genomeRanking[0]
 $topDevi = 0
@@ -173,6 +207,19 @@ if $statFn
     }
   }
 end
+
+if $statDir
+  open($statDir + '/tree.txt','w') {|fp|
+    $genomeArray.each{|spec|
+      next unless spec
+      spec.parents.each{|pid|
+        paren = $genomeArray[pid]
+        fp.puts "#{spec.id} #{spec.mean} #{spec.devi} #{paren.id} #{paren.mean} #{paren.devi}"
+      }
+    }
+  }
+end
+
 
 def randTemp()
   return 0 if $injectDNA
