@@ -29,7 +29,7 @@ import           Language.Paraiso.Prelude
 -- Binder monad utilities
 ----------------------------------------------------------------
 
-type Real = Double
+type Real = Float
 type Dim = Vec2
 type B a = Builder Dim Int Annotation a
 type BR = B (Value TLocal Real)
