@@ -62,6 +62,10 @@ class Species
     }
     return @m_devi = Math::sqrt(vari / (@scores.length - 1))
   end
+  def triplet()
+    return "#{@id} #{mean()} #{devi()}"
+  end
+
   def merge(other)
     @m_mean = nil;  @m_devi = nil
     @scores += other.scores
@@ -70,6 +74,18 @@ class Species
     return sprintf("id:%08d\tn=%d\tscore = %f +/- %f",@id, @scores.length, mean(), devi())
   end
   attr_accessor :id, :dna, :scores, :m_mean, :m_devi, :parents, :parentFormat
+
+  attr_accessor :contributionDistanceMemo
+  def contributionDistance()
+    return @contributionDistanceMemo if @contributionDistanceMemo
+    ret = nil
+    if @parents.length <= 0
+      ret = 1
+    else
+      ret = @parents.map{|pid| $genomeArray[pid].contributionDistance() }.min + 1
+    end
+    return @contributionDistanceMemo = ret
+  end
 end
 
 class FsCache
@@ -208,14 +224,63 @@ if $statFn
   }
 end
 
+def setContributor(id)
+  return if $genomeArray[id].contributionDistanceMemo
+  $genomeArray[id].contributionDistanceMemo = 0
+  $genomeArray[id].parents.each{|pid|
+    setContributor(pid)
+  }
+end
+
 if $statDir
+  # print child-parent pair
   open($statDir + '/tree.txt','w') {|fp|
     $genomeArray.each{|spec|
       next unless spec
       spec.parents.each{|pid|
         paren = $genomeArray[pid]
-        fp.puts "#{spec.id} #{spec.mean} #{spec.devi} #{paren.id} #{paren.mean} #{paren.devi}"
+        fp.puts "#{spec.triplet} #{paren.triplet}"
       }
+    }
+  }
+
+  # print how each children are born
+  open($statDir + '/mutate.txt','w') {|fp1|
+    open($statDir + '/cross.txt','w') {|fp2|
+      open($statDir + '/triang.txt','w') {|fp3|   
+        $genomeArray.each{|spec|
+          next unless spec
+          pids = spec.parents
+          ps = pids.map{|id| $genomeArray[id]}
+          case ps.length
+          when 1
+            fp1.puts "#{spec.triplet} #{ps[0].triplet}"
+          when 2
+            fp2.puts "#{spec.triplet} #{ps[0].triplet} #{ps[1].triplet}"
+          when 3
+            fp3.puts "#{spec.triplet} #{ps[0].triplet} #{ps[1].triplet} #{ps[2].triplet}"
+          end
+        }
+      }
+    }
+  }
+  
+  # calculate contributionDistance
+  setContributor($genomeRanking[0].id)
+  open($statDir + '/contributionDistance.txt','w') {|fp|
+    histogram = {}
+    birthHistogram = {}
+    $genomeArray.each{|spec|
+      next unless spec
+      d  = spec.contributionDistance()
+      ps = spec.parents.length
+      histogram[d] ||= 0
+      histogram[d] += 1
+      birthHistogram[d] ||= [0,0,0,0]
+      birthHistogram[d][ps]+=1
+    }
+    histogram.to_a.sort.each{|k,v|
+      fp.puts "#{k}\t#{v}\t" + birthHistogram[k].join("\t")
     }
   }
 end
