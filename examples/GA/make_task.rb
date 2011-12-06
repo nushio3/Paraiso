@@ -15,7 +15,6 @@ opt.on('-s StatFileName') {|val| $statFn = val}
 $statDir = nil
 opt.on('--stat StatDirName') {|val|
   $statDir = val
-  $statFn = val + '/stat.txt'
   `mkdir -p #{$statDir}`
 }
 
@@ -62,8 +61,8 @@ class Species
     }
     return @m_devi = Math::sqrt(vari / (@scores.length - 1))
   end
-  def triplet()
-    return "#{@id} #{mean()} #{devi()}"
+  def trait()
+    return "#{@id} #{mean()} #{devi()} #{contributionDistance()}"
   end
 
   def merge(other)
@@ -233,13 +232,24 @@ def setContributor(id)
 end
 
 if $statDir
+  # precalculate contributionDistance
+  setContributor($genomeRanking[0].id)
+
+  # print data
+  open($statDir + '/stat.txt','w') {|fp|
+    $genomeArray.each{|spec|
+      next unless spec
+      fp.puts "#{spec.trait}"
+    }
+  }
+
   # print child-parent pair
   open($statDir + '/tree.txt','w') {|fp|
     $genomeArray.each{|spec|
       next unless spec
       spec.parents.each{|pid|
         paren = $genomeArray[pid]
-        fp.puts "#{spec.triplet} #{paren.triplet}"
+        fp.puts "#{spec.trait} #{paren.trait}"
       }
     }
   }
@@ -254,19 +264,18 @@ if $statDir
           ps = pids.map{|id| $genomeArray[id]}
           case ps.length
           when 1
-            fp1.puts "#{spec.triplet} #{ps[0].triplet}"
+            fp1.puts "#{spec.trait} #{ps[0].trait}"
           when 2
-            fp2.puts "#{spec.triplet} #{ps[0].triplet} #{ps[1].triplet}"
+            fp2.puts "#{spec.trait} #{ps[0].trait} #{ps[1].trait}"
           when 3
-            fp3.puts "#{spec.triplet} #{ps[0].triplet} #{ps[1].triplet} #{ps[2].triplet}"
+            fp3.puts "#{spec.trait} #{ps[0].trait} #{ps[1].trait} #{ps[2].trait}"
           end
         }
       }
     }
   }
   
-  # calculate contributionDistance
-  setContributor($genomeRanking[0].id)
+  # output contributionDistance statistics
   open($statDir + '/contributionDistance.txt','w') {|fp|
     histogram = {}
     birthHistogram = {}
