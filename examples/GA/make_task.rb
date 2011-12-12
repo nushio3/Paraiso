@@ -3,7 +3,7 @@
 require 'optparse'
 
 Home = `echo $HOME`.strip
-$workDir = '/work0/t2g-ppc-all/nushio/GA-F2'
+$workDir = '/work0/t2g-ppc-all/nushio/GA-DE'
 
 opt = OptionParser.new
 $newTasks = 0
@@ -32,7 +32,37 @@ opt.on('-w WorkDir') {|dirn|
   $workDir = dirn
 }
 
+$mutateProb = 0.33333333333333
+$crossProb  = 0.33333333333333
+opt.on('--no3') {
+  $mutateProb = 0.5
+  $crossProb  = 0.5
+}
+
+
+$islandMap = nil
+opt.on('--island') {
+  $islandMap = 
+  [[0],
+   [1],
+   [2],
+   [3],
+   [0,1,4],
+   [1,2,5],
+   [2,3,6],
+   [3,0,7],
+   [0,4,7,8],
+   [1,5,4,9],
+   [2,6,5,10],
+   [3,7,6,11],
+   [0,1,2,3,4,5,6,7,8,9,10,11,12]
+  ]
+}
+
+
 opt.parse!(ARGV)
+
+STDERR.puts "**** #{$mutateProb}, #{$crossProb}"
 
 `mkdir -p #{$workDir}`
 
@@ -94,7 +124,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 300
+      return @record[id] if id < @record.length - 100
       
       ret = Species.new
       ret.id = id
@@ -138,8 +168,8 @@ class FsCache
 end
 
 def rand_dna()
-  ret = 'AT'
-  8.times{
+  ret = 'GAATCT'
+  0.times{
     ret += ['A','T','C','G'].sort_by{|x| rand()}[0]
   }
   return ret;
@@ -300,17 +330,20 @@ def randTemp()
   
   lo = Math::log($topDevi) 
   hi = Math::log($topMean) + Math::log($genomeBank.length.to_f)   
+  # hi = Math::log($topMean)
+
   return Math::exp(lo + rand() * (hi-lo))
 end
 
-def randSpec(temp)
+def randSpec(temp, factor)
   $genomeBank.values.sort_by{|spec|
     diff = $topMean - spec.mean
     modTemp = temp+$topDevi+spec.devi
 
-    envy = 1 # [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
+    envy = 1
+    # envy = [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
 
-    rand() * Math::exp((-diff)/modTemp) * envy
+    rand * Math::exp((-diff)/modTemp) * envy * factor[spec] + 1e-300*rand
   }[-1]
 end
 
@@ -320,10 +353,26 @@ STDERR.puts "free index is #{freeIndex}"
 
 newGenomeBank = {}
 
-$newTasks.times {|i0|
-  i = i0 + freeIndex
+ConstFactor = lambda{|x| 1.0}
 
-  pwd = indexToDir(i)
+$newTasks.times {|i0|
+  myIndex = i0 + freeIndex
+  
+  selector = [ConstFactor] * 3
+  
+  if $islandMap
+    n = $islandMap.length
+    remainder = myIndex % n
+    cands = $islandMap[remainder]
+    candIds = (cands.sort_by{rand}*3)[0..2]
+
+    STDERR.puts "id #{myIndex} shall choose thy parent from #{candIds.join(',')}"
+    
+    selector = candIds.map{|x| lambda{|spec| if spec.id % n == x then 1.0 else 0.0 end } }
+  end
+
+
+  pwd = indexToDir(myIndex)
   `rm -fr #{pwd}`
   `mkdir -p #{pwd}`
   
@@ -370,9 +419,9 @@ SCRIPT
 
   cmd = if $injectDNA
           :inject
-        elsif coin < 0.333333
+        elsif coin < $mutateProb
           :mutate
-        elsif coin < 0.666666
+        elsif coin < $mutateProb + $crossProb
           :cross
         else
           :triang
@@ -396,12 +445,12 @@ TREE
     
   end
   while cmd == :cross
-    a = randSpec(temp)
-    b = randSpec(temp)
+    a = randSpec(temp,selector[0])
+    b = randSpec(temp,selector[1])
     100.times{
       break if a.id != b.id
       temp *= 1.2
-      b = randSpec(temp)
+      b = randSpec(temp,selector[1])
       modifiedTemp = "(#{temp})"
     }
 
@@ -424,14 +473,14 @@ TREE
     break
   end
   while cmd == :triang
-    xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
+    xs = [randSpec(temp,selector[0]), randSpec(temp,selector[1]), randSpec(temp,selector[2])].sort_by{|spec| spec.mean}
     a = xs[0]
     b = xs[1]
     c = xs[2]
     100.times{
       break if a.id != b.id && a.id != c.id && b.id != c.id
       temp *= 1.2
-      xs = [randSpec(temp), randSpec(temp), randSpec(temp)].sort_by{|spec| spec.mean}
+      xs = [randSpec(temp,selector[0]), randSpec(temp,selector[1]), randSpec(temp,selector[2])].sort_by{|spec| spec.mean}
       a = xs[0]
       b = xs[1]
       c = xs[2]
@@ -460,7 +509,7 @@ TREE
   end
   while cmd == :mutate
     temp = tempOrig
-    a = randSpec(temp)
+    a = randSpec(temp,selector[0])
 
     STDERR.puts "mutate #{a.id}"
     dna = `./mutate.hs #{a.dna}`.strip
