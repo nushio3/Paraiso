@@ -2,6 +2,26 @@
 
 require 'optparse'
 
+class Array
+  def choice_by()
+    weight = self.map{|x| [yield(x), 0.0].max}
+    wiPair = []
+    sum = 0.0
+    self.length.times{|i|
+      wiPair[i] = [weight[i],i]
+      sum += weight[i]
+    }
+    
+    coin = rand * sum
+    self.length.times{|i|
+      coin -= weight[i]
+      return self[i] if coin <= 0
+    }
+    return self[wiPair.max[1]]
+  end
+end
+
+
 Home = `echo $HOME`.strip
 $workDir = '/work0/t2g-ppc-all/nushio/GA-DE'
 
@@ -329,14 +349,14 @@ def randTemp()
   return 0 if $injectDNA
   
   lo = Math::log($topDevi) 
-  hi = Math::log($topMean) + Math::log($genomeBank.length.to_f)   
-  # hi = Math::log($topMean)
+  #hi = Math::log($topMean) + Math::log($genomeBank.length.to_f)   
+  hi = Math::log($topMean)
 
   return Math::exp(lo + rand() * (hi-lo))
 end
 
 def randSpec(temp, factor)
-  $genomeBank.values.sort_by{|spec|
+  $genomeBank.values.choice_by{|spec|
     diff = $topMean - spec.mean
     modTemp = temp+$topDevi+spec.devi
 

@@ -1,8 +1,13 @@
 #!/usr/bin/env ruby
 
+if `t2stat G | grep ' Q '`.split(/\n/).length > 10
+  exit
+end
+
+
 [0,1,2].each{|instance|
-  [true,false].each{|island|
-    [false,true].each{|triang|
+  [true,false].each{|triang|
+    [true,false].each{|island|
       tag = ''
       tag += if triang then '-wt' else '-nt' end
       tag += if island then 'i' else 'c' end
