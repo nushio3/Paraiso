@@ -144,7 +144,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 100
+      return @record[id] if id < @record.length - 30
       
       ret = Species.new
       ret.id = id
@@ -213,9 +213,13 @@ ctr2 = 1
 CacheFn = "#{$workDir}/fs.cache"
 $fsCache = FsCache.new
 if File.exist?(CacheFn)
-  open(CacheFn, 'r'){|fp|
-    $fsCache = Marshal.load(fp)
-  }
+  begin
+    open(CacheFn, 'r'){|fp|
+      $fsCache = Marshal.load(fp)
+    }
+  rescue
+    $fsCache = FsCache.new
+  end
 end
 
 
@@ -364,7 +368,7 @@ def randSpec(temp, factor)
     # envy = [1, 10 * (diff +$topDevi+spec.devi) / modTemp].min
 
     rand * Math::exp((-diff)/modTemp) * envy * factor[spec] + 1e-300*rand
-  }[-1]
+  }
 end
 
 
