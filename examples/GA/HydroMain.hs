@@ -281,7 +281,7 @@ gpuSetup =
   (Native.defaultSetup $ Vec :~ 512 :~ 512)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
-    Native.cudaGridSize = (256, 224)
+    Native.cudaGridSize = (256,448)
   }
 
 cpuSetup :: Native.Setup Vec2 Int
