@@ -187,6 +187,7 @@ class FsCache
       
       return @record[id] = ret
     rescue
+      STDERR.puts "species #{id} is broken."
       return nil
     end
   end
@@ -248,6 +249,9 @@ loop {
       $genomeBank[spec.dna] = spec.clone
     end
   end
+  if spec
+    $genomeArray[ctr] = $genomeBank[spec.dna] || spec.clone
+  end
   ctr+=1
   #break if ctr > 10000
 }
@@ -258,9 +262,9 @@ open(CacheFn, 'w'){|fp|
 }
 
 
-$genomeBank.each{|k,v|
-  $genomeArray[v.id] = v
-}
+# $genomeBank.each{|k,v|
+#  $genomeArray[v.id] = v
+#}
 
 STDERR.puts "sorting..."
 $genomeRanking = $genomeBank.values.sort_by{|spec| [spec.mean, -spec.id]}.reverse
@@ -296,10 +300,10 @@ end
 if $statDir
   # precalculate contributionDistance
   setContributor($genomeRanking[0].id)
+  
   $genomeArray.each{|spec|
     next unless spec
-    
-    if ($genomeRanking[0].mean-spec.mean).abs < ($genomeRanking[0].devi**2 + spec.devi**2)**0.5
+    if ($genomeRanking[0].mean-spec.mean).abs < $genomeRanking[0].devi
       setContributor(spec.id)
     end
   }  
@@ -389,22 +393,39 @@ if $statDir
     
     [ctr,ctrT].each{|ctrCur0|
       ctrCur = ctrCur0[1..-1]
-      fp.puts ctrCur.map{|xs| xs.join("\t")}.join("\t\t")
+      fst = true
+      fp.puts ctrCur.map{|xs| 
+        xs2 = xs
+        if fst
+          fst = false
+          xs2 = xs[0..1] + xs[3..3]
+        end
+        xs2.join("\t")
+      }.join("\t\t")
       sum = 0
       ctrCur.each{|xs|
         sum += xs[0]+xs[1]+xs[2]+xs[3]
       }
-      fp.puts ctrCur.map{|xs|
-        # sum = xs[0]+xs[1]+xs[2]+xs[3]
-        xs.map{|x|
-          sprintf('%5.2f',x.to_f/sum*100)
-        }.join("\t")
-      }.join("\t\t")
+      # do not print out the ratio
+#      fp.puts ctrCur.map{|xs|
+#        # sum = xs[0]+xs[1]+xs[2]+xs[3]
+#        xs.map{|x|
+#          sprintf('%5.2f',x.to_f/sum*100)
+#        }.join("\t")
+#      }.join("\t\t")
     }
+    
+    fst = true
     fp.puts (1...ctr.length).to_a.map{|i|
-      (0...ctr[i].length).to_a.map{|j|
+      xs = (0...ctr[i].length).to_a.map{|j|
         sprintf('%5.2f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300) * 100)
-      }.join("\t")
+      }
+
+      if fst
+        fst = false
+        xs = xs[0..1] + xs[3..3]
+      end
+      xs.join("\t")
     }.join("\t\t")
     
     
@@ -415,17 +436,32 @@ if $statDir
   open($statDir + '/contributionDistance.txt','w') {|fp|
     histogram = {}
     birthHistogram = {}
+    totalRow = 9999
+
+    STDERR.puts "genome array size=#{$genomeArray.length}" 
     $genomeArray.each{|spec|
       next unless spec
       d  = spec.contributionDistance()
       ps = spec.parentFormat.to_i
-      histogram[d] ||= 0
-      histogram[d] += 1
-      birthHistogram[d] ||= [0,0,0,0]
-      birthHistogram[d][ps]+=1
+      
+      [d,totalRow].each{|i|
+        histogram[i] ||= 0
+        histogram[i] += 1
+        birthHistogram[i] ||= [0,0,0,0]
+        birthHistogram[i][ps]+=1
+      }
     }
     histogram.to_a.sort.each{|k,v|
-      fp.puts "#{k}\t#{v}\t" + birthHistogram[k].join("\t")
+      columns = []
+      columns << if k==totalRow then 'sum' else k.to_s end
+      (1..3).each{|i|
+        columns << birthHistogram[k][i].to_s
+        columns << sprintf('(%0.3f)', birthHistogram[k][i] / birthHistogram[totalRow][i].to_f)        
+      }
+      columns << v.to_s
+      columns << sprintf('(%0.3f)', v / histogram[totalRow].to_f)
+      
+      fp.puts columns.join("&\t") + "\\\\"
     }
   }
 end
