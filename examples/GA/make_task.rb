@@ -89,6 +89,7 @@ opt.on('--island') {
 opt.parse!(ARGV)
 
 STDERR.puts "**** #{$mutateProb}, #{$crossProb}"
+STDERR.puts "Detailed Analysis on #{$statDir}" if $statDir
 
 `mkdir -p #{$workDir}`
 
@@ -248,6 +249,7 @@ loop {
     end
   end
   ctr+=1
+  #break if ctr > 10000
 }
 
 
@@ -294,6 +296,13 @@ end
 if $statDir
   # precalculate contributionDistance
   setContributor($genomeRanking[0].id)
+  $genomeArray.each{|spec|
+    next unless spec
+    
+    if ($genomeRanking[0].mean-spec.mean).abs < ($genomeRanking[0].devi**2 + spec.devi**2)**0.5
+      setContributor(spec.id)
+    end
+  }  
 
   # print data
   open($statDir + '/stat.txt','w') {|fp|
@@ -335,6 +344,73 @@ if $statDir
     }
   }
   
+  # output if greater 
+  open($statDir + '/tombiTaka.txt','w') {|fp|
+    ctr  = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+    ctrT = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+    $genomeArray.each{|spec|
+      next unless spec
+      pids = spec.parents
+      ps = pids.map{|id| $genomeArray[id]}
+      
+      greater=true
+      lesser =true
+      confusing = false
+      ps.each{|p|
+        devi = 1.0*(spec.devi**2 + p.devi**2)**0.5
+        greater  = false if spec.mean <= p.mean + devi
+        lesser   = false if spec.mean >= p.mean - devi
+        confusing= true  if (spec.mean - p.mean).abs <= devi
+      }
+      if confusing
+        ctr[ps.length][1]+=1        
+      elsif greater and (not lesser)
+        ctr[ps.length][3]+=1
+      elsif lesser and (not greater)
+        ctr[ps.length][0]+=1
+      else
+        ctr[ps.length][2]+=1
+      end
+
+      if spec.contributionDistance() == 0
+        if confusing
+          ctrT[ps.length][1]+=1        
+        elsif greater and (not lesser)
+          ctrT[ps.length][3]+=1
+        elsif lesser and (not greater)
+          ctrT[ps.length][0]+=1
+        else
+          ctrT[ps.length][2]+=1
+        end
+      end
+      
+    }
+    
+    
+    [ctr,ctrT].each{|ctrCur0|
+      ctrCur = ctrCur0[1..-1]
+      fp.puts ctrCur.map{|xs| xs.join("\t")}.join("\t\t")
+      sum = 0
+      ctrCur.each{|xs|
+        sum += xs[0]+xs[1]+xs[2]+xs[3]
+      }
+      fp.puts ctrCur.map{|xs|
+        # sum = xs[0]+xs[1]+xs[2]+xs[3]
+        xs.map{|x|
+          sprintf('%5.2f',x.to_f/sum*100)
+        }.join("\t")
+      }.join("\t\t")
+    }
+    fp.puts (1...ctr.length).to_a.map{|i|
+      (0...ctr[i].length).to_a.map{|j|
+        sprintf('%5.2f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300) * 100)
+      }.join("\t")
+    }.join("\t\t")
+    
+    
+    fp.puts
+  }
+
   # output contributionDistance statistics
   open($statDir + '/contributionDistance.txt','w') {|fp|
     histogram = {}
@@ -342,7 +418,7 @@ if $statDir
     $genomeArray.each{|spec|
       next unless spec
       d  = spec.contributionDistance()
-      ps = spec.parents.length
+      ps = spec.parentFormat.to_i
       histogram[d] ||= 0
       histogram[d] += 1
       birthHistogram[d] ||= [0,0,0,0]
