@@ -54,9 +54,15 @@ opt.on('-w WorkDir') {|dirn|
 
 $mutateProb = 0.33333333333333
 $crossProb  = 0.33333333333333
+opt.on('--333') {
+}
 opt.on('--no3') {
-  $mutateProb = 0.5
-  $crossProb  = 0.5
+  $mutateProb = 0.33333333
+  $crossProb  = 0.66666667
+}
+opt.on('--on3') {
+  $mutateProb = 0.33333333
+  $crossProb  = 0.0
 }
 
 
@@ -144,7 +150,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 30
+      return @record[id] if id < @record.length - 50
       
       ret = Species.new
       ret.id = id
