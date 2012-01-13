@@ -347,9 +347,22 @@ if $statDir
       }
     }
   }
+
+  # print hiscore history
+  open($statDir + '/hiscore.txt','w') {|fp|
+    hiscore = 0
+    $genomeArray.length.times{|i|
+      if $genomeArray[i]
+        hiscore = [hiscore, $genomeArray[i].mean].max
+      end
+      fp.puts "#{i} #{hiscore}"
+    }
+  }
+
   
   # output if greater 
   open($statDir + '/tombiTaka.txt','w') {|fp|
+    grandCtr = [0,0,0,0]
     ctr  = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
     ctrT = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
     $genomeArray.each{|spec|
@@ -359,49 +372,72 @@ if $statDir
       
       greater=true
       lesser =true
-      confusing = false
-      ps.each{|p|
+      equaling = false
+      
+      fst = true
+      ps.sort_by{|p| -p.mean}.each{|p|
         devi = 1.0*(spec.devi**2 + p.devi**2)**0.5
         greater  = false if spec.mean <= p.mean + devi
         lesser   = false if spec.mean >= p.mean - devi
-        confusing= true  if (spec.mean - p.mean).abs <= devi
+        equaling = true  if (spec.mean - p.mean).abs <= devi && fst
+        fst = false
       }
-      if confusing
-        ctr[ps.length][1]+=1        
+      pFormat = spec.parentFormat.to_i
+      if equaling
+        ctr[pFormat][2]+=1        
       elsif greater and (not lesser)
-        ctr[ps.length][3]+=1
+        ctr[pFormat][3]+=1
       elsif lesser and (not greater)
-        ctr[ps.length][0]+=1
+        ctr[pFormat][0]+=1
       else
-        ctr[ps.length][2]+=1
+        ctr[pFormat][1]+=1
       end
-
       if spec.contributionDistance() == 0
-        if confusing
-          ctrT[ps.length][1]+=1        
+        if equaling
+          ctrT[pFormat][2]+=1        
         elsif greater and (not lesser)
-          ctrT[ps.length][3]+=1
+          ctrT[pFormat][3]+=1
         elsif lesser and (not greater)
-          ctrT[ps.length][0]+=1
+          ctrT[pFormat][0]+=1
         else
-          ctrT[ps.length][2]+=1
+          ctrT[pFormat][1]+=1
         end
       end
-      
+      grandCtr[pFormat] += 1
     }
     
     
+    fp.puts <<LATEX
+\\multicolumn{3}{c}{mutation} & \\multicolumn{4}{|c}{crossover} & \\multicolumn{4}{|c}{triangulation} \\\\
+\\multicolumn{3}{c}{ #{grandCtr[1]}(1.000) } & \\multicolumn{4}{|c}{ #{grandCtr[2]}(1.000) } & \\multicolumn{4}{|c}{ #{grandCtr[3]}(1.000) } \\\\
+\\RankD  &\\RankB &\\RankA         &\\RankD &\\RankC &\\RankB &\\RankA         &\\RankD &\\RankC &\\RankB &\\RankA  \\\\
+\\hline
+LATEX
     [ctr,ctrT].each{|ctrCur0|
       ctrCur = ctrCur0[1..-1]
       fst = true
-      fp.puts ctrCur.map{|xs| 
+      rowNumber = []
+      rowRatio = []
+
+      grandPtr = 1
+      ctrCur.each{|xs| 
         xs2 = xs
         if fst
           fst = false
-          xs2 = xs[0..1] + xs[3..3]
+          xs2 = xs[0..0] + xs[2..3]
         end
-        xs2.join("\t")
-      }.join("\t\t")
+        rowNumber += xs2
+        ratioPart = xs2.map{|x| sprintf('%0.3f', x / grandCtr[grandPtr].to_f)}
+        ratioPart[0] = '('+ratioPart[0]
+        ratioPart[-1] = ratioPart[-1]+')'
+        rowRatio += ratioPart
+        grandPtr += 1
+      }
+
+
+      fp.puts rowNumber.join("\t&")+ "\\\\"
+      fp.puts '' +rowRatio.join("\t&")+ "\\\\"
+
       sum = 0
       ctrCur.each{|xs|
         sum += xs[0]+xs[1]+xs[2]+xs[3]
@@ -418,15 +454,15 @@ if $statDir
     fst = true
     fp.puts (1...ctr.length).to_a.map{|i|
       xs = (0...ctr[i].length).to_a.map{|j|
-        sprintf('%5.2f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300) * 100)
+        sprintf('%0.3f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300))
       }
 
       if fst
         fst = false
-        xs = xs[0..1] + xs[3..3]
+        xs = xs[0..0] + xs[2..3]
       end
-      xs.join("\t")
-    }.join("\t\t")
+      xs.join("\t&")
+    }.join("\t&")+ "\\\\"
     
     
     fp.puts
@@ -455,13 +491,14 @@ if $statDir
       columns = []
       columns << if k==totalRow then 'sum' else k.to_s end
       (1..3).each{|i|
-        columns << birthHistogram[k][i].to_s
-        columns << sprintf('(%0.3f)', birthHistogram[k][i] / birthHistogram[totalRow][i].to_f)        
+        columns << birthHistogram[k][i].to_s + 
+        sprintf('(%0.3f)', birthHistogram[k][i] / birthHistogram[totalRow][i].to_f)
       }
-      columns << v.to_s
-      columns << sprintf('(%0.3f)', v / histogram[totalRow].to_f)
+      columns << v.to_s + 
+      sprintf('(%0.3f)', v / histogram[totalRow].to_f)
       
-      fp.puts columns.join("&\t") + "\\\\"
+      fp.puts '\hline' if k==totalRow
+      fp.puts columns.join("\t&") + "\\\\"
     }
   }
 end
