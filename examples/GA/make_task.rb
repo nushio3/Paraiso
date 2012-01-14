@@ -131,7 +131,7 @@ class Species
   end
   attr_accessor :id, :dna, :scores, :m_mean, :m_devi, :parents, :parentFormat
 
-  attr_accessor :contributionDistanceMemo
+  attr_accessor :contributionDistanceMemo, :rank
   def contributionDistance()
     return @contributionDistanceMemo if @contributionDistanceMemo
     ret = nil
@@ -384,24 +384,17 @@ if $statDir
       }
       pFormat = spec.parentFormat.to_i
       if equaling
-        ctr[pFormat][2]+=1        
+        spec.rank = 2
       elsif greater and (not lesser)
-        ctr[pFormat][3]+=1
+        spec.rank = 3
       elsif lesser and (not greater)
-        ctr[pFormat][0]+=1
+        spec.rank = 0
       else
-        ctr[pFormat][1]+=1
+        spec.rank = 1
       end
+      ctr[pFormat][spec.rank]+=1
       if spec.contributionDistance() == 0
-        if equaling
-          ctrT[pFormat][2]+=1        
-        elsif greater and (not lesser)
-          ctrT[pFormat][3]+=1
-        elsif lesser and (not greater)
-          ctrT[pFormat][0]+=1
-        else
-          ctrT[pFormat][1]+=1
-        end
+        ctrT[pFormat][spec.rank]+=1        
       end
       grandCtr[pFormat] += 1
     }
@@ -500,6 +493,101 @@ LATEX
       fp.puts '\hline' if k==totalRow
       fp.puts columns.join("\t&") + "\\\\"
     }
+  }
+
+  open($statDir + '/independence.txt','w') {|fp|
+    pred1s = []
+    pred1s << ['$n(\Parent(I))=1$', lambda{|spec| (spec.parentFormat.to_i == 1)      ? 1 : 0}]
+    pred1s << ['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}]
+    pred1s << ['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankC$' , lambda{|spec| (spec.rank == 1)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankD$' , lambda{|spec| (spec.rank == 0)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA \cap n(\Parent(I))=2$' , 
+               lambda{|spec| (spec.rank == 3) && (spec.parentFormat.to_i == 2)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA \cap n(\Parent(I))=3$' , 
+               lambda{|spec| (spec.rank == 3) && (spec.parentFormat.to_i == 3)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB \cap n(\Parent(I))=2$' , 
+               lambda{|spec| (spec.rank == 2) && (spec.parentFormat.to_i == 2)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB \cap n(\Parent(I))=3$' , 
+               lambda{|spec| (spec.rank == 2) && (spec.parentFormat.to_i == 3)    ? 1 : 0}]
+    pred2s = []
+    pred2s << ['$d(I)=0$', lambda{|spec| (spec.contributionDistance() <= 0) ? 1 : 0}]
+
+
+    testChiSquare = lambda{|p1, p2, pb|
+      predTag1, pred1 = p1
+      predTag2, pred2 = p2
+      predTagB, predB = pb
+      nCol = 2
+      nRow = 2
+      histogram = []
+      expected = []
+      rowSum = []
+      colSum = []
+      grandSum = 0
+      
+      nRow.times{|j|
+        nCol.times{|i|
+          histogram[j]    ||= []
+          histogram[j][i] = 0
+          expected[j]     ||= []
+          expected[j][i]  = 0
+          rowSum[j] = 0
+          colSum[i] = 0
+        }
+      }
+    
+      $genomeArray.each{|spec|
+        next unless spec
+        next unless predB[spec]
+        histogram[pred1[spec]][pred2[spec]]+=1
+      }
+      nRow.times{|j|
+        nCol.times{|i|
+          here = histogram[j][i]
+          rowSum[j] += here
+          colSum[i] += here
+          grandSum  += here
+        }
+      }
+      nRow.times{|j|
+        nCol.times{|i|
+          expected[j][i] = rowSum[j]*colSum[i] / grandSum.to_f 
+        }
+      }    
+      chiSquare = -1 # reduced
+      nRow.times{|j|
+        nCol.times{|i|
+          chiSquare += (histogram[j][i] - expected[j][i])**2.0 / expected[j][i]
+        }
+      }    
+      positivity = (histogram[1][1] > expected[1][1]) ? '\oplus' : '\ominus'
+      fp.puts sprintf('%-40s&%-20s&%-20s& $%.2f%s$',predTag1, predTag2, predTagB, chiSquare, positivity)
+    }
+
+    idPred = ['True' ,lambda{|x|1}]
+    contributorPred = ['$d(I)=0$', lambda{|spec| (spec.contributionDistance() <= 0) ? 1 : 0}]
+    
+    pred1s.each{|p1|
+      pred2s.each{|p2|
+        testChiSquare[p1,p2, idPred]
+      }
+    }
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}], 
+                 contributorPred]
+
   }
 end
 
