@@ -350,12 +350,16 @@ if $statDir
 
   # print hiscore history
   open($statDir + '/hiscore.txt','w') {|fp|
-    hiscore = 0
+    hiscore = 0; lastscore = 0
     $genomeArray.length.times{|i|
       if $genomeArray[i]
         hiscore = [hiscore, $genomeArray[i].mean].max
       end
-      fp.puts "#{i} #{hiscore}"
+      if hiscore != lastscore || i == $genomeArray.length-1
+        fp.puts "#{i} #{lastscore}"
+        fp.puts "#{i} #{hiscore}"
+        lastscore = hiscore
+      end
     }
   }
 
@@ -541,7 +545,7 @@ LATEX
     
       $genomeArray.each{|spec|
         next unless spec
-        next unless predB[spec]
+        next unless predB[spec]==1
         histogram[pred1[spec]][pred2[spec]]+=1
       }
       nRow.times{|j|
@@ -564,6 +568,9 @@ LATEX
         }
       }    
       positivity = (histogram[1][1] > expected[1][1]) ? '\oplus' : '\ominus'
+
+      
+      STDERR.puts histogram.inspect
       fp.puts sprintf('%-40s&%-20s&%-20s& $%.2f%s$',predTag1, predTag2, predTagB, chiSquare, positivity)
     }
 
@@ -587,6 +594,12 @@ LATEX
     testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
                   ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}], 
                  contributorPred]
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  contributorPred, 
+                  ['$n(\Parent(I))\geq2$', lambda{|spec| (spec.parentFormat.to_i >= 2)      ? 1 : 0}]]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  contributorPred, 
+                  ['$n(\Parent(I))\geq2$', lambda{|spec| (spec.parentFormat.to_i >= 2)      ? 1 : 0}]]
 
   }
 end
