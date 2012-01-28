@@ -131,7 +131,7 @@ class Species
   end
   attr_accessor :id, :dna, :scores, :m_mean, :m_devi, :parents, :parentFormat
 
-  attr_accessor :contributionDistanceMemo
+  attr_accessor :contributionDistanceMemo, :rank
   def contributionDistance()
     return @contributionDistanceMemo if @contributionDistanceMemo
     ret = nil
@@ -151,7 +151,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 50
+      return @record[id] if id < @record.length - 50 && @record[id] 
       
       ret = Species.new
       ret.id = id
@@ -187,6 +187,7 @@ class FsCache
       
       return @record[id] = ret
     rescue
+      STDERR.puts "species #{id} is broken."
       return nil
     end
   end
@@ -248,6 +249,9 @@ loop {
       $genomeBank[spec.dna] = spec.clone
     end
   end
+  if spec
+    $genomeArray[ctr] = $genomeBank[spec.dna] || spec.clone
+  end
   ctr+=1
   #break if ctr > 10000
 }
@@ -258,9 +262,9 @@ open(CacheFn, 'w'){|fp|
 }
 
 
-$genomeBank.each{|k,v|
-  $genomeArray[v.id] = v
-}
+# $genomeBank.each{|k,v|
+#  $genomeArray[v.id] = v
+#}
 
 STDERR.puts "sorting..."
 $genomeRanking = $genomeBank.values.sort_by{|spec| [spec.mean, -spec.id]}.reverse
@@ -296,10 +300,10 @@ end
 if $statDir
   # precalculate contributionDistance
   setContributor($genomeRanking[0].id)
+  
   $genomeArray.each{|spec|
     next unless spec
-    
-    if ($genomeRanking[0].mean-spec.mean).abs < ($genomeRanking[0].devi**2 + spec.devi**2)**0.5
+    if ($genomeRanking[0].mean-spec.mean).abs < $genomeRanking[0].devi
       setContributor(spec.id)
     end
   }  
@@ -343,9 +347,26 @@ if $statDir
       }
     }
   }
+
+  # print hiscore history
+  open($statDir + '/hiscore.txt','w') {|fp|
+    hiscore = 0; lastscore = 0
+    $genomeArray.length.times{|i|
+      if $genomeArray[i]
+        hiscore = [hiscore, $genomeArray[i].mean].max
+      end
+      if hiscore != lastscore || i == $genomeArray.length-1
+        fp.puts "#{i} #{lastscore}"
+        fp.puts "#{i} #{hiscore}"
+        lastscore = hiscore
+      end
+    }
+  }
+
   
   # output if greater 
   open($statDir + '/tombiTaka.txt','w') {|fp|
+    grandCtr = [0,0,0,0]
     ctr  = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
     ctrT = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]
     $genomeArray.each{|spec|
@@ -355,57 +376,90 @@ if $statDir
       
       greater=true
       lesser =true
-      confusing = false
-      ps.each{|p|
+      equaling = false
+      
+      fst = true
+      ps.sort_by{|p| -p.mean}.each{|p|
         devi = 1.0*(spec.devi**2 + p.devi**2)**0.5
         greater  = false if spec.mean <= p.mean + devi
         lesser   = false if spec.mean >= p.mean - devi
-        confusing= true  if (spec.mean - p.mean).abs <= devi
+        equaling = true  if (spec.mean - p.mean).abs <= devi && fst
+        fst = false
       }
-      if confusing
-        ctr[ps.length][1]+=1        
+      pFormat = spec.parentFormat.to_i
+      if equaling
+        spec.rank = 2
       elsif greater and (not lesser)
-        ctr[ps.length][3]+=1
+        spec.rank = 3
       elsif lesser and (not greater)
-        ctr[ps.length][0]+=1
+        spec.rank = 0
       else
-        ctr[ps.length][2]+=1
+        spec.rank = 1
       end
-
+      ctr[pFormat][spec.rank]+=1
       if spec.contributionDistance() == 0
-        if confusing
-          ctrT[ps.length][1]+=1        
-        elsif greater and (not lesser)
-          ctrT[ps.length][3]+=1
-        elsif lesser and (not greater)
-          ctrT[ps.length][0]+=1
-        else
-          ctrT[ps.length][2]+=1
-        end
+        ctrT[pFormat][spec.rank]+=1        
       end
-      
+      grandCtr[pFormat] += 1
     }
     
     
+    fp.puts <<LATEX
+\\multicolumn{3}{c}{mutation} & \\multicolumn{4}{|c}{crossover} & \\multicolumn{4}{|c}{triangulation} \\\\
+\\multicolumn{3}{c}{ #{grandCtr[1]}(1.000) } & \\multicolumn{4}{|c}{ #{grandCtr[2]}(1.000) } & \\multicolumn{4}{|c}{ #{grandCtr[3]}(1.000) } \\\\
+\\RankD  &\\RankB &\\RankA         &\\RankD &\\RankC &\\RankB &\\RankA         &\\RankD &\\RankC &\\RankB &\\RankA  \\\\
+\\hline
+LATEX
     [ctr,ctrT].each{|ctrCur0|
       ctrCur = ctrCur0[1..-1]
-      fp.puts ctrCur.map{|xs| xs.join("\t")}.join("\t\t")
+      fst = true
+      rowNumber = []
+      rowRatio = []
+
+      grandPtr = 1
+      ctrCur.each{|xs| 
+        xs2 = xs
+        if fst
+          fst = false
+          xs2 = xs[0..0] + xs[2..3]
+        end
+        rowNumber += xs2
+        ratioPart = xs2.map{|x| sprintf('%0.3f', x / grandCtr[grandPtr].to_f)}
+        ratioPart[0] = '('+ratioPart[0]
+        ratioPart[-1] = ratioPart[-1]+')'
+        rowRatio += ratioPart
+        grandPtr += 1
+      }
+
+
+      fp.puts rowNumber.join("\t&")+ "\\\\"
+      fp.puts '' +rowRatio.join("\t&")+ "\\\\"
+
       sum = 0
       ctrCur.each{|xs|
         sum += xs[0]+xs[1]+xs[2]+xs[3]
       }
-      fp.puts ctrCur.map{|xs|
-        # sum = xs[0]+xs[1]+xs[2]+xs[3]
-        xs.map{|x|
-          sprintf('%5.2f',x.to_f/sum*100)
-        }.join("\t")
-      }.join("\t\t")
+      # do not print out the ratio
+#      fp.puts ctrCur.map{|xs|
+#        # sum = xs[0]+xs[1]+xs[2]+xs[3]
+#        xs.map{|x|
+#          sprintf('%5.2f',x.to_f/sum*100)
+#        }.join("\t")
+#      }.join("\t\t")
     }
+    
+    fst = true
     fp.puts (1...ctr.length).to_a.map{|i|
-      (0...ctr[i].length).to_a.map{|j|
-        sprintf('%5.2f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300) * 100)
-      }.join("\t")
-    }.join("\t\t")
+      xs = (0...ctr[i].length).to_a.map{|j|
+        sprintf('%0.3f',  ctrT[i][j].to_f / (ctr[i][j]+1e-300))
+      }
+
+      if fst
+        fst = false
+        xs = xs[0..0] + xs[2..3]
+      end
+      xs.join("\t&")
+    }.join("\t&")+ "\\\\"
     
     
     fp.puts
@@ -415,18 +469,138 @@ if $statDir
   open($statDir + '/contributionDistance.txt','w') {|fp|
     histogram = {}
     birthHistogram = {}
+    totalRow = 9999
+
+    STDERR.puts "genome array size=#{$genomeArray.length}" 
     $genomeArray.each{|spec|
       next unless spec
       d  = spec.contributionDistance()
       ps = spec.parentFormat.to_i
-      histogram[d] ||= 0
-      histogram[d] += 1
-      birthHistogram[d] ||= [0,0,0,0]
-      birthHistogram[d][ps]+=1
+      
+      [d,totalRow].each{|i|
+        histogram[i] ||= 0
+        histogram[i] += 1
+        birthHistogram[i] ||= [0,0,0,0]
+        birthHistogram[i][ps]+=1
+      }
     }
     histogram.to_a.sort.each{|k,v|
-      fp.puts "#{k}\t#{v}\t" + birthHistogram[k].join("\t")
+      columns = []
+      columns << if k==totalRow then 'sum' else k.to_s end
+      (1..3).each{|i|
+        columns << birthHistogram[k][i].to_s + 
+        sprintf('(%0.3f)', birthHistogram[k][i] / birthHistogram[totalRow][i].to_f)
+      }
+      columns << v.to_s + 
+      sprintf('(%0.3f)', v / histogram[totalRow].to_f)
+      
+      fp.puts '\hline' if k==totalRow
+      fp.puts columns.join("\t&") + "\\\\"
     }
+  }
+
+  open($statDir + '/independence.txt','w') {|fp|
+    pred1s = []
+    pred1s << ['$n(\Parent(I))=1$', lambda{|spec| (spec.parentFormat.to_i == 1)      ? 1 : 0}]
+    pred1s << ['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}]
+    pred1s << ['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankC$' , lambda{|spec| (spec.rank == 1)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankD$' , lambda{|spec| (spec.rank == 0)      ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA \cap n(\Parent(I))=2$' , 
+               lambda{|spec| (spec.rank == 3) && (spec.parentFormat.to_i == 2)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankA \cap n(\Parent(I))=3$' , 
+               lambda{|spec| (spec.rank == 3) && (spec.parentFormat.to_i == 3)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB \cap n(\Parent(I))=2$' , 
+               lambda{|spec| (spec.rank == 2) && (spec.parentFormat.to_i == 2)    ? 1 : 0}]
+    pred1s << ['$I\in\mathRankB \cap n(\Parent(I))=3$' , 
+               lambda{|spec| (spec.rank == 2) && (spec.parentFormat.to_i == 3)    ? 1 : 0}]
+    pred2s = []
+    pred2s << ['$d(I)=0$', lambda{|spec| (spec.contributionDistance() <= 0) ? 1 : 0}]
+
+
+    testChiSquare = lambda{|p1, p2, pb|
+      predTag1, pred1 = p1
+      predTag2, pred2 = p2
+      predTagB, predB = pb
+      nCol = 2
+      nRow = 2
+      histogram = []
+      expected = []
+      rowSum = []
+      colSum = []
+      grandSum = 0
+      
+      nRow.times{|j|
+        nCol.times{|i|
+          histogram[j]    ||= []
+          histogram[j][i] = 0
+          expected[j]     ||= []
+          expected[j][i]  = 0
+          rowSum[j] = 0
+          colSum[i] = 0
+        }
+      }
+    
+      $genomeArray.each{|spec|
+        next unless spec
+        next unless predB[spec]==1
+        histogram[pred1[spec]][pred2[spec]]+=1
+      }
+      nRow.times{|j|
+        nCol.times{|i|
+          here = histogram[j][i]
+          rowSum[j] += here
+          colSum[i] += here
+          grandSum  += here
+        }
+      }
+      nRow.times{|j|
+        nCol.times{|i|
+          expected[j][i] = rowSum[j]*colSum[i] / grandSum.to_f 
+        }
+      }    
+      chiSquare = -1 # reduced
+      nRow.times{|j|
+        nCol.times{|i|
+          chiSquare += (histogram[j][i] - expected[j][i])**2.0 / expected[j][i]
+        }
+      }    
+      positivity = (histogram[1][1] > expected[1][1]) ? '\oplus' : '\ominus'
+
+      
+      STDERR.puts histogram.inspect
+      fp.puts sprintf('%-40s&%-20s&%-20s& $%.2f%s$',predTag1, predTag2, predTagB, chiSquare, positivity)
+    }
+
+    idPred = ['True' ,lambda{|x|1}]
+    contributorPred = ['$d(I)=0$', lambda{|spec| (spec.contributionDistance() <= 0) ? 1 : 0}]
+    
+    pred1s.each{|p1|
+      pred2s.each{|p2|
+        testChiSquare[p1,p2, idPred]
+      }
+    }
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  ['$I\in\mathRankA$' , lambda{|spec| (spec.rank == 3)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  ['$I\in\mathRankB$' , lambda{|spec| (spec.rank == 2)      ? 1 : 0}], 
+                 contributorPred]
+    testChiSquare[['$n(\Parent(I))=2$', lambda{|spec| (spec.parentFormat.to_i == 2)      ? 1 : 0}],
+                  contributorPred, 
+                  ['$n(\Parent(I))\geq2$', lambda{|spec| (spec.parentFormat.to_i >= 2)      ? 1 : 0}]]
+    testChiSquare[['$n(\Parent(I))=3$', lambda{|spec| (spec.parentFormat.to_i == 3)      ? 1 : 0}],
+                  contributorPred, 
+                  ['$n(\Parent(I))\geq2$', lambda{|spec| (spec.parentFormat.to_i >= 2)      ? 1 : 0}]]
+
   }
 end
 
