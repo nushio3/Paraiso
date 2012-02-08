@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 -- | An 'Annotation' that lets you call __syncthreads() before
 -- or after a statement.

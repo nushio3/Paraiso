@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, FlexibleContexts, NoImplicitPrelude, StandaloneDeriving, 
+{-# LANGUAGE CPP, DeriveDataTypeable, FlexibleContexts, StandaloneDeriving, 
 UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 

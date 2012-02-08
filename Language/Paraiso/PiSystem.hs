@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeOperators, FlexibleInstances, OverlappingInstances #-}
+{-# LANGUAGE CPP, TypeOperators, FlexibleInstances, OverlappingInstances #-}
 
 {- | In mathematics, a pi-system is a non-empty family of sets that is closed
 under finite intersections.  -}

@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE CPP, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.OM.Arithmetic 
     (

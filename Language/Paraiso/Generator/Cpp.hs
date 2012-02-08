@@ -1,4 +1,4 @@
-{-# LANGUAGE  OverloadedStrings, NoImplicitPrelude  #-}
+{-# LANGUAGE CPP,  OverloadedStrings  #-}
 {-# OPTIONS -Wall #-}
 -- | a code generator definition for single-core c++ program.
 module Language.Paraiso.Generator.Cpp

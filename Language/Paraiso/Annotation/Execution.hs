@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 -- | An effectless 'Annotation' with a comment 
 

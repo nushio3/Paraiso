@@ -1,4 +1,4 @@
-{-# LANGUAGE  NoImplicitPrelude #-}
+{-# LANGUAGE CPP, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.OMTrans (
@@ -26,7 +26,7 @@ import qualified Language.Paraiso.OM.Realm              as Realm
 import qualified Language.Paraiso.Optimization          as Opt
 import qualified Language.Paraiso.PiSystem              as Pi
 import           Language.Paraiso.Prelude
-
+import           NumericPrelude hiding ((++))
 
 
 data Triplet v g 

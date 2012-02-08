@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, MultiParamTypeClasses,
+{-# LANGUAGE CPP, DeriveDataTypeable, MultiParamTypeClasses,
 NoImplicitPrelude, OverloadedStrings, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 -- | [CLARIS] C++-Like Abstract Representation of Intermediate Syntax.
@@ -36,6 +36,7 @@ module Language.Paraiso.Generator.Claris (
 import qualified Data.Dynamic as Dyn
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
+import NumericPrelude
 
 -- | A Claris program.
 data Program 

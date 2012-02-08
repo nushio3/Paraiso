@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, KindSignatures, 
-MultiParamTypeClasses, NoImplicitPrelude, RankNTypes
+{-# LANGUAGE CPP, DeriveDataTypeable, KindSignatures, 
+MultiParamTypeClasses, RankNTypes
  #-}
 {-# OPTIONS -Wall #-}
 

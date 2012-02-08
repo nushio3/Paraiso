@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE CPP, TypeOperators #-}
 
 {- |  In geometry, an 'Orthotope' (also called a hyperrectangle or a box) is
   the generalization of a rectangle for higher dimensions, formally

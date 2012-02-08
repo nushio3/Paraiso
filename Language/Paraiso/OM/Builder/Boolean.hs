@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes,
+{-# LANGUAGE CPP, FlexibleInstances, RankNTypes,
   TypeSynonymInstances #-}
 {-# OPTIONS -Wall #-}
 -- | An extension module of building blocks. Contains booleans, comparison operations, branchings.

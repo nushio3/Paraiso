@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 -- | An 'Annotation' that sets the execution priority of the 
 -- statements. Statements with 'Ballon's will be allocated
@@ -11,6 +11,7 @@ module Language.Paraiso.Annotation.Balloon (
 
 import Data.Dynamic
 import Language.Paraiso.Prelude
+import Prelude (Eq, Ord)
 
 data (Ord a, Typeable a) => Balloon a
     = Balloon a

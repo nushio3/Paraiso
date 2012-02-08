@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE CPP, FlexibleInstances, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
 -- | The 'Realm' represents how the data reside in Orthotope Machines. 

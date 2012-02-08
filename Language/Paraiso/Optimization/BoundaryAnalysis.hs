@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
 -- | The volume of mesh that contains the correct results shrinks as
@@ -15,6 +15,7 @@ module Language.Paraiso.Optimization.BoundaryAnalysis (
 
 import qualified Algebra.Additive            as Additive
 import qualified Data.Graph.Inductive        as FGL
+import           Data.Foldable (toList)
 import           Data.Maybe
 import           Data.Tensor.TypeLevel
 import           Data.Typeable
@@ -27,7 +28,7 @@ import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.Realm as Realm
 import           Language.Paraiso.PiSystem
 import           Language.Paraiso.Prelude
-
+import           NumericPrelude hiding ((++))
 
 boundaryAnalysis :: (Vector v, Additive.C g, Ord g, Typeable g)
                     => Graph v g Anot.Annotation -> Graph v g Anot.Annotation

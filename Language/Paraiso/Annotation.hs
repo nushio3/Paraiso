@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS -Wall #-}
 -- | 'Annotation' is a collection of 'Typeable's 
 -- with which you can annotate each OM node.
@@ -8,10 +8,11 @@ module Language.Paraiso.Annotation
      Annotation, add, empty, map, set, weakSet, toList, toMaybe
     ) where
 
+import           Control.Monad
 import           Data.Dynamic
 import           Data.Maybe
-import           Language.Paraiso.Prelude hiding (map, toList)
-import qualified Language.Paraiso.Prelude as P (map)
+import           Prelude hiding (map)
+import qualified Prelude as P (map)
 
 type Annotation = [Dynamic]
 

@@ -1,4 +1,4 @@
-{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE CPP, KindSignatures #-}
 {-# OPTIONS -Wall #-}
 -- | informations for generating native codes.
 

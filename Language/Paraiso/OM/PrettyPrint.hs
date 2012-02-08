@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.OM.PrettyPrint (
@@ -23,6 +23,7 @@ import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.Optimization.Graph    as Opt
 import           Language.Paraiso.Prelude
+import           Prelude hiding ((++))
 
 -- | pretty print the OM, neglecting any annotations.
 prettyPrint :: Opt.Ready v g => OM v g a -> T.Text
