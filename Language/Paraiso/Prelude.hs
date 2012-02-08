@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, NoMonomorphismRestriction, RankNTypes #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, NoMonomorphismRestriction, RankNTypes #-}
 {-# OPTIONS -Wall #-}
 {-# OPTIONS_HADDOCK hide #-}
 -- | an extension of the standard Prelude for paraiso.
@@ -23,12 +23,9 @@ import           Data.ListLike.Text ()
 import qualified Data.ListLike.Base (ListLike)
 import qualified Data.Text as Text
 import           Data.Traversable
-import           NumericPrelude hiding 
-    (not, (&&), (||), Monad, Functor, (*>), (++),
-     (>>=), (>>), return, fail, fmap, mapM, mapM_, sequence, sequence_, 
-     (=<<), foldl, foldl1, foldr, foldr1, and, or, any, all, sum, product, 
-     concat, concatMap, maximum, minimum, elem, notElem)
 import qualified NumericPrelude as Prelude
+
+#include "numeric-prelude-restricted.hs"
 
 -- | An efficient String that is used thoroughout Paraiso modules.
 type Text = Text.Text

@@ -87,6 +87,9 @@ Build-type:          Simple
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.10
 
+extra-source-files:
+                include/restricted-numeric-prelude.hs
+
 
 flag test
   description: Build the executable to run unit tests
@@ -157,7 +160,7 @@ Library
   
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
   -- Build-tools:         
-
+  include-dirs:   include
   ghc-options:    -O3 -Wall   -fspec-constr-count=25
 
 
@@ -192,7 +195,7 @@ test-suite runtests
                        HUnit,
                        QuickCheck >= 2 && < 3
     main-is: runtests.hs
-    
+    include-dirs:   include    
     ghc-options:     -Wall -O3  -fspec-constr-count=25
     Default-Language: Haskell2010
 
