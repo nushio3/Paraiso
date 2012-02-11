@@ -24,3 +24,8 @@ clean:
 massive-test: lib
 	nvcc massive-test.cu dist-cuda/Hydro.cu -O3 -Idist-cuda/ -o massive-test.out -arch=sm_20
 	time ./massive-test.out
+
+
+exam: lib
+	nvcc massive-test.cu dist-cuda/Hydro.cu -O3 -Idist-cuda/ -o exam.out -arch=sm_20
+	time ./exam.out 1

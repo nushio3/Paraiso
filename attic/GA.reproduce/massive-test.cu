@@ -15,6 +15,8 @@ using namespace std;
 const int antiAlias = 1;
 int W,H;
 
+int mode;
+
 typedef double Real;
 
 void dump (string fn, Hydro &sim) {
@@ -77,10 +79,13 @@ struct SoundWave : public Field {
 
 
 
-void override (double t, Field &solution, Hydro &sim) {
+double override (bool global, double t, Field &solution, Hydro &sim) {
   thrust::host_vector<Real> dens, vx, vy, p;
 
   const int iR = 10;
+
+  double ret_numerator = 0;
+  double ret_denominator = 1e-300;
   
   dens = sim.static_7_density;
   vx   = sim.static_8_velocity0;
@@ -93,14 +98,22 @@ void override (double t, Field &solution, Hydro &sim) {
       double y = sim.static_4_dR1 * (iy+0.5);
       int i = sim.memorySize0() * (iy+sim.lowerMargin1()) + ix + sim.lowerMargin0();
       
-      if (t < 0.1 || ix < iR || iy < iR || ix >= W-iR || iy >= H-iR) {
-	Real dens0, vx0, vy0, p0;
-	solution.at(t,x,y,  dens0, vx0, vy0, p0);
-	
+      Real dens0, vx0, vy0, p0;
+      solution.at(t,x,y,  dens0, vx0, vy0, p0);
+
+      if (global || ix < iR || iy < iR || ix >= W-iR || iy >= H-iR) {
 	dens[i] = dens0;
 	vx[i] =  vx0;
 	vy[i] =  vy0;
 	p[i]  =  p0;
+      } else {
+	ret_numerator +=
+	  pow(dens[i] - dens0, 2.0) +
+	  pow(  vx[i] -   vx0, 2.0) +
+	  pow(  vy[i] -   vy0, 2.0) +
+	  pow(   p[i] -    p0, 2.0);
+	  
+	ret_denominator += 4;
       }
     }
   }
@@ -110,11 +123,21 @@ void override (double t, Field &solution, Hydro &sim) {
   sim.static_9_velocity1 = vy   ;
   sim.static_10_pressure = p    ;
 
+  return sqrt(ret_numerator /ret_denominator);
+  
 }
 
 
 
-int main () {
+int main (int argc, char **argv) {
+
+  if (argc <= 1) {
+    mode = 0;
+  } else {
+    sstream iss(argv[1]);
+    iss >> mode;
+  }
+  
   cudaSetDevice(2);
   Hydro sim;
   W = sim.size0();
@@ -133,16 +156,17 @@ int main () {
   int ctr = 0;
 
   SoundWave f;
-  
+
+  double residual = 0;
   while (ctr <= 10) {
     double t = sim.static_1_time;
     cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
-    override(t, f, sim);
+    residual = override(ctr <= 0 , t, f, sim);
     sim.proceed();
     if (t > 0.1 * ctr) {
       sprintf(buf, "output-g%d/snapshot%04d.txt", antiAlias, ctr);
-      dump(buf, sim);
+      if (mode==0) dump(buf, sim);
       ++ctr;
     }
   }
