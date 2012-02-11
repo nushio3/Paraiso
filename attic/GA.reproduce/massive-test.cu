@@ -2,6 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -134,7 +135,7 @@ int main (int argc, char **argv) {
   if (argc <= 1) {
     mode = 0;
   } else {
-    sstream iss(argv[1]);
+    istringstream iss(argv[1]);
     iss >> mode;
   }
   
@@ -160,7 +161,7 @@ int main (int argc, char **argv) {
   double residual = 0;
   while (ctr <= 10) {
     double t = sim.static_1_time;
-    cerr << sim.static_1_time << endl;
+    if (mode==0) cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
     residual = override(ctr <= 0 , t, f, sim);
     sim.proceed();
@@ -169,5 +170,10 @@ int main (int argc, char **argv) {
       if (mode==0) dump(buf, sim);
       ++ctr;
     }
+  }
+
+  if (mode==1) {
+    ofstream ofs("sound.exam");
+    ofs << setiosflags(ios::fixed) << setprecision(20) << residual << endl;
   }
 }

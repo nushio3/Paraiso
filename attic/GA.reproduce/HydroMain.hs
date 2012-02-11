@@ -278,7 +278,7 @@ myOM = optimize O3 $
 
 gpuSetup :: Native.Setup Vec2 Int
 gpuSetup = 
-  (Native.defaultSetup $ Vec :~ 1024 :~ 1024)
+  (Native.defaultSetup $ Vec :~ 128 :~ 128)
   { Native.directory = "./dist-cuda/" ,
     Native.language  = Native.CUDA,
     Native.cudaGridSize = (256,448)
