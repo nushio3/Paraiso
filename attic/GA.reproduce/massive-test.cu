@@ -65,7 +65,7 @@ struct SoundWave : public Field {
 	  double &dens, double &vx, double &vy, double &p) {
     const Real kGamma = 5.0 / 3.0;
     const Real soundSpeed = 1.0;
-    const Real amplitude = 1e-3;
+    const Real amplitude = 1e-4;
 
     const Real dens0 = kGamma;
     const Real p0 = 1;
@@ -77,15 +77,15 @@ struct SoundWave : public Field {
   }
 };
 
-
-
-
-double override (bool global, double t, Field &solution, Hydro &sim) {
+vector<double> override (bool global, double t, Field &solution, Hydro &sim) {
   thrust::host_vector<Real> dens, vx, vy, p;
 
-  const int iR = 10;
+  const int iR = 4;
 
-  double ret_numerator = 0;
+  double ret_numerator_dens = 0;
+  double ret_numerator_vx   = 0;
+  double ret_numerator_vy   = 0;
+  double ret_numerator_p    = 0;
   double ret_denominator = 1e-300;
   
   dens = sim.static_7_density;
@@ -108,13 +108,12 @@ double override (bool global, double t, Field &solution, Hydro &sim) {
 	vy[i] =  vy0;
 	p[i]  =  p0;
       } else {
-	ret_numerator +=
-	  pow(dens[i] - dens0, 2.0) +
-	  pow(  vx[i] -   vx0, 2.0) +
-	  pow(  vy[i] -   vy0, 2.0) +
-	  pow(   p[i] -    p0, 2.0);
+	ret_numerator_dens += abs(dens[i] - dens0);
+	ret_numerator_vx   += abs(  vx[i] -   vx0);
+	ret_numerator_vy   += abs(  vy[i] -   vy0);
+	ret_numerator_p    += abs(   p[i] -    p0);
 	  
-	ret_denominator += 4;
+	ret_denominator += 1;
       }
     }
   }
@@ -124,11 +123,15 @@ double override (bool global, double t, Field &solution, Hydro &sim) {
   sim.static_9_velocity1 = vy   ;
   sim.static_10_pressure = p    ;
 
-  return sqrt(ret_numerator /ret_denominator);
+  vector<double> ret_residuals;
+  ret_residuals.push_back(ret_numerator_dens / ret_denominator);
+  ret_residuals.push_back(ret_numerator_vx   / ret_denominator);
+  ret_residuals.push_back(ret_numerator_vy   / ret_denominator);
+  ret_residuals.push_back(ret_numerator_p    / ret_denominator);
+  
+  return ret_residuals;
   
 }
-
-
 
 int main (int argc, char **argv) {
 
@@ -139,7 +142,7 @@ int main (int argc, char **argv) {
     iss >> mode;
   }
   
-  cudaSetDevice(2);
+  cudaSetDevice(1);
   Hydro sim;
   W = sim.size0();
   H = sim.size1();
@@ -155,25 +158,33 @@ int main (int argc, char **argv) {
   sprintf(buf, "mkdir -p output-g%d", antiAlias);
   system(buf);
   int ctr = 0;
-
+  int steps = 0;
+  
   SoundWave f;
 
-  double residual = 0;
+  vector<double> residuals;
   while (ctr <= 10) {
     double t = sim.static_1_time;
     if (mode==0) cerr << sim.static_1_time << endl;
     if (!isfinite(t)) return -1;
-    residual = override(ctr <= 0 , t, f, sim);
+    residuals = override(ctr <= 0 , t, f, sim);
     sim.proceed();
     if (t > 0.1 * ctr) {
       sprintf(buf, "output-g%d/snapshot%04d.txt", antiAlias, ctr);
       if (mode==0) dump(buf, sim);
       ++ctr;
     }
+    ++steps;
   }
 
   if (mode==1) {
     ofstream ofs("sound.exam");
-    ofs << setiosflags(ios::fixed) << setprecision(20) << residual << endl;
+    ofs << W
+	<< " " << H
+	<< " " << steps
+	<< setprecision(20);
+    for (int i = 0; i < residuals.size(); ++i)
+      ofs << " " << residuals[i];
+    ofs << endl;
   }
 }
