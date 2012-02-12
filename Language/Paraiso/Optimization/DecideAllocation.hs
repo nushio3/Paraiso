@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 
 -- | The choice of making each Orthotope Machine node Manifest or not
@@ -17,7 +17,6 @@ import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe 
 import qualified Language.Paraiso.Annotation            as Anot
 import           Language.Paraiso.Annotation.Allocation as Alloc
-import           Language.Paraiso.Prelude
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.DynValue           as DVal
 import           Language.Paraiso.OM.Realm              as Realm

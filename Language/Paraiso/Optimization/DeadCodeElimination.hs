@@ -1,9 +1,10 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, TupleSections #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, TupleSections #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Optimization.DeadCodeElimination (
   deadCodeElimination
   ) where
 
+import           Control.Applicative
 import qualified Data.Graph.Inductive                   as FGL
 import           Data.Maybe
 import qualified Data.Vector                            as V
@@ -12,6 +13,7 @@ import qualified Language.Paraiso.Annotation.Execution  as Anot
 import           Language.Paraiso.Prelude
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.Optimization.Graph
+import           Prelude hiding ((++))
 
 -- | an optimization that changes nothing.
 deadCodeElimination :: Optimization

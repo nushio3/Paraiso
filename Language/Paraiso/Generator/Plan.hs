@@ -1,4 +1,5 @@
-{-# LANGUAGE FunctionalDependencies, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE CPP, FunctionalDependencies, MultiParamTypeClasses, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# OPTIONS -Wall #-}
 
 -- | Taking the optimized OM as the input,
@@ -24,6 +25,7 @@ import qualified Language.Paraiso.OM.DynValue as DVal
 import qualified Language.Paraiso.OM.Graph as OM
 import qualified Language.Paraiso.OM.Realm as Realm
 import           Language.Paraiso.Prelude
+import           NumericPrelude hiding ((++))
 
 
 -- | A data structure that contains all informations

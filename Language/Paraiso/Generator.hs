@@ -1,4 +1,4 @@
-{-# LANGUAGE  FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE CPP,  FlexibleInstances, FlexibleContexts, MultiParamTypeClasses, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 -- | a general code generator definition.
 module Language.Paraiso.Generator
@@ -6,6 +6,7 @@ module Language.Paraiso.Generator
       generate, generateIO
     ) where
 
+import           Control.Monad
 import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Generator.Claris      as C
 import qualified Language.Paraiso.Generator.ClarisTrans as C
@@ -20,6 +21,7 @@ import qualified Data.Text                              as T
 import qualified Data.Text.IO                           as T
 import           System.Directory (createDirectoryIfMissing)
 import           System.FilePath  ((</>))
+import           Prelude hiding ((++))
 
 
 -- | Perform the code generation and returns the list of written

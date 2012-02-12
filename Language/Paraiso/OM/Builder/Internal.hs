@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, KindSignatures, NoImplicitPrelude, 
+{-# LANGUAGE CPP, FlexibleInstances, KindSignatures, NoImplicitPrelude,
   PackageImports, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
@@ -45,6 +45,7 @@ import           Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.Prelude
 import qualified Prelude (Num(..), Fractional(..))
+import           NumericPrelude hiding ((++))
 
 -- | Create a 'Kernel' from a 'Builder' monad.
 buildKernel :: 

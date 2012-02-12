@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable, ExistentialQuantification, NoImplicitPrelude, 
-OverloadedStrings, TupleSections #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, ExistentialQuantification, 
+NoImplicitPrelude, OverloadedStrings, TupleSections #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
@@ -14,6 +14,7 @@ import qualified Data.Graph.Inductive                as FGL
 import           Data.List (sortBy)
 import qualified Data.ListLike.String                as LL
 import           Data.ListLike.Text ()
+import qualified Data.Foldable                       as F
 import           Data.Maybe
 import qualified Data.Set                            as Set
 import           Data.Tensor.TypeLevel
@@ -30,7 +31,8 @@ import qualified Language.Paraiso.OM.Graph           as OM
 import qualified Language.Paraiso.OM.Realm           as Realm
 import qualified Language.Paraiso.Optimization.Graph as Opt
 import           Language.Paraiso.Name
-import           Language.Paraiso.Prelude
+import           Language.Paraiso.Prelude hiding (Boolean(..))
+import           NumericPrelude hiding ((++))
 
 
 type AnAn = Anot.Annotation
@@ -106,10 +108,10 @@ memberFuncForSize env@(Env setup plan) =
   makeMami True "upperMargin" uM ++   
   makeMami False  "memorySize" memorySize
   where
-    size = toList $ Native.localSize setup
-    memorySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
-    lM = toList $ Plan.lowerMargin plan
-    uM = toList $ Plan.upperMargin plan
+    size = F.toList $ Native.localSize setup
+    memorySize = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    lM = F.toList $ Plan.lowerMargin plan
+    uM = F.toList $ Plan.upperMargin plan
 
     makeMami alone label xs = 
       (if not alone then (finale label xs :) else id)  $
@@ -336,8 +338,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
     loopStrideCuda   = mkVarExpr "blockDim.x * gridDim.x"    
     
     loopCounter = C.Var tSizet (mkName "i")
-    memorySize   = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
-    boundarySize = toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    memorySize   = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
+    boundarySize = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
      - Plan.lowerBoundary subker - Plan.upperBoundary subker
 
     codecDiv = 
@@ -521,7 +523,7 @@ cursorToText :: Opt.Ready v g => Env v g ->  v g -> T.Text
 cursorToText _ cursor = cursorT
   where
     cursorT :: T.Text
-    cursorT = foldl1 connector $ compose (\i -> T.map sanitize $ showT (cursor ! i))
+    cursorT = F.foldl1 connector $ compose (\i -> T.map sanitize $ showT (cursor ! i))
     connector a b = a ++ "_" ++ b
     sanitize c
       | isDigit c = c

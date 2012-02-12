@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Optimization.Identity (
   identity

@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# OPTIONS -Wall #-}
 
 -- | This module performs dependency analysis for generating subroutines. 
@@ -31,7 +31,6 @@ import qualified Language.Paraiso.OM.DynValue           as DVal
 import           Language.Paraiso.OM.Graph
 import qualified Language.Paraiso.OM.Realm              as Realm
 import qualified Language.Paraiso.Optimization.Graph    as Opt
-import           Language.Paraiso.Prelude
 
 -- | Give unique numbering to each groups in the entire OM 
 --   in preparation for code generation

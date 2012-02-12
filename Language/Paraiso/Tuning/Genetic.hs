@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, NoImplicitPrelude,   PackageImports #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, NoImplicitPrelude, PackageImports #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Tuning.Genetic
   (
@@ -20,9 +20,10 @@ import qualified Language.Paraiso.Generator.Native as Native
 import qualified Language.Paraiso.OM as OM
 import qualified Language.Paraiso.OM.Graph as OM
 import qualified Language.Paraiso.Optimization          as Opt
-import           Language.Paraiso.Prelude
+import           Language.Paraiso.Prelude hiding (Boolean(..))
 import qualified Language.Paraiso.Generator as Gen  (generateIO) 
 import qualified Prelude as Prelude
+import           NumericPrelude hiding ((++))
 import           System.Random 
 import qualified Text.Read as Read
 
@@ -204,7 +205,7 @@ putInt bit n
   where 
     val :: Int
     val = 2^(fromIntegral $ bit-1)
-    
+
 getInt :: Int -> Get Int
 getInt bit
   | bit <= 0  = return 0
@@ -224,23 +225,23 @@ putGraph graph = do
 
     -- idxNodes :: V.Vector (FGL.Node, OM.Node v g a)
     idxNodes = V.fromList $ FGL.labNodes graph
-    
+
     hasChoice :: Anot.Annotation -> Bool
     hasChoice anot = 
       case Anot.toMaybe anot of
         Just (Alloc.AllocationChoice _) -> True
         _                               -> False
-    
+
     isManifest :: Anot.Annotation -> Bool
     isManifest anot = 
       case Anot.toMaybe anot of
         Just Alloc.Manifest -> True
         _                   -> False
-    
+
     focus2 = 
       V.map (getSyncBools . OM.getA . snd) $
       V.filter (isValue . snd) idxNodes
-    
+
     isValue nd = case nd of
       OM.NValue _ _ -> True
       _             -> False
@@ -248,7 +249,7 @@ putGraph graph = do
     getSyncBools :: Anot.Annotation -> (Bool, Bool)
     getSyncBools xs = let ys = Anot.toList xs in
       (Sync.Pre `elem` ys, Sync.Post `elem` ys)
-      
+
     put2 (a,b) = put a >> put b
 
 
@@ -284,13 +285,13 @@ overwriteGraph graph = do
       V.filter (isValue . snd) idxNodes
 
     idxNodes = V.fromList $ FGL.labNodes graph
-    
+
     hasChoice :: Anot.Annotation -> Bool
     hasChoice anot = 
       case Anot.toMaybe anot of
         Just (Alloc.AllocationChoice _) -> True
         _                               -> False
-    
+
     isManifest :: Anot.Annotation -> Bool
     isManifest anot = 
       case Anot.toMaybe anot of
@@ -330,13 +331,13 @@ overwriteGraph graph = do
     anots :: V.Vector (FGL.Node, Anot.Annotation)
     anots = V.fromList $ map (\(n, lab) -> (n, OM.getA lab)) $ FGL.labNodes graph
 
-    
+
     hasChoice :: Anot.Annotation -> Bool
     hasChoice anot = 
       case Anot.toMaybe anot of
         Just (Alloc.AllocationChoice _) -> True
         _                               -> False
-    
+
     isManifest :: Anot.Annotation -> Bool
     isManifest anot = 
       case Anot.toMaybe anot of

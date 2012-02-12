@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, NoImplicitPrelude, RankNTypes, TypeSynonymInstances  #-}
+{-# LANGUAGE CPP, FlexibleInstances, RankNTypes, TypeSynonymInstances  #-}
 {-# OPTIONS -Wall #-}
 
 -- | A monadic library to build dataflow graphs for OM. 

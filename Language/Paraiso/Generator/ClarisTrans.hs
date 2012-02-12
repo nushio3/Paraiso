@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts, ImpredicativeTypes,
-MultiParamTypeClasses, NoImplicitPrelude, OverloadedStrings,
+{-# LANGUAGE CPP, FlexibleContexts, ImpredicativeTypes, NoImplicitPrelude,
+MultiParamTypeClasses, OverloadedStrings,
 RankNTypes #-}
 
 {-# OPTIONS -Wall #-}
@@ -9,6 +9,7 @@ module Language.Paraiso.Generator.ClarisTrans (
   headerFile, sourceFile, Context
   ) where
 
+import           Control.Monad 
 import qualified Data.Dynamic as Dyn
 import qualified Data.List as L
 import qualified Data.ListLike as LL
@@ -16,6 +17,7 @@ import qualified Data.ListLike.String as LL
 import           Language.Paraiso.Generator.Claris
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
+import           NumericPrelude hiding ((++))
 
 class Translatable a where
   translate :: Context -> a -> Text

@@ -1,5 +1,5 @@
-{-# LANGUAGE  FlexibleContexts, FlexibleInstances, KindSignatures, MultiParamTypeClasses, 
-NoImplicitPrelude, RankNTypes, UndecidableInstances #-}
+{-# LANGUAGE CPP,  FlexibleContexts, FlexibleInstances, KindSignatures, MultiParamTypeClasses, 
+ RankNTypes, UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
 -- | Basic definitions for optimization 
@@ -19,7 +19,6 @@ import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM
 import           Language.Paraiso.Prelude
-import Prelude (Num)
 
 
 -- | (Ready v g) indicates that the pair (v, g) has all the instances 

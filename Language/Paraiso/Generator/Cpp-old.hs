@@ -1,5 +1,5 @@
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, 
-  MultiParamTypeClasses, NoImplicitPrelude, PackageImports, 
+{-# LANGUAGE CPP, FlexibleContexts, FlexibleInstances, 
+  MultiParamTypeClasses, PackageImports, 
   TypeFamilies #-}
 {-# OPTIONS -Wall #-}
 -- | a code generator definition for single-core c++ program.
