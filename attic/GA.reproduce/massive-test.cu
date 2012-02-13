@@ -9,6 +9,8 @@
 #include <thrust/host_vector.h>
 #include <unistd.h>
 
+#include "riemann-solver.h"
+
 #include "Hydro.hpp"
 
 using namespace std;
@@ -47,22 +49,24 @@ void dump (string fn, Hydro &sim) {
 struct Field {
   virtual void at(const double t, const double x, const double y,
 		  double &dens, double &vx, double &vy, double &p) = 0;
+  virtual double max_t() = 0;
 };
 
 
 struct EntropyWave : public Field {
   virtual void at(const double t, const double x, const double y,
-	  double &dens, double &vx, double &vy, double &p) {
+		  double &dens, double &vx, double &vy, double &p) {
     vx = 1;
     vy = 0;
     dens = 2 + sin(6.2832*(x - vx * t));
     p = 1;
   }
+  virtual double max_t() { return 1.0; }
 };
 
 struct SoundWave : public Field {
   virtual void at(const double t, const double x, const double y,
-	  double &dens, double &vx, double &vy, double &p) {
+		  double &dens, double &vx, double &vy, double &p) {
     const Real kGamma = 5.0 / 3.0;
     const Real soundSpeed = 1.0;
     const Real amplitude = 1e-4;
@@ -75,7 +79,19 @@ struct SoundWave : public Field {
     dens = dens0 + dens0/soundSpeed * vx;
     p = p0 + kGamma * p0 / soundSpeed * vx;
   }
+  virtual double max_t() { return 1.0; }
 };
+
+struct SodProblem : public Field {
+  virtual void at(const double t, const double x, const double y,
+		  double &dens, double &vx, double &vy, double &p) {
+    double u = (x-0.5)/(t+1e-300);
+    solve_riemann_1d(1.0, 0.0, 1.0, 0.125, 0.0, 0.1,
+		     u, dens, vx, p);
+    vy = 0;
+  }
+  virtual double max_t() { return 0.25; }
+}; 
 
 vector<double> override (bool global, double t, Field &solution, Hydro &sim) {
   thrust::host_vector<Real> dens, vx, vy, p;
@@ -143,48 +159,57 @@ int main (int argc, char **argv) {
   }
   
   cudaSetDevice(1);
-  Hydro sim;
-  W = sim.size0();
-  H = sim.size1();
 
-  sim.static_1_time = 0;
-  sim.static_2_cfl = 0.5;
-  sim.static_5_extent0 = 1.0;
-  sim.static_6_extent1 = 1.0;
-  sim.static_3_dR0 = sim.static_5_extent0 / W;
-  sim.static_4_dR1 = sim.static_6_extent1 / H;
-  sim.init();
-  char buf[256];
-  sprintf(buf, "mkdir -p output-g%d", antiAlias);
-  system(buf);
-  int ctr = 0;
-  int steps = 0;
+  vector<Field*> examItem;
+  examItem.push_back(new EntropyWave());
+  examItem.push_back(new SoundWave());
+  examItem.push_back(new SodProblem());
   
-  SoundWave f;
+  for (int examIndex = 0; examIndex < examItem.size(); ++examIndex ){
+    Hydro sim;
+    W = sim.size0();
+    H = sim.size1();
+    
+    sim.static_1_time = 0;
+    sim.static_2_cfl = 0.5;
+    sim.static_5_extent0 = 1.0;
+    sim.static_6_extent1 = 1.0;
+    sim.static_3_dR0 = sim.static_5_extent0 / W;
+    sim.static_4_dR1 = sim.static_6_extent1 / H;
+    sim.init();
+    char buf[256];
+    sprintf(buf, "mkdir -p output-g%d", antiAlias);
+    system(buf);
+    int ctr = 0;
+    int steps = 0;
+  
+    Field &f = *examItem[examIndex];
 
-  vector<double> residuals;
-  while (ctr <= 10) {
-    double t = sim.static_1_time;
-    if (mode==0) cerr << sim.static_1_time << endl;
-    if (!isfinite(t)) return -1;
-    residuals = override(ctr <= 0 , t, f, sim);
-    sim.proceed();
-    if (t > 0.1 * ctr) {
-      sprintf(buf, "output-g%d/snapshot%04d.txt", antiAlias, ctr);
-      if (mode==0) dump(buf, sim);
-      ++ctr;
+    vector<double> residuals;
+    while (ctr <= 10) {
+      double t = sim.static_1_time;
+      if (mode==0) cerr << sim.static_1_time << endl;
+      if (!isfinite(t)) return -1;
+      residuals = override(ctr <= 0 , t, f, sim);
+      sim.proceed();
+      if (t > 0.1 * f.max_t() * ctr) {
+	sprintf(buf, "output-exam%d/snapshot%04d.txt", examIndex, ctr);
+	if (mode==0) dump(buf, sim);
+	++ctr;
+      }
+      ++steps;
     }
-    ++steps;
-  }
 
-  if (mode==1) {
-    ofstream ofs("sound.exam");
-    ofs << W
-	<< " " << H
-	<< " " << steps
-	<< setprecision(20);
-    for (int i = 0; i < residuals.size(); ++i)
-      ofs << " " << residuals[i];
-    ofs << endl;
+    if (mode==1) {
+      sprintf(buf, "item%d.exam", examIndex);
+      ofstream ofs(buf);
+      ofs << W
+	  << " " << H
+	  << " " << steps
+	  << setprecision(20);
+      for (int i = 0; i < residuals.size(); ++i)
+	ofs << " " << residuals[i];
+      ofs << endl;
+    }
   }
 }

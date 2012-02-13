@@ -295,7 +295,7 @@ void solve_riemann_1d
 	ret_density  = right_star_density;
 	ret_velocity = star_speed; 
 	ret_pressure = star_pressure;
-	int;	
+	return;
       }
     }
   }
