@@ -32,7 +32,7 @@ SCRIPT
   }
   sh "chmod 755 #{jobFn}"
   if ARGV.index('-X')
-    sh "t2sub -N job-exam -q G  -W group_list=t2g-ppc-all  -l select=1:gpus=3:mem=21gb -l walltime=1:40:00 ./#{jobFn}"
+    sh "t2sub -N job-exam -q G  -W group_list=t2g-ppc-all  -l select=1:gpus=3:mem=21gb -l walltime=24:00:00 ./#{jobFn}"
   end
 end
 

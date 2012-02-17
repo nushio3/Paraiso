@@ -151,7 +151,7 @@ class FsCache
 
   def loadSpecies(id, dir)
     begin
-      return @record[id] if id < @record.length - 50 && @record[id] 
+      return @record[id] if id < @record.length - 100 && @record[id] 
       
       ret = Species.new
       ret.id = id

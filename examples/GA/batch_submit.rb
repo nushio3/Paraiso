@@ -32,7 +32,7 @@ ret = []
       #job = '-i genomeBank/Iwatsuchibiko-Gen2.dna'
       #ret << "./make_task.rb -w #{dir} #{no3} #{job} #{islandFlag}"
 
-      job = "-n 10 -s stat#{tag}"
+      job = "-n 20 -s stat#{tag}"
       ret << "./make_task.rb -w #{dir} #{no3} #{job} #{islandFlag}"
     }
   }

@@ -48,28 +48,28 @@ void dump (string fn, Hydro &sim) {
 
 struct Field {
   virtual void at(const double t, const double x, const double y,
-		  double &dens, double &vx, double &vy, double &p) = 0;
-  virtual double max_t() = 0;
+		  double &dens, double &vx, double &vy, double &p) const = 0;
+  virtual double max_t() const = 0;
 };
 
 
 struct EntropyWave : public Field {
   virtual void at(const double t, const double x, const double y,
-		  double &dens, double &vx, double &vy, double &p) {
+		  double &dens, double &vx, double &vy, double &p) const {
     vx = 1;
     vy = 0;
     dens = 2 + sin(6.2832*(x - vx * t));
     p = 1;
   }
-  virtual double max_t() { return 1.0; }
+  virtual double max_t() const { return 1.0; }
 };
 
 struct SoundWave : public Field {
   virtual void at(const double t, const double x, const double y,
-		  double &dens, double &vx, double &vy, double &p) {
+		  double &dens, double &vx, double &vy, double &p) const {
     const Real kGamma = 5.0 / 3.0;
     const Real soundSpeed = 1.0;
-    const Real amplitude = 1e-4;
+    const Real amplitude = 1e-5;
 
     const Real dens0 = kGamma;
     const Real p0 = 1;
@@ -79,19 +79,43 @@ struct SoundWave : public Field {
     dens = dens0 + dens0/soundSpeed * vx;
     p = p0 + kGamma * p0 / soundSpeed * vx;
   }
-  virtual double max_t() { return 1.0; }
+  virtual double max_t() const { return 1.0; }
 };
 
 struct SodProblem : public Field {
+  double shock_x;
+  SodProblem(double shock_x) : shock_x(shock_x) {}
   virtual void at(const double t, const double x, const double y,
-		  double &dens, double &vx, double &vy, double &p) {
-    double u = (x-0.5)/(t+1e-300);
+		  double &dens, double &vx, double &vy, double &p) const {
+    double u = (x-shock_x)/(t+1e-300);
     solve_riemann_1d(1.0, 0.0, 1.0, 0.125, 0.0, 0.1,
 		     u, dens, vx, p);
     vy = 0;
   }
-  virtual double max_t() { return 0.25; }
+  virtual double max_t() const { return 0.125; }
 }; 
+
+struct Oblique : public Field {
+  double theta;
+  const Field &original;
+  Oblique (double theta, Field &original) : theta(theta), original(original) {}
+
+  virtual void at(const double t, const double x, const double y,
+		  double &dens, double &vx, double &vy, double &p) const {
+    double x1 = x - 0.5, y1 = y - 0.5;
+    double si = sin(theta), co = cos(theta);
+    double x0 = co * x1 - si * y1;
+    double y0 = si * x1 + co * y1;
+
+    double vx0, vy0;
+    original.at(t,x0+0.5,y0+0.5,dens,vx0,vy0,p);
+
+    vx = co * vx0 + si * vy0;
+    vy =-si * vx0 + co * vy0;
+  }
+  
+  virtual double max_t() const { return original.max_t(); }
+};
 
 vector<double> override (bool global, double t, Field &solution, Hydro &sim) {
   thrust::host_vector<Real> dens, vx, vy, p;
@@ -163,7 +187,11 @@ int main (int argc, char **argv) {
   vector<Field*> examItem;
   examItem.push_back(new EntropyWave());
   examItem.push_back(new SoundWave());
-  examItem.push_back(new SodProblem());
+  examItem.push_back(new SodProblem(0.5));
+
+  for (int i = 0; i < 3; ++i) {
+    examItem.push_back(new Oblique(1.0472, *examItem[i]));
+  }
   
   for (int examIndex = 0; examIndex < examItem.size(); ++examIndex ){
     Hydro sim;
