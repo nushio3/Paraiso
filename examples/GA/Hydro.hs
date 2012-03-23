@@ -18,12 +18,18 @@ module Hydro(Real, Dim, B, BR, BGR, bind,
 import qualified Algebra.Additive  as Additive
 import qualified Algebra.Field     as Field
 import qualified Algebra.Ring      as Ring
+import           Control.Applicative
+import           Control.Monad hiding (forM, mapM)
 import           Data.Tensor.TypeLevel
+import           Data.Foldable    
+import           Data.Traversable 
 import           Language.Paraiso.Annotation (Annotation)
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.OM.Value as Val
 import           Language.Paraiso.Prelude 
+import           NumericPrelude hiding ((&&), (||), (++), mapM)
+
 
 ----------------------------------------------------------------
 -- Binder monad utilities
