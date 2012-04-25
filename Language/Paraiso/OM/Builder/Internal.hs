@@ -348,6 +348,10 @@ instance (TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g a (Value r c)) 
   one = return $ FromImm unitTRealm Ring.one
   (*) = mkOp2 A.Mul
   fromInteger = imm . fromInteger
+  a ^ n
+   | n== 0 = fromInteger 1
+   | n== 1 = a
+   | True  = a * a^(n-1)
 
 -- | Builder is Ring 'IntegralDomain.C'.
 -- You can use div and mod.
