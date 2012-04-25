@@ -5,20 +5,31 @@
 #include <vector>
 using namespace std;
 
-int main () {
-  const int N = 100;
-  vector<double> f(N),u(N), new_f(N),new_u(N);
-  const double c = 1.0;  
+
+vector<double> fieldF, fieldG;
+const int N = 256;
+
+void proceed () {
+  const double c = 3.43;  
+  const int N = fieldF.size();
+
+  vector<double> f0 = fieldF;
   const double dx = 2 * 3.1415926536 / N;
   const double dt = 1.0 * dx / c;
+  
+}
+
+int main () {
+  fieldF.resize(N);
+  fieldG.resize(N);
   for (int i = 0; i < N; ++i) {
     double x = dx*(i+0.5);
-    f[i] = sin(x);
-    u[i] = cos(3*x);
+    fieldF[i] = sin(x);
+    fieldG[i] = cos(3*x);
   }
 
   int ctr = 0;
-  for (double t = 0; t < 3.0; t+=dt) {
+  for (double t = 0; t < 10.0; t+=dt) {
     if (t >= 0.1 * ctr) {
       ostringstream fn; fn << (13000 + ctr) << ".txt";
       ofstream ofs(fn.str().c_str());
