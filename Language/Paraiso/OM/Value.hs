@@ -15,7 +15,7 @@ import qualified Language.Paraiso.OM.Realm as R
 
 
 -- | value type, with its realm and content type discriminated in type level
-data (R.TRealm rea, Typeable con) => 
+data
   Value rea con = 
   -- | data obtained from the dataflow graph.
   -- 'realm' carries a type-level realm information, 

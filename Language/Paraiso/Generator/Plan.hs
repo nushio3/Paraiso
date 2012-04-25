@@ -85,9 +85,8 @@ instance Referrer (StorageRef v g a) (Plan v g a) where
   parent = storageRefParent
 instance Nameable (StorageRef v g a) where
   name x = mkName $ case storageIdx x of
-    StaticRef i     -> "static_" ++ showT i ++ "_" ++
-                       nameText (OM.staticValues (setup $ parent x) V.! i)
-    ManifestRef i j -> "manifest_"  ++ showT i ++ "_" ++ showT j
+    StaticRef i     -> nameText (OM.staticValues (setup $ parent x) V.! i)
+    ManifestRef i j -> "om_m"  ++ showT i ++ "_" ++ showT j
 instance Realm.Realmable (StorageRef v g a) where
   realm x = let DVal.DynValue r _ = storageDynValue x in r
 

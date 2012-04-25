@@ -5,8 +5,10 @@ module Language.Paraiso.OM.PrettyPrint (
   prettyPrint, prettyPrintA, prettyPrintA1
   ) where
 
+import           Control.Monad
 import qualified Data.Graph.Inductive                   as FGL
 import           Data.List (sort)
+import           Data.Maybe
 import qualified Data.Set                               as Set
 import qualified Data.Text                              as T
 import qualified Data.Vector                            as V
@@ -17,6 +19,7 @@ import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Annotation.Boundary   as Boundary
 import qualified Language.Paraiso.Annotation.Dependency as Depend
 import qualified Language.Paraiso.Annotation.Execution  as Exec
+import           Language.Paraiso.Generator.ClarisTrans (dynamicDB)
 import           Language.Paraiso.Interval
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
@@ -59,8 +62,10 @@ prettyPrintA ppAnot om
         ] : ppAnot (getA nodeLabel)
 
     ppNode n = case n of
-      NValue x _ -> showT x
-      NInst  x _ -> showT x
+      NValue x          _ -> showT x
+      NInst  (Imm dynX) _ -> 
+        "Imm " ++ (fromJust $ dynamicDB dynX `mplus` Just (showT dynX))
+      NInst  x          _ -> showT x
 
     ppEdges symbol xs 
       | length xs == 0 = ""
@@ -86,18 +91,18 @@ ppAnot1 om anots = map ("  "++) $ concat cands
       , map showT ((Anot.toList anots) ::  [Depend.KernelWriteGroup])        
       , map showT ((Anot.toList anots) ::  [Depend.OMWriteGroup])                
       ]
-      
+
     toValidList :: Opt.Ready v g => OM v g Anot.Annotation -> Anot.Annotation -> [Boundary.Valid g]      
     toValidList _ = Anot.toList
-                   
+
     ppValid (Boundary.Valid xs) = LL.unwords $ map ppInterval xs
     ppInterval (Interval x y) 
       = ppNB x ++ ".." ++ ppNB y
     ppInterval Empty = "[empty]" 
-    
+
     ppNB (Boundary.NegaInfinity)    = "[-inf"    
     ppNB (Boundary.LowerBoundary x) = "[" ++ showT x
     ppNB (Boundary.UpperBoundary x) = showT x ++ "]"
     ppNB (Boundary.PosiInfinity)    = "+inf]"
-    
+
     ppDC (Depend.Calc s) = showT $ Set.toList s

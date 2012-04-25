@@ -6,7 +6,8 @@ RankNTypes #-}
 module Language.Paraiso.Generator.ClarisTrans (      
   Translatable(..), paren, 
   joinBy, joinEndBy, joinBeginBy, joinBeginEndBy, 
-  headerFile, sourceFile, Context
+  headerFile, sourceFile, Context,
+  typeRepDB, dynamicDB
   ) where
 
 import           Control.Monad 
@@ -143,13 +144,13 @@ instance Translatable Qualifier where
 
 instance Translatable Dyn.TypeRep where  
   translate _ x = 
-    case msum $ map ($x) typeRepDB of
+    case typeRepDB x of
       Just str -> str
       Nothing  -> error $ "cannot translate Haskell type: " ++ show x
 
 instance Translatable Dyn.Dynamic where  
   translate _ x = 
-    case msum $ map ($x) dynamicDB of
+    case dynamicDB x of
       Just str -> str
       Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
 
@@ -178,12 +179,12 @@ instance Translatable Expr where
         ArrayAccess x y        -> pt x ++ paren Bracket (t y)
         CommentExpr str x      -> t x ++ " " ++ paren SlashStar str ++ " "
 -- | The databeses for Haskell -> Cpp type name translations.
-typeRepDB:: [Dyn.TypeRep -> Maybe Text]
-typeRepDB = map fst symbolDB
+typeRepDB:: Dyn.TypeRep -> Maybe Text
+typeRepDB x = msum $ map (\cand -> fst cand $ x) symbolDB
 
 -- | The databeses for Haskell -> Cpp immediate values translations.
-dynamicDB:: [Dyn.Dynamic -> Maybe Text]
-dynamicDB = map snd symbolDB
+dynamicDB:: Dyn.Dynamic -> Maybe Text
+dynamicDB x = msum $ map (\cand -> snd cand $ x) symbolDB
 
 -- | The united database for translating Haskell types and immediate values to Cpp
 symbolDB:: [(Dyn.TypeRep -> Maybe Text, Dyn.Dynamic -> Maybe Text)]

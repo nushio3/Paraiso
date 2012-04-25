@@ -330,7 +330,7 @@ annotate f builder1 = do
   return $ FromNode r1 c1 n1 
 
 -- | (<?>) = annotate
-infix 0 <?>
+infixr 0 <?>
 (<?>) :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
 (<?>) = annotate
 

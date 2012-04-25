@@ -27,7 +27,7 @@ defaultSetup sz
     directory = "./",
     optLevel = Opt.O3,
     localSize = sz,
-    cudaGridSize = (128, 128)
+    cudaGridSize = (32, 32)
   }
 
 data Language
