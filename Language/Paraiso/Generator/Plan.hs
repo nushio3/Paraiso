@@ -64,7 +64,9 @@ data SubKernelRef v g a
 instance Referrer (SubKernelRef v g a) (Plan v g a) where
   parent = subKernelParent
 instance Nameable (SubKernelRef v g a) where
-  name x = mkName $ nameText (parent x) ++ "_sub_" ++ showT (omWriteGroupIdx x)
+  name x = let
+    na = nameText $ kernels (parent x) V.! (kernelIdx x)
+    in mkName $ "om_" ++ na ++ "_sub_" ++ showT (omWriteGroupIdx x)
 instance Realm.Realmable (SubKernelRef v g a) where
   realm = subKernelRealm
 

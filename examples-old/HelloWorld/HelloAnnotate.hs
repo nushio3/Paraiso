@@ -5,7 +5,9 @@
 import           Data.Dynamic
 import           Data.Tensor.TypeLevel
 import qualified Data.Text.IO as T
-import           Language.Paraiso.Annotation (Annotation)
+import qualified Language.Paraiso.Annotation as Anot
+import qualified Language.Paraiso.Annotation.Allocation as Alloc
+import qualified Language.Paraiso.Annotation.SyncThreads as Sync
 import           Language.Paraiso.Generator (generateIO)
 import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
@@ -15,33 +17,39 @@ import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.Optimization
-import           NumericPrelude
+import           Language.Paraiso.Prelude 
+import qualified Language.Paraiso.Tuning.Genetic as GA
+import           NumericPrelude hiding ((++))
 import           System.Process (system)
 
 bind = fmap return
+loadLD = load TLocal (undefined::Double)
 
-buildProceed :: Builder Vec2 Int Annotation ()
-buildProceed = do 
-  x <- bind $ load TGlobal (undefined::Int) $ cellName
+proceed :: Builder Vec1 Int Anot.Annotation ()
+proceed = do 
+  --x <- bind $ Anot.add Sync.Pre <?> loadLD density
+  --y <- bind $ Anot.add Alloc.Manifest <?> x * x
+  x <- bind $ loadLD density
   y <- bind $ x * x
   z <- bind $ y + y
-  store cellName z
+  store density z
 
-cellName :: Name
-cellName = mkName "someCalc"
+density :: Name
+density = mkName "density"
 
 myVars :: [Named DynValue]
-myVars = [Named cellName DynValue{DVal.realm = Global, typeRep = typeOf (0::Int)}]
+myVars = [Named density DynValue{DVal.realm = Local, typeRep = typeOf (0::Double)}]
 
-myOM :: OM Vec2 Int Annotation
+myOM :: OM Vec1 Int Anot.Annotation
 myOM = optimize O3 $
   makeOM (mkName "Hello") [] myVars
-  [(mkName "proceed", buildProceed)]
+  [(mkName "proceed", proceed)]
 
-mySetup :: Native.Setup Vec2 Int
+mySetup :: Native.Setup Vec1 Int
 mySetup = 
-  (Native.defaultSetup $ Vec :~ 256 :~ 256)
-  { Native.directory = "./dist/" 
+  (Native.defaultSetup $ Vec :~ 256)
+  { Native.directory = "./dist/", 
+    Native.language = Native.CUDA
   }
 
 
@@ -50,4 +58,8 @@ main = do
   _ <- system "mkdir -p output"
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
   _ <- generateIO mySetup myOM
+  let originalSpecies = GA.makeSpecies mySetup myOM
+      originalDNA     = GA.readGenome $ originalSpecies
+  T.writeFile "output/original.dna" $ (++"\n") $ showT $ originalDNA
+
   return ()

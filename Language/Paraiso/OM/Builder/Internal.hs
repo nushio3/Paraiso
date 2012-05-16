@@ -13,6 +13,7 @@ module Language.Paraiso.OM.Builder.Internal
      B, BuilderOf,
      buildKernel, initState, 
      modifyG, getG, freeNode, addNode, addNodeE, valueToNode, lookUpStatic,
+     bind,
      load, store,
      reduce, broadcast,
      shift, loadIndex,loadSize,
@@ -155,6 +156,13 @@ lookUpStatic (Named name0 type0)= do
   when (type0 /= type1) $ error ("type mismatch; expected: " ++ show type1 ++ "; " ++
                                 " actual: " ++ nameStr name0 ++ "::" ++ show type0)
   return $ StaticIdx ret
+
+
+-- | run the given builder monad, get the result graph node,
+--   and wrap it in a 'return' monad for later use.
+--   it is like binding a value to a monad-level identifier.
+bind :: (Monad m, Functor m) => m a -> m (m a)
+bind = fmap return
 
 -- | Load from a static value.
 load :: (TRealm r, Typeable c) => 
@@ -351,7 +359,16 @@ instance (TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g a (Value r c)) 
   a ^ n
    | n== 0 = fromInteger 1
    | n== 1 = a
-   | True  = a * a^(n-1)
+   | True  = do
+       ba <- fmap return a
+       f ba n
+       where
+         f x 1  = x
+         f x n2 = do
+           let n3     = div n2 2
+               modify = if n2 - 2*n3 > 0 then (x*) else id
+           bx_n3 <- fmap return $ f x n3
+           modify $ bx_n3*bx_n3
 
 -- | Builder is Ring 'IntegralDomain.C'.
 -- You can use div and mod.

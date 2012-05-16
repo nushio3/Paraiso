@@ -71,7 +71,7 @@ translate setup plan =
            concat $
            flip map storageVars $ \memb -> case memb of
              C.MemberVar _ var -> 
-               [C.FuncCallUsr (name var) [C.FuncCallStd "memorySize" []]]
+               [C.FuncCallUsr (name var) [C.FuncCallStd "om_memory_size" []]]
              _ -> []
       }
 
@@ -103,10 +103,10 @@ translate setup plan =
 -- Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
-  makeMami False  "size" size ++ 
-  makeMami True "lowerMargin" lM ++   
-  makeMami True "upperMargin" uM ++   
-  makeMami False  "memorySize" memorySize
+  makeMami False  "om_size" size ++ 
+  makeMami True "om_lower_margin" lM ++   
+  makeMami True "om_upper_margin" uM ++   
+  makeMami False  "om_memory_size" memorySize
   where
     size = F.toList $ Native.localSize setup
     memorySize = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
@@ -115,7 +115,7 @@ memberFuncForSize env@(Env setup plan) =
 
     makeMami alone label xs = 
       (if not alone then (finale label xs :) else id)  $
-      map (\(i,x) -> tiro (label ++  show i) x) $
+      map (\(i,x) -> tiro (label ++ "_" ++ show i) x) $
       zip [(0::Int)..] xs
 
     tiro str ret =

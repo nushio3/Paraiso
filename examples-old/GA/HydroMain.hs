@@ -210,23 +210,22 @@ interpolate order i cell = do
   return (lp,rp)
 
 interpolateSingle :: Int -> BR -> BR -> BR -> BR -> B (BR,BR)
-interpolateSingle order x0 x1 x2 x3 = 
-  if order == 1 
-  then do
+interpolateSingle order x0 x1 x2 x3 
+  | order == 1 = do
     return (x1, x2)
-  else if order == 2
-       then do
-         d01 <- bind $ x1-x0
-         d12 <- bind $ x2-x1
-         d23 <- bind $ x3-x2
-         let absmaller a b = select ((a*b) `le` 0) 0 $ select (abs a `lt` abs b) a b
-         d1 <- bind $ absmaller d01 d12
-         d2 <- bind $ absmaller d12 d23
-         l <- bind $ x1 + d1/2
-         r <- bind $ x2 - d2/2
---         return ( Anot.add Alloc.Manifest <?> l,  Anot.add Alloc.Manifest <?> r)
-         return (l,r)
-       else error $ show order ++ "th order spatial interpolation is not yet implemented"
+  | order == 2 = do
+    d01 <- bind $ x1-x0
+    d12 <- bind $ x2-x1
+    d23 <- bind $ x3-x2
+    let absmaller a b = select ((a*b) `le` 0) 0 $ 
+                        select (abs a `lt` abs b) a b
+    d1 <- bind $ absmaller d01 d12
+    d2 <- bind $ absmaller d12 d23
+    l <- bind $ x1 + d1/2
+    r <- bind $ x2 - d2/2
+    return (l,r)
+--  return (Anot.add Alloc.Manifest <?> l,  Anot.add Alloc.Manifest <?> r)
+
 
 hllc :: Axis Dim -> Hydro BR -> Hydro BR -> B (Hydro BR)
 hllc i left right = do

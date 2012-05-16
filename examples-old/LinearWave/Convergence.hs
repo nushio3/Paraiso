@@ -42,8 +42,8 @@ proceed = do
   dt <- bind $ dx / c
 
   f1 <- bind $ f0 + dt * g0
-  fL <- bind $ shift (Vec:~ -1) f1 
-  fR <- bind $ shift (Vec:~  1) f1 
+  fR <- bind $ shift (Vec:~ -1) f1 
+  fL <- bind $ shift (Vec:~  1) f1 
   g1 <- bind $ g0 + dt * c^2 / dx^2 * 
         (fL + fR - 2 * f1)
   store fieldF f1
@@ -51,7 +51,7 @@ proceed = do
   
   dfdx <- bind $ (fR - fL) / (2*dx)
   store energy $ reduce Reduce.Sum $
-    0.5 * (c^2 * dfdx^2 + g1^2)
+    0.5 * (c^2 * dfdx^2 + ((g0+g1)/2)^2) * dx
 
 fieldF, fieldG, energy :: Name
 fieldF = mkName "fieldF"
@@ -71,16 +71,24 @@ myOM = optimize O3 $
   [(mkName "initialize", initialize), 
    (mkName "proceed", proceed)]
 
-mySetup :: Native.Setup Vec1 Int
-mySetup = 
-  (Native.defaultSetup $ Vec :~ 2560)
+mySetup :: Int -> Native.Setup Vec1 Int
+mySetup n = 
+  (Native.defaultSetup $ Vec :~ n)
   { Native.directory = "./dist/" 
   }
 
 
-main :: IO ()
-main = do
+mainTest :: Int -> IO ()
+mainTest n = do
   _ <- system "mkdir -p output"
   T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
-  _ <- generateIO mySetup myOM
+  _ <- generateIO (mySetup n) myOM 
+  _ <- system "make"
+  _ <- system "./a.out"
   return ()
+  
+main :: IO ()  
+main = mapM_  mainTest $
+       concat $ [[2*2^n, 3*2^n]| n <- [2..10]]
+  
+  

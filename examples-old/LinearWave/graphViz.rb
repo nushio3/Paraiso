@@ -46,7 +46,7 @@ DOT
         inst3 = inst
         inst3 = 'Imm pi' if inst.index('3.14')
       elsif inst2 == 'Load' || inst2 == 'Store' 
-        static = ['f','g','energy']
+        static = ['fieldF','fieldG','energy']
         rest = eval(inst.strip.split(/\s+/)[1])
         inst3 = "#{inst2} '#{rest}'"
         decor = 'shape=ellipse, style=dotted, fontcolor="#ff0000"'

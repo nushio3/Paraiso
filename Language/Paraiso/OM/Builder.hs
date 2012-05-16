@@ -11,6 +11,7 @@ module Language.Paraiso.OM.Builder
      BuilderOf,
      buildKernel,
      
+     bind,
      load, store, imm,
      reduce, broadcast, shift, 
      loadIndex, loadSize,

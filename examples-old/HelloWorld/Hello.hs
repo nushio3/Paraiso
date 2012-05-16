@@ -15,7 +15,7 @@ import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.Optimization
-import           Language.Paraiso.Prelude
+import           NumericPrelude
 import           System.Process (system)
 
 bind = fmap return
