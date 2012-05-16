@@ -15,47 +15,32 @@ import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.Optimization
-import           NumericPrelude
+import           Language.Paraiso.Prelude
 import           System.Process (system)
 
-bind :: (Monad m, Functor m) => m a -> m (m a)
 bind = fmap return
 
-proceed :: Builder Vec1 Int Annotation ()
-proceed = do 
-  f0 <- bind $ load TLocal (0::Double) $ fieldF
-  g0 <- bind $ load TLocal (0::Double) $ fieldG
-  c  <- bind $ imm 1.0
-  n  <- bind $ loadSize TLocal (0::Double) $ Axis 0
-  dx <- bind $ 2 * pi / n
-  dt <- bind $ dx / c
-  
-  f1 <- bind $ f0 + dt * g0
-  g1 <- bind $ g0 + dt * c**2 / dx**2 * 
-        (shift (Vec:~ -1) f1 + 
-         shift (Vec:~  1) f1 -
-         2* f1)
-  store fieldF f1
-  store fieldG g1
+buildProceed :: Builder Vec2 Int Annotation ()
+buildProceed = do 
+  x <- bind $ load TGlobal (undefined::Int) $ cellName
+  y <- bind $ x * x
+  z <- bind $ y + y
+  store cellName z
 
-fieldF, fieldG :: Name
-fieldF = mkName "fieldF"
-fieldG = mkName "fieldG"
-
+cellName :: Name
+cellName = mkName "someCalc"
 
 myVars :: [Named DynValue]
-myVars = [Named fieldF DynValue{DVal.realm = Local, typeRep = typeOf (0::Double)}, 
-          Named fieldG DynValue{DVal.realm = Local, typeRep = typeOf (0::Double)}
-          ]
+myVars = [Named cellName DynValue{DVal.realm = Global, typeRep = typeOf (0::Int)}]
 
-myOM :: OM Vec1 Int Annotation
+myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
-  makeOM (mkName "LinearWave") [] myVars
-  [(mkName "proceed", proceed)]
+  makeOM (mkName "Hello") [] myVars
+  [(mkName "proceed", buildProceed)]
 
-mySetup :: Native.Setup Vec1 Int
+mySetup :: Native.Setup Vec2 Int
 mySetup = 
-  (Native.defaultSetup $ Vec :~ 256)
+  (Native.defaultSetup $ Vec :~ 256 :~ 256)
   { Native.directory = "./dist/" 
   }
 

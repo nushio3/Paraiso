@@ -12,26 +12,24 @@ import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.DynValue as DVal
-import           Language.Paraiso.OM.PrettyPrint
+import           Language.Paraiso.OM.PrettyPrint (prettyPrintA1)
 import           Language.Paraiso.OM.Realm 
 import           Language.Paraiso.Optimization
-import           Language.Paraiso.Prelude
+import           NumericPrelude
 import           System.Process (system)
-
-bind = fmap return
 
 buildProceed :: Builder Vec2 Int Annotation ()
 buildProceed = do 
-  x <- bind $ load TGlobal (undefined::Int) $ cellName
+  x <- bind $ load TLocal (undefined::Int) $ cellName
   y <- bind $ x * x
   z <- bind $ y + y
   store cellName z
 
 cellName :: Name
-cellName = mkName "someCalc"
+cellName = mkName "cell"
 
 myVars :: [Named DynValue]
-myVars = [Named cellName DynValue{DVal.realm = Global, typeRep = typeOf (0::Int)}]
+myVars = [Named cellName DynValue{DVal.realm = Local, typeRep = typeOf (0::Int)}]
 
 myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
