@@ -18,30 +18,33 @@ import           Language.Paraiso.Optimization
 import           NumericPrelude
 import           System.Process (system)
 
-buildProceed :: Builder Vec2 Int Annotation ()
-buildProceed = do 
-  x <- bind $ load TLocal (undefined::Int) $ cellName
-  y <- bind $ x * x
-  z <- bind $ y + y
-  store cellName z
+varName, kernelName :: Name
+varName = mkName "table"
+kernelName = mkName "create"
 
-cellName :: Name
-cellName = mkName "cell"
+create :: Builder Vec2 Int Annotation ()
+create = do 
+  x <- bind $ loadIndex (undefined::Int) (Axis 0) 
+  y <- bind $ loadIndex (undefined::Int) (Axis 1) 
+  z <- bind $ x*y
+  store varName z
 
 myVars :: [Named DynValue]
-myVars = [Named cellName DynValue{DVal.realm = Local, typeRep = typeOf (0::Int)}]
+myVars = [Named varName $ DynValue Local (typeOf (undefined::Int))]
+
+myKernels :: [Named (Builder Vec2 Int Annotation ())]
+myKernels = [Named kernelName create]
+
 
 myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
-  makeOM (mkName "Hello") [] myVars
-  [(mkName "proceed", buildProceed)]
+  makeOM (mkName "Hello") [] myVars myKernels
 
 mySetup :: Native.Setup Vec2 Int
 mySetup = 
-  (Native.defaultSetup $ Vec :~ 256 :~ 256)
+  (Native.defaultSetup $ Vec :~ 10 :~ 10)
   { Native.directory = "./dist/" 
   }
-
 
 main :: IO ()
 main = do

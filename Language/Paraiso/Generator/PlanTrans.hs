@@ -92,15 +92,15 @@ translate setup plan =
 
     storageVars = 
       V.toList $
-      V.map storageRefToMenber $
+      V.map storageRefToMember $
       Plan.storages plan
-    storageRefToMenber stRef =  
-      C.MemberVar  C.Public $ 
+    storageRefToMember stRef =  
+      C.MemberVar  C.Private $ 
       C.Var 
         (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
--- Generate member functions that returns the sizes of the mesh
+-- | Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
   makeMami False  "om_size" size ++ 
@@ -451,9 +451,9 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         _      -> error $ "shift has not 1 pre!" ++ show idxInst ++  show prepre
       OM.LoadIndex ax -> (codecLoadIndex !! axisIndex ax, [])
       OM.LoadSize  ax -> (codecLoadSize  !! axisIndex ax, [])
-      OM.Reduce op    -> let fname = T.pack ("reduce_" ++ map toLower (show op)) in
+      OM.Reduce op    -> let fname = T.pack ("om_reduce_" ++ map toLower (show op)) in
         (C.FuncCallStd fname (map creatVar prepre), [])
-      OM.Broadcast    -> let fname = "broadcast" in
+      OM.Broadcast    -> let fname = "om_broadcast" in
         (C.FuncCallStd fname (map creatVar prepre), [])
       _               -> (C.CommentExpr ("TODO : " ++ showT inst) (C.toDyn (42::Int)), [])
 
@@ -600,6 +600,8 @@ library (Env setup _) = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement $ lib
     lib = case Native.language setup of
       Native.CPlusPlus -> cpuLib
       Native.CUDA      -> gpuLib
-    cpuLib = "template <class T> T broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
-
-    gpuLib =  "template <class T>\n__device__ __host__\nT broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n" ++ "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"
+    -- use draft.cpp to generate library
+    cpuLib = "\ntemplate <class T> T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T om_reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T om_reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
+    gpuLib = "\ntemplate <class T> __device__ __host__ T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const thrust::device_vector<T> &xs) {\n  return thurust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T om_reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thurust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T om_reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thurust::max_element(xs.begin(), xs.end()));\n}\n\n"    
+    
+    --    gpuLib =  "template <class T>\n__device__ __host__\nT broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n" ++ "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"

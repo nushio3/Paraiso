@@ -36,9 +36,9 @@ data Plan v g a
       setup      :: OM.Setup v g a, -- ^ OM setup, includes all static variables
       storages   :: V.Vector (StorageRef v g a), -- ^ Newly allocated Manifest variables
       kernels    :: V.Vector (OM.Kernel v g a), -- ^ kernels
-      subKernels :: V.Vector (SubKernelRef v g a), -- ^ 
-      lowerMargin :: v g,
-      upperMargin :: v g
+      subKernels :: V.Vector (SubKernelRef v g a), -- ^ subkernels
+      lowerMargin :: v g, -- ^ the total lower margin of the OM, large enough to fit all the kernels
+      upperMargin :: v g  -- ^ the total upper margin of the OM, large enough to fit all the kernels
     }
 
 instance Nameable (Plan v g a) where name = planName    
@@ -87,8 +87,9 @@ instance Referrer (StorageRef v g a) (Plan v g a) where
   parent = storageRefParent
 instance Nameable (StorageRef v g a) where
   name x = mkName $ case storageIdx x of
-    StaticRef i     -> nameText (OM.staticValues (setup $ parent x) V.! i)
-    ManifestRef i j -> "om_m"  ++ showT i ++ "_" ++ showT j
+    StaticRef i     -> "om_s" ++ showT i ++ "_"
+                       ++ nameText (OM.staticValues (setup $ parent x) V.! i)
+    ManifestRef i j -> "om_m" ++ showT i ++ "_" ++ showT j
 instance Realm.Realmable (StorageRef v g a) where
   realm x = let DVal.DynValue r _ = storageDynValue x in r
 

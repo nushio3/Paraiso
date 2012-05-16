@@ -47,6 +47,8 @@ namee :: Named a -> a
 namee (Named _ x) = x
 
 deriving instance (Eq a) => Eq (Named a)
-deriving instance (Ord a) => Ord (Named a)
+instance (Ord a) => Ord (Named a) where
+  (Named n a) `compare` (Named m b) = (a,n) `compare` (b,m)
+  
 deriving instance (Show a) => Show (Named a)
 deriving instance (Read a) => Read (Named a)
