@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, ExistentialQuantification, 
-NoImplicitPrelude, OverloadedStrings, TupleSections #-}
+NoImplicitPrelude, OverloadedStrings, 
+TupleSections #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
@@ -19,6 +20,7 @@ import           Data.Maybe
 import qualified Data.Set                            as Set
 import           Data.Tensor.TypeLevel
 import qualified Data.Text                           as T
+import qualified Data.Traversable                    as F
 import qualified Data.Vector                         as V
 import qualified Language.Paraiso.Annotation         as Anot
 import qualified Language.Paraiso.Annotation.SyncThreads as Sync
@@ -34,8 +36,11 @@ import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude hiding (Boolean(..))
 import           NumericPrelude hiding ((++))
 
-
+-- the standard annotation type.
 type AnAn = Anot.Annotation
+
+-- the set of variable needed to construct various things,
+-- this makes the functions a bit tedious...
 data Env v g = Env (Native.Setup v g) (Plan.Plan v g AnAn)
 
 -- translate the plan to Claris
@@ -102,48 +107,54 @@ translate setup plan =
 
 -- | Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
-memberFuncForSize env@(Env setup plan) = 
-  makeMami False "om_size" size ++ 
-  makeMami True  "om_lower_margin" lM ++   
-  makeMami True  "om_upper_margin" uM ++   
-  makeMami False "om_memory_size" memorySize
+memberFuncForSize env =
+  map (C.MemberFunc C.Public True) $
+  ([omFuncLocalSizeTotal env, omFuncMemorySizeTotal env] ++) $
+  concat $ 
+  map F.toList $
+  [omFuncLocalSize env, omFuncMemorySize env, omFuncLowerMargin env, omFuncUpperMargin env]
+
+omFuncLocalSizeTotal :: Opt.Ready v g => Env v g -> C.Function                               
+omFuncLocalSize      :: Opt.Ready v g => Env v g -> v C.Function
+omFuncLocalSizeTotal = fst $ makeOmSizeFuncSet "om_size" (\(Env setup _) -> Native.localSize setup)
+omFuncLocalSize      = snd $ makeOmSizeFuncSet "om_size" (\(Env setup _) -> Native.localSize setup)
+
+omFuncMemorySizeTotal :: Opt.Ready v g => Env v g -> C.Function                               
+omFuncMemorySize      :: Opt.Ready v g => Env v g -> v C.Function
+omFuncMemorySizeTotal = fst $ makeOmSizeFuncSet "om_memory_size" 
+                        (\(Env setup plan) -> Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan)
+omFuncMemorySize      = snd $ makeOmSizeFuncSet "om_memory_size"
+                        (\(Env setup plan) -> Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan)
+
+omFuncLowerMargin     :: Opt.Ready v g => Env v g -> v C.Function
+omFuncLowerMargin     = snd $ makeOmSizeFuncSet "om_lower_margin" (\(Env _ plan) -> Plan.lowerMargin plan)
+omFuncUpperMargin     :: Opt.Ready v g => Env v g -> v C.Function
+omFuncUpperMargin     = snd $ makeOmSizeFuncSet "om_upper_margin" (\(Env _ plan) -> Plan.upperMargin plan)
+
+
+
+makeOmSizeFuncSet :: Opt.Ready v g => 
+                        Text              -- ^ The header text
+                     -> (Env v g -> v g)  -- ^ How to read the size from the environment
+                     -> (Env v g -> C.Function, Env v g -> v C.Function)
+makeOmSizeFuncSet header sizeVecReader = (prodFunc, elemFuncs)
   where
-    size = F.toList $ Native.localSize setup
-    memorySize = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
-    lM = F.toList $ Plan.lowerMargin plan
-    uM = F.toList $ Plan.upperMargin plan
+    -- reader monad
+    prodFunc = do
+      sizeVec <- sizeVecReader
+      trivialFunc header $ product $ F.toList sizeVec
+    elemFuncs = do
+      sizeVec <- sizeVecReader
+      F.sequenceA $ compose (\i -> trivialFunc (header ++ "_" ++ showT (axisIndex i)) (sizeVec ! i)) 
 
-    makeMami alone label xs = 
-      (if not alone then (finale label xs :) else id)  $
-      map (\(i,x) -> tiro (label ++ "_" ++ show i) x) $
-      zip [(0::Int)..] xs
-
-    tiro str ret =
-      C.MemberFunc C.Public True $
-      (C.function (C.typeOf (size!!0)) $ mkName $ T.pack str) 
-      { C.funcBody = 
-        [ C.StmtReturn (C.toDyn ret)
-        ]
-      }
-
-    finale str xs = tiro str (product xs)
-
-
-
-
-
-makeOmSizeFuncSet :: Opt.Ready v g => Env v g -> Text -> v g -> (C.Function, v C.Function)
-makeOmSizeFuncSet env@(Env setup plan) header sizeVec = (prodFunc, elemFuncs)
-  where
-    prodFunc = trivialFunc header $ product $ F.toList sizeVec
-    elemFuncs = compose (\i -> trivialFunc (header ++ "_" ++ showT (axisIndex i)) (sizeVec ! i)) 
-
-    trivialFunc str ret = 
-      (C.function (C.typeOf (sizeVec!(Axis 0))) $ mkName $ str) 
-      { C.funcBody = 
-        [ C.StmtReturn (C.toDyn ret)
-        ]
-      }
+    trivialFunc str ret = do
+      sizeVec <- sizeVecReader
+      let gaugeType = C.typeOf (sizeVec ! (Axis 0))
+      return $ (C.function gaugeType $ mkName $ str)
+          { C.funcBody = 
+            [ C.StmtReturn (C.toDyn ret)
+            ]
+          }
 
       
 
