@@ -77,7 +77,7 @@ translate setup plan =
 
     memberFuncs = 
       V.toList $ 
-      V.imap (\idx ker -> makeFunc env idx ker) $ 
+      V.imap (\idx ker -> makeKernelFunc env idx ker) $ 
       Plan.kernels plan
 
     subHelperFuncs = concat $ V.toList $ V.map snd $ subKernelFuncs   
@@ -103,10 +103,10 @@ translate setup plan =
 -- | Generate member functions that returns the sizes of the mesh
 memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 memberFuncForSize env@(Env setup plan) = 
-  makeMami False  "om_size" size ++ 
-  makeMami True "om_lower_margin" lM ++   
-  makeMami True "om_upper_margin" uM ++   
-  makeMami False  "om_memory_size" memorySize
+  makeMami False "om_size" size ++ 
+  makeMami True  "om_lower_margin" lM ++   
+  makeMami True  "om_upper_margin" uM ++   
+  makeMami False "om_memory_size" memorySize
   where
     size = F.toList $ Native.localSize setup
     memorySize = F.toList $ Native.localSize setup + Plan.lowerMargin plan + Plan.upperMargin plan
@@ -129,8 +129,26 @@ memberFuncForSize env@(Env setup plan) =
     finale str xs = tiro str (product xs)
 
 
-makeFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
-makeFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $ 
+
+
+
+makeOmSizeFuncSet :: Opt.Ready v g => Env v g -> Text -> v g -> (C.Function, v C.Function)
+makeOmSizeFuncSet env@(Env setup plan) header sizeVec = (prodFunc, elemFuncs)
+  where
+    prodFunc = trivialFunc header $ product $ F.toList sizeVec
+    elemFuncs = compose (\i -> trivialFunc (header ++ "_" ++ showT (axisIndex i)) (sizeVec ! i)) 
+
+    trivialFunc str ret = 
+      (C.function (C.typeOf (sizeVec!(Axis 0))) $ mkName $ str) 
+      { C.funcBody = 
+        [ C.StmtReturn (C.toDyn ret)
+        ]
+      }
+
+      
+
+makeKernelFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
+makeKernelFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $ 
  (C.function tVoid (name ker)) 
  { C.funcBody = kernelCalls ++ storeInsts
  }
@@ -200,7 +218,7 @@ makeSubFunc env@(Env setup plan) subker =
     cudaHelperName = mkName $ nameText subker ++ "_inner"
     
     cudaBodys = 
-      if rlm == Realm.Global 
+      if rlm == Realm.Scalar 
       then []
       else
         (:[]) $
@@ -231,7 +249,7 @@ makeSubFunc env@(Env setup plan) subker =
          makeSubArg env True (Plan.labNodesIn subker) ++
          makeSubArg env False (Plan.labNodesOut subker),
         C.funcBody = 
-          if rlm == Realm.Global 
+          if rlm == Realm.Scalar 
           then loopMaker env rlm subker
           else
             [ C.Comment $ LL.unlines 
@@ -258,12 +276,12 @@ makeSubFunc env@(Env setup plan) subker =
         _ -> error "NValue expected" 
 
     extractor typ = case Realm.realm typ of
-      Realm.Local ->           
+      Realm.Array ->           
         C.FuncCallStd "thrust::raw_pointer_cast" .
         (:[]) .
         C.Op1Prefix "&*" .
         flip C.MemberAccess (C.FuncCallStd "begin" []) 
-      Realm.Global ->
+      Realm.Scalar ->
         id
 
     cppSolution = 
@@ -275,7 +293,7 @@ makeSubFunc env@(Env setup plan) subker =
          makeSubArg env True (Plan.labNodesIn subker) ++
          makeSubArg env False (Plan.labNodesOut subker),
         C.funcBody = 
-          if rlm == Realm.Global 
+          if rlm == Realm.Scalar 
           then loopMaker env rlm subker
           else
             [ C.Comment $ LL.unlines 
@@ -315,7 +333,7 @@ makeRawSubArg env isConst lnodes =
 -- | implement the loop for each subroutine
 loopMaker :: Opt.Ready v g => Env v g -> Realm.Realm -> Plan.SubKernelRef v g AnAn -> [C.Statement]
 loopMaker env@(Env setup plan) realm subker = case realm of
-  Realm.Local ->
+  Realm.Array ->
     pragma ++
     [ C.StmtFor 
       (C.VarDefSub loopCounter loopBegin) 
@@ -324,7 +342,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       [C.VarDefSub addrCounter codecAddr] ++
       loopContent
     ]
-  Realm.Global -> loopContent
+  Realm.Scalar -> loopContent
 
   where
     pragma = 
@@ -390,16 +408,16 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         lhs cursor expr = 
           if Set.member idx outputIdxSet
           then C.StmtExpr $ flip (C.Op2Infix "=") expr $ case realm of
-            Realm.Local ->
+            Realm.Array ->
               (C.ArrayAccess (C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)) (C.VarExpr addrCounter)) 
-            Realm.Global ->
+            Realm.Scalar ->
               C.VarExpr $ C.Var (C.UnitType c) (nodeNameUniversal idx)
           else flip C.VarDefSub expr 
                (C.Var (C.UnitType c) $ nodeNameCursored env idx cursor)
 
     addSyncFunctions :: FGL.Node -> [C.Statement] -> [C.Statement] 
     addSyncFunctions idx = 
-      if realm /= Realm.Local ||
+      if realm /= Realm.Array ||
          Native.language setup /= Native.CUDA 
          then id
          else foldl (.) id $ map adder anot
@@ -441,8 +459,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
           creatVar idx' = C.VarExpr $ C.Var C.UnknownType (nodeNameUniversal idx')
         in case inst of
       _ | isInput     -> case realm of
-        Realm.Local -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])
-        Realm.Global -> (creatVar idx, [])
+        Realm.Array -> (C.ArrayAccess (creatVar idx) (codecCursor cursor), [])
+        Realm.Scalar -> (creatVar idx, [])
       OM.Imm dyn      -> (C.Imm dyn, [])
       OM.Arith op     -> (rhsArith env' op (map (nodeToRhs env' cursor) prepre),  
                       map (,cursor) prepre)
@@ -486,8 +504,8 @@ loopMaker env@(Env setup plan) realm subker = case realm of
 -- | convert a DynValue to C type representation
 mkCppType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
 mkCppType env x = case x of
-  DVal.DynValue Realm.Global c -> C.UnitType c
-  DVal.DynValue Realm.Local  c -> containerType env c          
+  DVal.DynValue Realm.Scalar c -> C.UnitType c
+  DVal.DynValue Realm.Array  c -> containerType env c          
 
 containerType :: Env v g -> TypeRep -> C.TypeRep
 containerType (Env setup _) c = case Native.language setup of
@@ -499,8 +517,8 @@ containerType (Env setup _) c = case Native.language setup of
 --   for example used within CUDA kernel
 mkCudaRawType :: Opt.Ready v g => Env v g -> DVal.DynValue -> C.TypeRep
 mkCudaRawType env x = case x of
-  DVal.DynValue Realm.Global c -> C.UnitType c
-  DVal.DynValue Realm.Local  c -> containerRawType env c          
+  DVal.DynValue Realm.Scalar c -> C.UnitType c
+  DVal.DynValue Realm.Array  c -> containerRawType env c          
 
 containerRawType :: Env v g -> TypeRep -> C.TypeRep
 containerRawType (Env setup _) c = case Native.language setup of

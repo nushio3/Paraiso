@@ -30,7 +30,7 @@ decideAllocation graph = imap update graph
       | afterLoad = Anot.set Alloc.Existing
       | beforeStore || beforeReduce || afterReduce || beforeBroadcast || afterBroadcast
                   = Anot.set Alloc.Manifest
-      | (isGlobal || beforeShift || afterShift ) && False -- warehouse
+      | (isScalar || beforeShift || afterShift ) && False -- warehouse
                   = Anot.weakSet Alloc.Delayed
       | otherwise = Anot.weakSet Alloc.Delayed . setChoice
         where
@@ -48,8 +48,8 @@ decideAllocation graph = imap update graph
             Just (NValue _ _) -> True
             _                 -> False
 
-          isGlobal  = case self0 of
-            Just (NValue (DVal.DynValue Realm.Global _) _) -> True
+          isScalar  = case self0 of
+            Just (NValue (DVal.DynValue Realm.Scalar _) _) -> True
             _                                              -> False
           afterLoad = case pre0 of
             Just (NInst (Load _) _)    -> True

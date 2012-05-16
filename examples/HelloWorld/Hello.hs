@@ -30,7 +30,7 @@ create = do
   store varName z
 
 myVars :: [Named DynValue]
-myVars = [Named varName $ DynValue Local (typeOf (undefined::Int))]
+myVars = [Named varName $ DynValue Array (typeOf (undefined::Int))]
 
 myKernels :: [Named (Builder Vec2 Int Annotation ())]
 myKernels = [Named kernelName create]

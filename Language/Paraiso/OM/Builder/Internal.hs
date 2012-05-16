@@ -169,7 +169,7 @@ load :: (TRealm r, Typeable c) =>
         r             -- ^The 'TRealm' type.
      -> c             -- ^The 'Val.content' type.
      -> Name          -- ^The 'Name' of the static value to load.
-     -> B (Value r c) -- ^The loaded 'TLocal' 'Value' as a result.
+     -> B (Value r c) -- ^The loaded 'TArray' 'Value' as a result.
 load r0 c0 name0 = do
   let 
       type0 = mkDyn r0 c0
@@ -195,43 +195,43 @@ store name0 builder0 = do
   return ()
 
 
--- | Reduce over a 'TLocal' 'Value' 
+-- | Reduce over a 'TArray' 'Value' 
 -- using the specified reduction 'Reduce.Operator'
--- to make a 'TGlobal' 'Value'
+-- to make a 'TScalar' 'Value'
 reduce :: (Typeable c) => 
           Reduce.Operator               -- ^The reduction 'Reduce.Operator'.
-       -> Builder v g a (Value TLocal c)  -- ^The 'TLocal' 'Value' to be reduced.
-       -> Builder v g a (Value TGlobal c) -- ^The 'TGlobal' 'Value' that holds the reduction result.
+       -> Builder v g a (Value TArray c)  -- ^The 'TArray' 'Value' to be reduced.
+       -> Builder v g a (Value TScalar c) -- ^The 'TScalar' 'Value' that holds the reduction result.
 reduce op builder1 = do 
   val1 <- builder1
   let 
       c1 = Val.content val1
-      type2 = mkDyn TGlobal c1
+      type2 = mkDyn TScalar c1
   n1 <- valueToNode val1
   n2 <- addNodeE [n1] $ NInst (Reduce op) 
   n3 <- addNodeE [n2] $ NValue type2 
-  return (FromNode TGlobal c1 n3)
+  return (FromNode TScalar c1 n3)
 
--- | Broadcast a 'TGlobal' 'Value' 
--- to make it a 'TLocal' 'Value'  
+-- | Broadcast a 'TScalar' 'Value' 
+-- to make it a 'TArray' 'Value'  
 broadcast :: (Typeable c) => 
-             Builder v g a (Value TGlobal c) -- ^The 'TGlobal' 'Value' to be broadcasted.
-          -> Builder v g a (Value TLocal c)  -- ^The 'TLocal' 'Value', all of them containing the global value.
+             Builder v g a (Value TScalar c) -- ^The 'TScalar' 'Value' to be broadcasted.
+          -> Builder v g a (Value TArray c)  -- ^The 'TArray' 'Value', all of them containing the global value.
 broadcast builder1 = do 
   val1 <- builder1
   let 
       c1 = Val.content val1
-      type2 = mkDyn TLocal c1
+      type2 = mkDyn TArray c1
   n1 <- valueToNode val1
   n2 <- addNodeE [n1] $ NInst Broadcast 
   n3 <- addNodeE [n2] $ NValue type2 
-  return (FromNode TLocal c1 n3)
+  return (FromNode TArray c1 n3)
 
--- | Shift a 'TLocal' 'Value' with a constant vector.
+-- | Shift a 'TArray' 'Value' with a constant vector.
 shift :: (Typeable c)
   => v g                            -- ^ The amount of shift  
-  -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' Value to be shifted
-  -> Builder v g a (Value TLocal c) -- ^ The shifted 'TLocal' 'Value' as a result.
+  -> Builder v g a (Value TArray c) -- ^ The 'TArray' Value to be shifted
+  -> Builder v g a (Value TArray c) -- ^ The shifted 'TArray' 'Value' as a result.
 shift vec builder1 = do
   val1 <- builder1
   let 
@@ -240,25 +240,25 @@ shift vec builder1 = do
   n1 <- valueToNode val1
   n2 <- addNodeE [n1] $ NInst $ Shift vec
   n3 <- addNodeE [n2] $ NValue type1 
-  return (FromNode TLocal c1 n3)
+  return (FromNode TArray c1 n3)
 
--- | Load the 'Axis' component of the mesh address, to a 'TLocal' 'Value'.
+-- | Load the 'Axis' component of the mesh address, to a 'TArray' 'Value'.
 loadIndex :: (Typeable c) => 
              c                            -- ^The 'Val.content' type.
           -> Axis v                       -- ^ The axis for which index is required
-          -> Builder v g a (Value TLocal c) -- ^ The 'TLocal' 'Value' that contains the address as a result.
+          -> Builder v g a (Value TArray c) -- ^ The 'TArray' 'Value' that contains the address as a result.
 loadIndex c0 axis = do
-  let type0 = mkDyn TLocal c0
+  let type0 = mkDyn TArray c0
   n0 <- addNodeE []   $ NInst (LoadIndex axis)
   n1 <- addNodeE [n0] $ NValue type0 
-  return (FromNode TLocal c0 n1)
+  return (FromNode TArray c0 n1)
 
--- | Load the 'Axis' component of the mesh size, to either a  'TGlobal' 'Value' or  'TLocal' 'Value'..
+-- | Load the 'Axis' component of the mesh size, to either a  'TScalar' 'Value' or  'TArray' 'Value'..
 loadSize :: (TRealm r, Typeable c)
             => r                            -- ^ The 'TRealm'
             -> c                            -- ^The 'Val.content' type.
             -> Axis v                       -- ^ The axis for which the size is required
-            -> Builder v g a (Value r c) -- ^ The 'TGlobal' 'Value' that contains the size of the mesh in that direction.
+            -> Builder v g a (Value r c) -- ^ The 'TScalar' 'Value' that contains the size of the mesh in that direction.
 loadSize r0 c0 axis = do
   let type0 = mkDyn r0 c0
   n0 <- addNodeE []   $ NInst (LoadSize axis)
@@ -270,7 +270,7 @@ loadSize r0 c0 axis = do
 -- 'TRealm' is type-inferred.
 imm :: (TRealm r, Typeable c) => 
        c             -- ^A Haskell value of type @c@ to be stored.
-    -> B (Value r c) -- ^'TLocal' 'Value' with the @c@ stored.
+    -> B (Value r c) -- ^'TArray' 'Value' with the @c@ stored.
 imm c0 = return (FromImm unitTRealm c0)
 
 -- | Make a unary operator

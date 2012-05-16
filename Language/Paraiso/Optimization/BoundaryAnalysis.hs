@@ -42,7 +42,7 @@ boundaryAnalysis graph = imap update graph
     memoAnot = V.generate (FGL.noNodes graph) calcAnot
 
     calcAnot i = case selfNode of
-      NValue v _           -> if isGlobal v 
+      NValue v _           -> if isScalar v 
                               then infinite
                               else preAnot
       NInst (Imm _)_       -> infinite
@@ -61,8 +61,8 @@ boundaryAnalysis graph = imap update graph
           Just x -> x
           _      -> error $ "node[" ++ show i ++ "] disappeared"
 
-        isGlobal v = case v of
-          DVal.DynValue Realm.Global _ -> True
+        isScalar v = case v of
+          DVal.DynValue Realm.Scalar _ -> True
           _                            -> False
 
         -- data at all coordinates is valid that is stored in the array 
