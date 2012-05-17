@@ -1,10 +1,9 @@
 #include <iostream>
 using namespace std;
-#include "dist/Hello.hpp"
+#include "dist/TableMaker.hpp"
 
 int main () {
-  
-  Hello
-  
+  TableMaker tm;
+  tm.create();
   return 0;
 }

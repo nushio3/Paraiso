@@ -38,7 +38,7 @@ myKernels = [Named kernelName create]
 
 myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
-  makeOM (mkName "Hello") [] myVars myKernels
+  makeOM (mkName "TableMaker") [] myVars myKernels
 
 mySetup :: Native.Setup Vec2 Int
 mySetup = 
