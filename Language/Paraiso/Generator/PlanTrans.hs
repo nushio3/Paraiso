@@ -76,7 +76,7 @@ translate setup plan =
            concat $
            flip map storageVars $ \memb -> case memb of
              C.MemberVar _ var -> 
-               [C.FuncCallUsr (name var) [C.FuncCallStd "om_memory_size" []]]
+               [C.FuncCallUsr (name var) [C.FuncCallUsr (name (omFuncMemorySizeTotal env)) []]]
              _ -> []
       }
 
