@@ -18,27 +18,31 @@ import           Language.Paraiso.Optimization
 import           NumericPrelude
 import           System.Process (system)
 
-varName, kernelName :: Name
-varName = mkName "table"
-kernelName = mkName "create"
+-- the names we use
+table, total, create, tableMaker :: Name
+table = mkName "table"
+total = mkName "total"
+create = mkName "create"
+tableMaker = mkName "TableMaker"
 
-create :: Builder Vec2 Int Annotation ()
-create = do 
+createBuilder :: Builder Vec2 Int Annotation ()
+createBuilder = do 
   x <- bind $ loadIndex (undefined::Int) (Axis 0) 
   y <- bind $ loadIndex (undefined::Int) (Axis 1) 
   z <- bind $ x*y
-  store varName z
+  store table z
 
 myVars :: [Named DynValue]
-myVars = [Named varName $ DynValue Array (typeOf (undefined::Int))]
+myVars = [Named table $ DynValue Array (typeOf (undefined::Int)),
+          Named total $ DynValue Scalar (typeOf (undefined::Int))]
 
 myKernels :: [Named (Builder Vec2 Int Annotation ())]
-myKernels = [Named kernelName create]
+myKernels = [Named create createBuilder]
 
 
 myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
-  makeOM (mkName "TableMaker") [] myVars myKernels
+  makeOM tableMaker [] myVars myKernels
 
 mySetup :: Native.Setup Vec2 Int
 mySetup = 

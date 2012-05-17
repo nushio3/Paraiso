@@ -54,9 +54,9 @@ translate setup plan =
       comments ++
       subHelperFuncs ++ 
       [ C.ClassDef $ C.Class (name plan) $
-        storageVars ++ 
+        map fst storageVars ++ 
         constructorDef ++ 
-        memberFuncForSize env ++
+        accessorsForSize env ++
         subMemberFuncs ++ memberFuncs 
       ]
   }
@@ -74,10 +74,11 @@ translate setup plan =
       (C.function  C.ConstructorType (name plan))
       { C.funcMemberInitializer = -- allocate memory for storage members
            concat $
-           flip map storageVars $ \memb -> case memb of
-             C.MemberVar _ var -> 
-               [C.FuncCallUsr (name var) [C.FuncCallUsr (name (omFuncMemorySizeTotal env)) []]]
-             _ -> []
+           flip map storageVars $ \(memb, stRef) -> 
+             case (memb, Realm.realm $ Plan.storageDynValue stRef) of
+               (C.MemberVar _ var, Realm.Array)
+                 -> [C.FuncCallUsr (name var) [C.FuncCallUsr (name (omFuncMemorySizeTotal env)) []]]
+               _ -> []
       }
 
     memberFuncs = 
@@ -100,14 +101,15 @@ translate setup plan =
       V.map storageRefToMember $
       Plan.storages plan
     storageRefToMember stRef =  
-      C.MemberVar  C.Private $ 
+      (,stRef) $
+      C.MemberVar C.Private $ 
       C.Var 
         (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
 -- | Generate member functions that returns the sizes of the mesh
-memberFuncForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
-memberFuncForSize env =
+accessorsForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
+accessorsForSize env =
   map (C.MemberFunc C.Public True) $
   ([omFuncLocalSizeTotal env, omFuncMemorySizeTotal env] ++) $
   concat $ 
@@ -156,8 +158,10 @@ makeOmSizeFuncSet header sizeVecReader = (prodFunc, elemFuncs)
             ]
           }
 
+-- | Generate member functions for accessing 
       
 
+-- Make Kernel Functions
 makeKernelFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef
 makeKernelFunc env@(Env setup plan) kerIdx ker = C.MemberFunc C.Public False $ 
  (C.function tVoid (name ker)) 
