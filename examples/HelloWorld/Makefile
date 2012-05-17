@@ -1,7 +1,7 @@
 all: main.out
 
-main.out: main.cpp dist/Hello.cpp
-	g++ main.cpp dist/Hello.cpp -o main.out
+main.out: main.cpp dist/TableMaker.cpp
+	g++ main.cpp dist/TableMaker.cpp -o main.out
 
-dist/Hello.cpp: Hello.hs
-	runhaskell Hello.hs
+dist/TableMaker.cpp: Generator.hs
+	runhaskell Generator.hs
