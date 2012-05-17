@@ -36,8 +36,6 @@ decideAllocation graph = imap update graph
         where
           self0 = FGL.lab graph i
           pre0  = FGL.lab graph =<<(listToMaybe $ FGL.pre graph i) 
-          suc0  = FGL.lab graph =<<(listToMaybe $ FGL.suc graph i) 
-          pres  = catMaybes $ map (FGL.lab graph) $ FGL.pre graph i
           sucs  = catMaybes $ map (FGL.lab graph) $ FGL.suc graph i
 
           setChoice 
