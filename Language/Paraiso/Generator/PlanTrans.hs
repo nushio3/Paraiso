@@ -19,6 +19,7 @@ import qualified Data.Foldable                       as F
 import           Data.Maybe
 import qualified Data.Set                            as Set
 import           Data.Tensor.TypeLevel
+import qualified Data.Tensor.TypeLevel.Axis          as Axis
 import qualified Data.Text                           as T
 import qualified Data.Traversable                    as F
 import qualified Data.Vector                         as V
@@ -27,6 +28,7 @@ import qualified Language.Paraiso.Annotation.SyncThreads as Sync
 import qualified Language.Paraiso.Generator.Claris   as C
 import qualified Language.Paraiso.Generator.Native   as Native
 import qualified Language.Paraiso.Generator.Plan     as Plan
+import qualified Language.Paraiso.OM                 as OM
 import qualified Language.Paraiso.OM.Arithmetic      as Arith
 import qualified Language.Paraiso.OM.DynValue        as DVal
 import qualified Language.Paraiso.OM.Graph           as OM
@@ -57,6 +59,7 @@ translate setup plan =
         map fst storageVars ++ 
         constructorDef ++ 
         accessorsForSize env ++
+        accessorsForVars env ++
         subMemberFuncs ++ memberFuncs 
       ]
   }
@@ -107,6 +110,56 @@ translate setup plan =
         (mkCppType env $ Plan.storageType stRef) 
         (name stRef) 
 
+-- | Generate member functions for accessing the static variables
+accessorsForVars :: Opt.Ready v g => Env v g -> [C.MemberDef]
+accessorsForVars env@(Env setup plan) =
+  map (C.MemberFunc C.Public True) $ do
+    -- list monad
+    stRef <- (V.toList $ Plan.storages plan)
+    
+    -- we have accessors only for static values.
+    Just na <- [accessorName stRef]
+    
+    -- for all static values we have simple accessors that returns reference to it.
+    let typeSimple = C.RefOf $ mkCppType env $ Plan.storageType stRef
+    let bodySimple = [C.StmtReturn $ mkVarExpr $ nameText stRef]
+    let argsSimple = []
+        
+    -- we also have elemental accessors, but only for Arrays.    
+    let typeElemMaybe = case Plan.storageDynValue stRef of 
+          DVal.DynValue Realm.Scalar _ -> []          
+          DVal.DynValue Realm.Array  c -> [C.RefOf $ C.UnitType c]
+
+    let argsElem = compose (\ax@(Axis i) -> 
+                             C.Var (C.typeOf (Native.localSize setup ! ax))
+                                   (mkName $ "i" ++ showT i))
+        bodyElem = (:[]) $
+                   C.StmtReturn $ C.ArrayAccess (mkVarExpr $ nameText stRef) $
+                   productedArgs ! Axis 0
+        productedArgs = compose 
+          (\i -> 
+            if (Axis.next i == Axis 0) 
+            then (marginedArgs!i) 
+            else C.Op2Infix "+" (marginedArgs!i) $
+                 C.Op2Infix "*" (C.FuncCallUsr (name $ omFuncMemorySize env ! i) [])
+                                (productedArgs!(Axis.next i)))
+        marginedArgs = compose (\i -> C.Op2Infix "+" 
+                                  (C.FuncCallUsr (name $ omFuncLowerMargin env ! i) [])  
+                                  (C.VarExpr (argsElem ! i)))
+                   
+    let materials = (typeSimple, bodySimple, argsSimple) : fmap (,bodyElem,F.toList argsElem) typeElemMaybe
+        
+    (typ, bod, arg) <- materials
+    
+    return (C.function typ na){C.funcBody = bod, C.funcArgs = arg}    
+
+accessorName :: (Plan.StorageRef v g a) -> Maybe Name    
+accessorName x = case Plan.storageIdx x of
+    Plan.StaticRef i     -> Just $ name $ OM.staticValues (Plan.setup $ Plan.parent x) V.! i
+    Plan.ManifestRef i j -> Nothing
+
+
+
 -- | Generate member functions that returns the sizes of the mesh
 accessorsForSize :: Opt.Ready v g => Env v g -> [C.MemberDef]
 accessorsForSize env =
@@ -151,8 +204,8 @@ makeOmSizeFuncSet header sizeVecReader = (prodFunc, elemFuncs)
 
     trivialFunc str ret = do
       sizeVec <- sizeVecReader
-      let gaugeType = C.typeOf (sizeVec ! (Axis 0))
-      return $ (C.function gaugeType $ mkName $ str)
+      gt <- gaugeType
+      return $ (C.function gt $ mkName $ str)
           { C.funcBody = 
             [ C.StmtReturn (C.toDyn ret)
             ]
@@ -160,6 +213,10 @@ makeOmSizeFuncSet header sizeVecReader = (prodFunc, elemFuncs)
 
 -- | Generate member functions for accessing 
       
+
+gaugeType :: Opt.Ready v g => Env v g -> C.TypeRep
+gaugeType env@(Env setup plan) = C.typeOf $ Native.localSize setup ! (Axis 0)
+
 
 -- Make Kernel Functions
 makeKernelFunc :: Opt.Ready v g => Env v g -> Int -> OM.Kernel v g AnAn -> C.MemberDef

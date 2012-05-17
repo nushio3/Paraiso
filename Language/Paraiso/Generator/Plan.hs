@@ -12,9 +12,9 @@
 module Language.Paraiso.Generator.Plan (
   Plan(..),
 
-  SubKernelRef(..), StorageRef(..), StorageIdx(..),
+  SubKernelRef(..), StorageRef(..), StorageIdx(..), Referrer(..),
 
-  dataflow, labNodesIn, labNodesOut, labNodesCalc,
+  dataflow, labNodesIn, labNodesOut, labNodesCalc, 
   storageType                  
   ) where
 
@@ -90,6 +90,8 @@ instance Nameable (StorageRef v g a) where
     StaticRef i     -> "om_s" ++ showT i ++ "_"
                        ++ nameText (OM.staticValues (setup $ parent x) V.! i)
     ManifestRef i j -> "om_m" ++ showT i ++ "_" ++ showT j
+    
+    
 instance Realm.Realmable (StorageRef v g a) where
   realm x = let DVal.DynValue r _ = storageDynValue x in r
 
