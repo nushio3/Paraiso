@@ -46,7 +46,7 @@ myOM = optimize O3 $
 
 mySetup :: Native.Setup Vec2 Int
 mySetup = 
-  (Native.defaultSetup $ Vec :~ 10 :~ 10)
+  (Native.defaultSetup $ Vec :~ 10 :~ 20)
   { Native.directory = "./dist/" 
   }
 
