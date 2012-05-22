@@ -14,6 +14,7 @@ import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.DynValue as DVal
 import           Language.Paraiso.OM.PrettyPrint (prettyPrintA1)
 import           Language.Paraiso.OM.Realm 
+import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           NumericPrelude
 import           System.Process (system)
@@ -31,6 +32,7 @@ createBuilder = do
   y <- bind $ loadIndex (undefined::Int) (Axis 1) 
   z <- bind $ x*y
   store table z
+  store total $ reduce Reduce.Sum z
 
 myVars :: [Named DynValue]
 myVars = [Named table $ DynValue Array (typeOf (undefined::Int)),

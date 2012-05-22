@@ -14,5 +14,7 @@ int main () {
     cout << endl;
   }
   
+  cout << "total: " << maker.total() << endl;
+  
   return 0;
 }
