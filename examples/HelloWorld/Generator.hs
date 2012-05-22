@@ -26,13 +26,23 @@ total = mkName "total"
 create = mkName "create"
 tableMaker = mkName "TableMaker"
 
-createBuilder :: Builder Vec2 Int Annotation ()
-createBuilder = do 
-  x <- bind $ loadIndex (undefined::Int) (Axis 0) 
-  y <- bind $ loadIndex (undefined::Int) (Axis 1) 
-  z <- bind $ x*y
-  store table z
-  store total $ reduce Reduce.Sum z
+
+main :: IO ()
+main = do
+  _ <- system "mkdir -p output"
+  T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
+  _ <- generateIO mySetup myOM
+  return ()
+
+mySetup :: Native.Setup Vec2 Int
+mySetup = 
+  (Native.defaultSetup $ Vec :~ 10 :~ 20)
+  { Native.directory = "./dist/" 
+  }
+
+myOM :: OM Vec2 Int Annotation
+myOM = optimize O3 $
+  makeOM tableMaker [] myVars myKernels
 
 myVars :: [Named DynValue]
 myVars = [Named table $ DynValue Array (typeOf (undefined::Int)),
@@ -41,20 +51,11 @@ myVars = [Named table $ DynValue Array (typeOf (undefined::Int)),
 myKernels :: [Named (Builder Vec2 Int Annotation ())]
 myKernels = [Named create createBuilder]
 
+createBuilder :: Builder Vec2 Int Annotation ()
+createBuilder = do 
+  x <- bind $ loadIndex (undefined::Int) (Axis 0) 
+  y <- bind $ loadIndex (undefined::Int) (Axis 1) 
+  z <- bind $ x*y
+  store table z
+  store total $ reduce Reduce.Sum z
 
-myOM :: OM Vec2 Int Annotation
-myOM = optimize O3 $
-  makeOM tableMaker [] myVars myKernels
-
-mySetup :: Native.Setup Vec2 Int
-mySetup = 
-  (Native.defaultSetup $ Vec :~ 10 :~ 20)
-  { Native.directory = "./dist/" 
-  }
-
-main :: IO ()
-main = do
-  _ <- system "mkdir -p output"
-  T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
-  _ <- generateIO mySetup myOM
-  return ()
