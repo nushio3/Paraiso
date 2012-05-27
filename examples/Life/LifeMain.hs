@@ -1,9 +1,12 @@
-{-# LANGUAGE  NoImplicitPrelude, OverloadedStrings #-}
+{-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
 module Main(main) where
-
+import           Control.Applicative
+import           Control.Monad hiding (forM)
 import qualified Data.Text.IO as T
+import           Data.Foldable    as Foldable
+import           Data.Traversable 
 import           Data.Typeable
 import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
@@ -19,7 +22,7 @@ import qualified Language.Paraiso.OM.Realm as Rlm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude
-
+import           NumericPrelude hiding ((&&), (||), (++), foldl1)
 
 -- a dynamic representation for a local static value (an array)
 intDV :: DynValue
@@ -94,7 +97,7 @@ buildInit = do
   coord <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Int) axis)
 
   -- load the size of the simulation region
-  size  <- sequenceA $ compose (\axis -> bind $  loadSize Rlm.TLocal (0::Int) axis)  
+  size  <- sequenceA $ compose (\axis -> bind $ loadSize Rlm.TLocal (0::Int) axis)  
 
   halfSize <- sequenceA $ compose (\axis -> bind $ (size!axis) `div` 2)
 

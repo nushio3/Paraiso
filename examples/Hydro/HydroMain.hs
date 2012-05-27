@@ -3,7 +3,11 @@
 
 module Main(main) where
 
+import           Control.Applicative
+import           Control.Monad hiding (forM, mapM, sequence)
+import           Data.Foldable    
 import           Data.Tensor.TypeLevel
+import           Data.Traversable
 import qualified Data.Text.IO as T
 import           Data.Typeable
 import           Hydro
@@ -22,6 +26,7 @@ import           Language.Paraiso.OM.Realm
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
+import           NumericPrelude hiding ((&&), (||), (++), mapM, sequence, foldl1)
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue

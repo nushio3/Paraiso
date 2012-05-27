@@ -20,7 +20,7 @@ import qualified Data.ListLike.Base (ListLike)
 import qualified Data.Text as Text
 import qualified NumericPrelude as Prelude
 
-import NumericPrelude hiding ((++))
+import NumericPrelude hiding ((++), (||), (&&), not)
 
 -- | An efficient String that is used thoroughout Paraiso modules.
 type Text = Text.Text
