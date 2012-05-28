@@ -28,14 +28,14 @@ gpu = (<<ENDOFLIB);
 template <class T> __device__ __host__ T om_broadcast (const T& x) {
   return x;
 }
-template <class T> T om_reduce_sum (const thrust::device_vector<T> &xs) {
-  return thurust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());
+template <class T> T om_reduce_sum (const thrust::thrust_vector<T> &xs) {
+  return thrust::reduce(xs.device_vector().begin(), xs.device_vector().end(), 0, thrust::plus<T>());
 }
-template <class T> T om_reduce_min (const thrust::device_vector<T> &xs) {
-  return *(thurust::min_element(xs.begin(), xs.end()));
+template <class T> T om_reduce_min (const thrust::thrust_vector<T> &xs) {
+  return *(thrust::min_element(xs.device_vector().begin(), xs.device_vector().end()));
 }
-template <class T> T om_reduce_max (const thrust::device_vector<T> &xs) {
-  return *(thurust::max_element(xs.begin(), xs.end()));
+template <class T> T om_reduce_max (const thrust::thrust_vector<T> &xs) {
+  return *(thrust::max_element(xs.device_vector().begin(), xs.device_vector().end()));
 }
 
 ENDOFLIB
@@ -88,11 +88,11 @@ public:
     }
   }
 
-  thrust::host_vector<T> &host_vector() {
+  thrust::host_vector<T> &host_vector() const {
     bring_host();
     return hv;
   }
-  thrust::device_vector<T> &device_vector() {
+  thrust::device_vector<T> &device_vector() const {
     bring_device();
     return dv;
   }
