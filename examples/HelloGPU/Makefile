@@ -1,7 +1,7 @@
 all: main.out
 
-main.out: main.cpp dist/TableMaker.cpp
-	g++ main.cpp dist/TableMaker.cpp -o main.out
+main.out: main.cpp dist/TableMaker.cu
+	nvcc main.cpp dist/TableMaker.cu -o main.out
 
-dist/TableMaker.cpp: Generator.hs
+dist/TableMaker.cu: Generator.hs
 	runhaskell Generator.hs

@@ -37,7 +37,9 @@ main = do
 mySetup :: Native.Setup Vec2 Int
 mySetup = 
   (Native.defaultSetup $ Vec :~ 10 :~ 20)
-  { Native.directory = "./dist/" 
+  { Native.directory = "./dist/" ,
+    Native.language  = Native.CUDA,
+    Native.cudaGridSize = (32,1)
   }
 
 myOM :: OM Vec2 Int Annotation
