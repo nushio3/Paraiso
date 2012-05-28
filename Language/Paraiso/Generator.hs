@@ -42,7 +42,7 @@ generate :: (Opt.Ready v g) => Native.Setup v g -> OM.OM v g Anot.Annotation -> 
 generate setup om =  
   [ (headerFn, C.translate C.headerFile prog),
     (cppFn   , C.translate C.sourceFile prog)
-  ]
+  ] ++ Plan.commonLibraries
   where
     prog0 = 
       Plan.translate setup $
@@ -64,4 +64,6 @@ generate setup om =
     sourceExt = case Native.language setup of
       Native.CPlusPlus -> "cpp"
       Native.CUDA      -> "cu"
+
+
   
