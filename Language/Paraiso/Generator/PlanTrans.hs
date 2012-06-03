@@ -4,7 +4,8 @@ TupleSections #-}
 {-# OPTIONS -Wall #-}
 
 module Language.Paraiso.Generator.PlanTrans (
-  translate
+  translate,
+  commonLibraries
   ) where
 
 
@@ -51,7 +52,7 @@ translate setup plan =
   C.Program 
   { C.progName = name plan,
     C.topLevel = 
-      map include stlHeaders ++ 
+      stlHeaders ++ 
       library env ++ 
       comments ++
       subHelperFuncs ++ 
@@ -94,10 +95,12 @@ translate setup plan =
     subKernelFuncs = V.map (makeSubFunc env) $ Plan.subKernels plan
 
 
-    include = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
+    include   = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Chevron
+    include'' = C.Exclusive C.HeaderFile . C.StmtPrpr . C.PrprInclude C.Quotation2
     stlHeaders = case Native.language setup of
-      Native.CPlusPlus -> ["algorithm", "cmath", "vector"]
-      Native.CUDA      -> ["thrust/device_vector.h", "thrust/host_vector.h", "thrust/functional.h", "thrust/extrema.h", "thrust/reduce.h"]
+      Native.CPlusPlus -> map include ["algorithm", "cmath", "vector"]
+      Native.CUDA      -> map include ["thrust/device_vector.h", "thrust/host_vector.h", "thrust/functional.h", "thrust/extrema.h", "thrust/reduce.h"] ++ 
+                          map (include'' . T.pack . fst) commonLibraries
 
     storageVars = 
       V.toList $
@@ -349,10 +352,7 @@ makeSubFunc env@(Env setup plan) subker =
 
     extractor typ = case Realm.realm typ of
       Realm.Array ->           
-        C.FuncCallStd "thrust::raw_pointer_cast" .
-        (:[]) .
-        C.Op1Prefix "&*" .
-        flip C.MemberAccess (C.FuncCallStd "begin" []) 
+        flip C.MemberAccess (C.FuncCallStd "raw" []) 
       Realm.Scalar ->
         id
 
@@ -582,7 +582,7 @@ mkCppType env x = case x of
 containerType :: Env v g -> TypeRep -> C.TypeRep
 containerType (Env setup _) c = case Native.language setup of
   Native.CPlusPlus -> C.TemplateType "std::vector" [C.UnitType c]
-  Native.CUDA      -> C.TemplateType "thrust::device_vector" [C.UnitType c]
+  Native.CUDA      -> C.TemplateType "thrust::thrust_vector" [C.UnitType c]
 
 
 -- | convert a DynValue to raw-pointer type representation 
@@ -691,7 +691,13 @@ library (Env setup _) = (:[]) $ C.Exclusive C.SourceFile $ C.RawStatement $ lib
       Native.CPlusPlus -> cpuLib
       Native.CUDA      -> gpuLib
     -- use draft.cpp to generate library
-    cpuLib = "\ntemplate <class T> T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T om_reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T om_reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n"
-    gpuLib = "\ntemplate <class T> __device__ __host__ T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const thrust::device_vector<T> &xs) {\n  return thurust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T om_reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thurust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T om_reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thurust::max_element(xs.begin(), xs.end()));\n}\n\n"    
-    
-    --    gpuLib =  "template <class T>\n__device__ __host__\nT broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n" ++ "template <class T> T reduce_sum (const thrust::device_vector<T> &xs) {\n  return thrust::reduce(xs.begin(), xs.end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T reduce_min (const thrust::device_vector<T> &xs) {\n  return *(thrust::min_element(xs.begin(), xs.end()));\n}\ntemplate <class T> T reduce_max (const thrust::device_vector<T> &xs) {\n  return *(thrust::max_element(xs.begin(), xs.end()));\n}\n\n"
+    cpuLib = "\ntemplate <class T> T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const std::vector<T> &xs) {\n  T ret = 0;\n  for (int i = 0; i < xs.size(); ++i) ret+=xs[i];\n  return ret;\n}\ntemplate <class T> T om_reduce_min (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::min(ret,xs[i]);\n  return ret;\n}\ntemplate <class T> T om_reduce_max (const std::vector<T> &xs) {\n  T ret = xs[0];\n  for (int i = 1; i < xs.size(); ++i) ret=std::max(ret,xs[i]);\n  return ret;\n}\n\n"
+    gpuLib = "\ntemplate <class T> __device__ __host__ T om_broadcast (const T& x) {\n  return x;\n}\ntemplate <class T> T om_reduce_sum (const thrust::thrust_vector<T> &xs) {\n  return thrust::reduce(xs.device_vector().begin(), xs.device_vector().end(), 0, thrust::plus<T>());\n}\ntemplate <class T> T om_reduce_min (const thrust::thrust_vector<T> &xs) {\n  return *(thrust::min_element(xs.device_vector().begin(), xs.device_vector().end()));\n}\ntemplate <class T> T om_reduce_max (const thrust::thrust_vector<T> &xs) {\n  return *(thrust::max_element(xs.device_vector().begin(), xs.device_vector().end()));\n}\n\n"
+
+
+commonLibraries :: [(FilePath, Text)]
+commonLibraries = [("om_thrust_vector.h", thrustVectorLib)]
+
+thrustVectorLib :: Text
+
+thrustVectorLib = "#pragma once\n\n#include <thrust/device_vector.h>\n#include <thrust/host_vector.h>\n#include <thrust/device_ptr.h>\n#include <iostream>\n\nnamespace thrust {\n\ntemplate <class T>\nclass thrust_vector {\npublic:\n  enum NewerFlag {\n    kHost,\n    kDevice,\n    kBoth\n  };\nprivate:\n  mutable thrust::host_vector<T> hv;\n  mutable thrust::device_vector<T> dv;\n  mutable NewerFlag newer_;\npublic:  \n\n  typedef typename thrust::host_vector<T>::size_type  size_type;\n  typedef T value_type;\n\n  thrust_vector () : newer_(kBoth) {}\n  thrust_vector (size_type n, const value_type &value = value_type()) :\n    hv(n, value), dv(n, value), newer_(kBoth) {}\n  thrust_vector (const thrust_vector<T> &v) :\n    hv(v.hv), dv(v.dv), newer_(kBoth) {}\n\n  const size_type size() const { return hv.size(); }\n\n  void bring_device () const {\n    if (kHost == newer_) {\n      dv = hv;\n      newer_ = kBoth;\n    }\n  }\n  void bring_host () const {\n    if (kDevice == newer_) {\n      hv = dv;\n      newer_ = kBoth;\n    }\n  }\n\n  thrust::host_vector<T> &host_vector() const {\n    bring_host();\n    return hv;\n  }\n  thrust::device_vector<T> &device_vector() const {\n    bring_device();\n    return dv;\n  }\n  \n  const T& operator[](const size_type n) const {\n    bring_host();\n    return hv[n];\n  }\n  T& operator[](const size_type n) {\n    bring_host();\n    newer_ = kHost;\n    return hv[n];\n  }\n  T* unsafe_raw_device () const {\n    return thrust::raw_pointer_cast(&*dv.begin());\n  }\n  T* unsafe_raw_host () const {\n    return &hv[0];\n  }\n  void unsafe_set_newer (NewerFlag n) {\n    newer_ = n;\n  }\n  \n  T* raw () const {\n    bring_device();\n    newer_ = kDevice;\n    return thrust::raw_pointer_cast(&*dv.begin());\n  }\n  typename thrust::device_vector<T>::iterator device_begin () {\n    bring_device();\n    return dv.begin();\n  }\n  typename thrust::device_vector<T>::iterator device_end () {\n    bring_device();\n    return dv.end();\n  }\n};\n\ntemplate<class T>\nT* raw(thrust::device_vector<T> &dv) {\n  return thrust::raw_pointer_cast(&*dv.begin());\n}\n\ntemplate<class T>\nT* raw(thrust::host_vector<T> &hv) {\n  return &hv[0];\n}\n\ntemplate<class T>\nT* raw(const thrust::thrust_vector<T> &tv) {\n  return tv.raw();\n}\n\n}\n"
