@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, NoImplicitPrelude, PackageImports #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, NoImplicitPrelude, PackageImports,
+ FlexibleContexts,  StandaloneDeriving, UndecidableInstances  #-}
 {-# OPTIONS -Wall #-}
 module Language.Paraiso.Tuning.Genetic
   (
@@ -31,7 +32,9 @@ data Species v g =
   Species {
     setup   :: Native.Setup v g,
     machine :: OM.OM v g Anot.Annotation
-  } deriving (Show)
+  } 
+deriving instance (Show (Native.Setup v g),  Show (OM.OM v g Anot.Annotation))
+         => Show (Species v g)
 
 makeSpecies :: Native.Setup v g -> OM.OM v g Anot.Annotation -> Species v g
 makeSpecies = Species

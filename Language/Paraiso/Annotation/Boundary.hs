@@ -2,12 +2,14 @@
 UndecidableInstances #-}
 {-# OPTIONS -Wall #-}
 
--- | calculate the 'Valid' regions of the 'Orthotope' where all information needed to update 
+-- | calculate the 'Valid' regions for each 'Orthotope' value 
+--   where all information needed to update 
 --   the region is available.
+--   also annotates the global boundary condition.
 
 module Language.Paraiso.Annotation.Boundary
     (
-     Valid(..), NearBoundary(..)
+     Valid(..), NearBoundary(..), Condition(..)
     ) where
 
 import Data.Dynamic
@@ -28,4 +30,9 @@ instance (Ord g) => PiSystem (Valid g) where
 -- | the displacement around either side of the boundary.
 data NearBoundary a = NegaInfinity | LowerBoundary a | UpperBoundary a | PosiInfinity
               deriving (Eq, Ord, Show, Typeable)
-                       
+
+-- | type for global boundary conditions                       
+data Condition
+     = Open   -- ^ open boundary; do not touch anything
+     | Cyclic -- ^ cyclic boundary; data out of the bounds are copied from the other side
+     deriving (Eq, Read, Show)
