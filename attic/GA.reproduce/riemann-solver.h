@@ -9,7 +9,7 @@
 using namespace std;
 
 
-const double kGamma = 1.4;
+const double kGamma = (5.0)/(3.0);
 const double kTolerance = 1e-6;
 
 enum WaveType {

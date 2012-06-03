@@ -22,10 +22,12 @@ clean:
 	rm -f output/*.*
 
 massive-test: lib
+	cp HydroMainTemplate.hs HydroMain.hs
 	nvcc massive-test.cu dist-cuda/Hydro.cu -O3 -Idist-cuda/ -o massive-test.out -arch=sm_20
 	time ./massive-test.out
 
 
 exam: lib
+	cp HydroMainTemplate.hs HydroMain.hs
 	nvcc massive-test.cu dist-cuda/Hydro.cu -O3 -Idist-cuda/ -o exam.out -arch=sm_20
 	time ./exam.out 1

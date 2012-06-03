@@ -6,6 +6,8 @@ module Language.Paraiso.OM
   ) where
 
 import qualified Data.Vector as V
+import qualified Data.Serialize as S
+import qualified Data.Serialize.Derive as S
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM.Builder (Builder, buildKernel)
 import           Language.Paraiso.OM.Graph
