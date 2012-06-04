@@ -460,13 +460,18 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       [ C.toDyn  (Native.localSize setup ! (Axis idx) )
       | (idx, _) <- zip [0..] codecMod]
 
-    codecCursor cursor = 
-      (C.Op2Infix "+" (C.VarExpr addrCounter) (C.toDyn summa))
-      where
-        summa = sum $
-          [ cursor ! (Axis idx) * product (take idx memorySize)
-          | (idx, _) <- zip [0..] memorySize]
-
+    codecCursor cursor 
+      | F.all (==Boundary.Open) bnd = easySum
+      | otherwise = normalSum                      
+        where
+          bnd = Native.boundary setup
+          easySum = C.Op2Infix "+" (C.VarExpr addrCounter) (C.toDyn hardCodeShift)
+          hardCodeShift = sum $
+            [ cursor ! (Axis idx) * product (take idx memorySize)
+            | (idx, _) <- zip [0..] memorySize]
+          normalSum = foldl1 (C.Op2Infix "+")
+            [ C.Op2Infix "*" x (C.toDyn $ product $ take idx  memorySize)
+            | (idx, x) <- zip [0..] codecModAdd]  
 
     addrCounter = C.Var tSizet (mkName "addr_origin")
 
