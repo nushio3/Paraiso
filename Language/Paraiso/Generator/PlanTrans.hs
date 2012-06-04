@@ -460,7 +460,7 @@ loopMaker env@(Env setup plan) realm subker = case realm of
            protector x'
              | bnd ! Axis idx == Boundary.Open = x'
              | otherwise = (x'+n) `mod` n
-        in x - protector(C.toDyn  ((Plan.lowerMargin plan - Plan.lowerBoundary subker - cursor) ! (Axis idx) ))
+        in protector $ x - C.toDyn((Plan.lowerMargin plan - Plan.lowerBoundary subker - cursor) ! (Axis idx) )
       | (idx, x) <- zip [0..] codecMod]
     codecLoadSize =
       [ C.toDyn  (Native.localSize setup ! (Axis idx) )
