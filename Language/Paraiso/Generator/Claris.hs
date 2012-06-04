@@ -33,7 +33,11 @@ module Language.Paraiso.Generator.Claris (
   ) where
 
 
-import qualified Data.Dynamic as Dyn
+import qualified Algebra.Additive as Additive
+import qualified Algebra.Ring     as Ring
+import qualified Algebra.IntegralDomain as IntegralDomain 
+import qualified Algebra.Field    as Field
+import qualified Data.Dynamic     as Dyn
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
 import NumericPrelude
@@ -176,6 +180,36 @@ data Expr
 
 instance Eq Expr where
   (==)_ _= error "cannot compare Expr."
+
+
+
+
+
+
+
+instance Additive.C Expr where
+  zero = toDyn (0::Int) -- type unsafe...
+  (+) = Op2Infix "+"
+  (-) = Op2Infix "-"
+  negate = Op1Prefix "-"
+
+instance Ring.C Expr where
+  one = toDyn (1::Int)
+  (*) = Op2Infix "*"
+  fromInteger = toDyn
+
+instance Field.C Expr where
+  (/) = Op2Infix "/"
+  recip = Op1Prefix "1/" -- wow...
+  fromRational' x = let
+    dx :: Double 
+    dx = fromRational' x
+    in toDyn dx
+
+instance IntegralDomain.C Expr where
+  div = Op2Infix "/" -- I'm afraid...
+  mod = Op2Infix "%"
+
 
 -- | make C++ type from Haskell objects
 typeOf :: (Dyn.Typeable a) => a -> TypeRep

@@ -101,15 +101,19 @@ translate setup omBeforeOptimize = ret
 
 
     validToLower valid = let Boundary.Valid xs = valid in
-      compose $ \ax -> case Interval.lower (xs !! (axisIndex ax)) of
-        Boundary.NegaInfinity    -> Additive.zero
-        Boundary.LowerBoundary x -> x
-        _                        -> error $ "wrong lower Margin! : " 
+      compose $ \ax -> case Native.boundary setup ! ax of
+        Boundary.Cyclic -> Additive.zero
+        _ -> case Interval.lower (xs !! (axisIndex ax)) of
+             Boundary.NegaInfinity    -> Additive.zero
+             Boundary.LowerBoundary x -> x
+             _                        -> error $ "wrong lower Margin! : " 
     validToUpper valid = negate $ let Boundary.Valid xs = valid in
-      compose $ \ax -> case Interval.upper (xs !! (axisIndex ax)) of
-        Boundary.PosiInfinity    -> Additive.zero
-        Boundary.UpperBoundary x -> x
-        _                        -> error "wrong upper Margin!"
+      compose $ \ax -> case Native.boundary setup ! ax of
+        Boundary.Cyclic -> Additive.zero
+        _ -> case Interval.upper (xs !! (axisIndex ax)) of
+            Boundary.PosiInfinity    -> Additive.zero
+            Boundary.UpperBoundary x -> x
+            _                        -> error "wrong upper Margin!"
 
     -- the intersection of the valid area of all the store instructions found in the om.
     storageValidUnited :: (Opt.Ready v g) =>
