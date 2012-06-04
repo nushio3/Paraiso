@@ -144,12 +144,12 @@ accessorsForVars env@(Env setup plan) =
           (\i -> 
             if (Axis.next i == Axis 0) 
             then (marginedArgs!i) 
-            else C.Op2Infix "+" (marginedArgs!i) $
-                 C.Op2Infix "*" (C.FuncCallUsr (name $ omFuncMemorySize env ! i) [])
+            else  (marginedArgs!i) +
+                  (C.FuncCallUsr (name $ omFuncMemorySize env ! i) []) *
                                 (productedArgs!(Axis.next i)))
-        marginedArgs = compose (\i -> C.Op2Infix "+" 
-                                  (C.FuncCallUsr (name $ omFuncLowerMargin env ! i) [])  
-                                  (C.VarExpr (argsElem ! i)))
+        marginedArgs = compose (\i -> 
+                                  C.FuncCallUsr (name $ omFuncLowerMargin env ! i) [] +
+                                  C.VarExpr (argsElem ! i))
                    
     let materials = (typeSimple, bodySimple, argsSimple) : fmap (,bodyElem,F.toList argsElem) typeElemMaybe
         
@@ -439,22 +439,28 @@ loopMaker env@(Env setup plan) realm subker = case realm of
         Boundary.Cyclic -> Additive.zero)
 
     codecDiv = 
-      [ if idx == 0 then (C.VarExpr loopCounter) else C.Op2Infix "/" (C.VarExpr loopCounter) (C.toDyn $ product $ take idx boundarySize) 
+      [ if idx == 0 then (C.VarExpr loopCounter) else (C.VarExpr loopCounter) / (C.toDyn $ product $ take idx boundarySize) 
       | idx <- [0..length boundarySize-1]]
     codecMod = 
-      [ if idx == length codecDiv-1 then x else C.Op2Infix "%" x (C.toDyn $ boundarySize !! idx)
+      [ if idx == length codecDiv-1 then x else x `mod`  (C.toDyn $ boundarySize !! idx)
       | (idx, x) <- zip [0..] codecDiv]
     codecModAdd = 
-      [ C.Op2Infix "+" x (C.toDyn $ Plan.lowerMargin plan ! (Axis idx))
+      [ x + (C.toDyn $ Plan.lowerMargin plan ! (Axis idx))
       | (idx, x) <- zip [0..] codecMod]
     codecAddr = 
       if memorySize == boundarySize 
       then C.VarExpr loopCounter
-      else foldl1 (C.Op2Infix "+")
-           [ C.Op2Infix "*" x (C.toDyn $ product $ take idx  memorySize)
+      else foldl1 (+)
+           [ x * (C.toDyn $ product $ take idx  memorySize)
            | (idx, x) <- zip [0..] codecModAdd]
     codecLoadIndex cursor =
-      [ C.Op2Infix "-" x (C.toDyn  ((Plan.lowerMargin plan - Plan.lowerBoundary subker - cursor) ! (Axis idx) ))
+      [ let
+           bnd = Native.boundary setup
+           n      = C.toDyn $ memorySize !! idx 
+           protector x'
+             | bnd ! Axis idx == Boundary.Open = x'
+             | otherwise = (x'+n) `mod` n
+        in x - protector(C.toDyn  ((Plan.lowerMargin plan - Plan.lowerBoundary subker - cursor) ! (Axis idx) ))
       | (idx, x) <- zip [0..] codecMod]
     codecLoadSize =
       [ C.toDyn  (Native.localSize setup ! (Axis idx) )
@@ -465,12 +471,17 @@ loopMaker env@(Env setup plan) realm subker = case realm of
       | otherwise = normalSum                      
         where
           bnd = Native.boundary setup
-          easySum = C.Op2Infix "+" (C.VarExpr addrCounter) (C.toDyn hardCodeShift)
+          easySum = C.VarExpr addrCounter + C.toDyn hardCodeShift
           hardCodeShift = sum $
             [ cursor ! (Axis idx) * product (take idx memorySize)
             | (idx, _) <- zip [0..] memorySize]
-          normalSum = foldl1 (C.Op2Infix "+")
-            [ C.Op2Infix "*" x (C.toDyn $ product $ take idx  memorySize)
+          normalSum = foldl1 (+)
+            [ let stride = C.toDyn $ product $ take idx  memorySize
+                  n      = C.toDyn $ memorySize !! idx 
+                  protector x'
+                    | bnd ! Axis idx == Boundary.Open = x'
+                    | otherwise = (x'+n) `mod` n
+              in stride * protector (x + C.toDyn (cursor ! Axis idx))
             | (idx, x) <- zip [0..] codecModAdd]  
 
     addrCounter = C.Var tSizet (mkName "addr_origin")
