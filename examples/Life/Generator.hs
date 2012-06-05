@@ -49,10 +49,7 @@ generation = "generation" `isNameOf` StaticValue TScalar undefined
 
 
 myVars :: [Named DynValue]
-myVars = [use ce11, use total, use generation]
-  where
-    use :: (Functor f, DVal.ToDynable x) => f x -> f DynValue
-    use = fmap toDyn
+myVars = [f2d ce11, f2d total, f2d generation]
     
 -- our kernel
 myKernels :: [Named (Builder Vec1 Int Annotation ())]

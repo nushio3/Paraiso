@@ -48,7 +48,7 @@ total :: Named (StaticValue TScalar Int)
 total = "total" `isNameOf` StaticValue TScalar undefined
 
 myVars :: [Named DynValue]
-myVars = [ftd table, ftd total]
+myVars = [f2d table, f2d total]
     
 -- the only kernel our OM has
 myKernels :: [Named (Builder Vec2 Int Annotation ())]

@@ -10,7 +10,7 @@ import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
-import           Language.Paraiso.OM.DynValue (ftd, DynValue)
+import           Language.Paraiso.OM.DynValue (f2d, DynValue)
 import           Language.Paraiso.OM.Value (StaticValue(..))
 import           Language.Paraiso.OM.PrettyPrint (prettyPrintA1)
 import           Language.Paraiso.OM.Realm 
@@ -47,7 +47,7 @@ total :: Named (StaticValue TScalar Int)
 total = "total" `isNameOf` StaticValue TScalar undefined
 
 myVars :: [Named DynValue]
-myVars = [ftd table, ftd total]
+myVars = [f2d table, f2d total]
     
 -- the only kernel our OM has
 myKernels :: [Named (Builder Vec2 Int Annotation ())]
