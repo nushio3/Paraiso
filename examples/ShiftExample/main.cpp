@@ -9,7 +9,7 @@ int main () {
   maker.create();
 
   for (int x = 0; x < maker.om_size_0(); ++x) {
-    cout << setw(4) << right << maker.table(x);
+    cout << setw(7) << right << maker.table(x);
   }
   cout << endl;
 

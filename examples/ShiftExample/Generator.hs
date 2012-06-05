@@ -2,9 +2,8 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
-import           Data.Dynamic
+
 import           Data.Tensor.TypeLevel
-import qualified Data.Text.IO as T
 import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation.Boundary as Boundary
 import           Language.Paraiso.Generator (generateIO)
@@ -13,53 +12,57 @@ import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.DynValue as DVal
-import           Language.Paraiso.OM.PrettyPrint (prettyPrintA1)
+import           Language.Paraiso.OM.Value (StaticValue(..))
 import           Language.Paraiso.OM.Realm 
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.Optimization
 import           NumericPrelude
-import           System.Process (system)
 
--- the names we use
-table, total, create, tableMaker :: Name
-table = mkName "table"
-total = mkName "total"
-create = mkName "create"
-tableMaker = mkName "TableMaker"
 
+-- the main program
 main :: IO ()
 main = do
-  _ <- system "mkdir -p output"
-  T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
   _ <- generateIO mySetup myOM
-  _ <- generateIO 
+  _ <- generateIO
     mySetup{ Native.directory = "./dist-cyclic/", Native.boundary = Vec :~ Boundary.Cyclic}
     myOM
   return ()
 
+-- the code generation setup
 mySetup :: Native.Setup Vec1 Int
 mySetup = 
   (Native.defaultSetup $ Vec :~ 10)
   { Native.directory = "./dist-open/" 
   }
 
+-- the orthotope machine to be generated
 myOM :: OM Vec1 Int Annotation
 myOM = optimize O3 $
-  makeOM tableMaker [] myVars myKernels
+  makeOM (mkName "TableMaker") [] myVars myKernels
+
+-- the variables we use
+table :: Named (StaticValue TArray Int)
+table = "table" `isNameOf` StaticValue TArray  undefined
+
+total :: Named (StaticValue TScalar Int)
+total = "total" `isNameOf` StaticValue TScalar undefined
 
 myVars :: [Named DynValue]
-myVars = [Named table $ DynValue Array (typeOf (undefined::Int)),
-          Named total $ DynValue Scalar (typeOf (undefined::Int))]
-
+myVars = [use table, fmap DVal.toDyn total]
+  where
+    use :: (Functor f, DVal.ToDynable x) => f x -> f DynValue
+    use = fmap toDyn
+    
+-- our kernel
 myKernels :: [Named (Builder Vec1 Int Annotation ())]
-myKernels = [Named create createBuilder]
+myKernels = ["create" `isNameOf` createBuilder]
 
 createBuilder :: Builder Vec1 Int Annotation ()
 createBuilder = do 
-  center <- bind $ loadIndex (undefined::Int) (Axis 0) 
+  center <- bind $ loadIndex (Axis 0) 
   right  <- bind $ shift (Vec :~ (-1)) center
   left   <- bind $ shift (Vec :~ ( 1)) center
-  ret    <- bind $ 100 * left + 10 * center + right
+  ret    <- bind $ 10000 * left + 100 * center + right
   store table ret
   store total $ reduce Reduce.Sum ret
 
