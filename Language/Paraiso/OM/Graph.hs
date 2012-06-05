@@ -124,14 +124,14 @@ data Inst vector gauge
 
 instance Arity (Inst vector gauge) where
   arity a = case a of
-    Imm _     -> (0,1)
     Load _    -> (0,1)
     Store _   -> (1,0)
     Reduce _  -> (1,1)
     Broadcast -> (1,1)
-    Shift _   -> (1,1)
     LoadIndex _ -> (0,1)
     LoadSize _ -> (0,1)    
+    Shift _   -> (1,1)
+    Imm _     -> (0,1)
     Arith op  -> arity op
 
 

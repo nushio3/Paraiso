@@ -13,7 +13,7 @@ import Language.Paraiso.OM.DynValue as DVal
 import Language.Paraiso.OM.Graph
 import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
-import NumericPrelude 
+
 
 infix 4 `eq`, `ne`, `lt`, `le`, `gt`, `ge`
 
