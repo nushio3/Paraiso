@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -28,7 +29,7 @@ int main () {
 
   int wait = 1000000;
   string buf; buf.resize((W+1)*H);
-  for (int t = 0; t < 1500; ++t) {
+  for (int t = 0; ; ++t) {
     int j = 0;
     for (int y = 0; y < H; y+=2) {
       for (int x = 0; x < W; ++x) {
@@ -38,7 +39,10 @@ int main () {
     }
     ostringstream oss;
     oss << buf << "\n" 
-	<< "generation: " << sim.generation() << endl;
+	<< "generation: " << setw(6) << sim.generation() 
+        << "  "
+	<< "population: " << setw(4) << sim.population() 
+        << endl;
     cout << oss.str() << flush;
     usleep(wait);
     wait = max(50000, int(wait*0.8));
