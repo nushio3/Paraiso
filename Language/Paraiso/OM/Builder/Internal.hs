@@ -166,14 +166,14 @@ bind = fmap return
 
 -- | Load from a static value.
 load :: (TRealm r, Typeable c) => 
-        r             -- ^The 'TRealm' type.
-     -> c             -- ^The 'Val.content' type.
-     -> Name          -- ^The 'Name' of the static value to load.
-     -> B (Value r c) -- ^The loaded 'TArray' 'Value' as a result.
-load r0 c0 name0 = do
+        Named (Val.Value r c) -- the named static value to be loaded.
+     -> B (Value r c)         -- ^The loaded 'TArray' 'Value' as a result.
+load (Named name0 val0)= do
   let 
-      type0 = mkDyn r0 c0
-      nv = Named name0 type0
+    r0 = Val.realm val0
+    c0 = Val.content val0  
+    type0 = toDyn val0
+    nv = Named name0 type0
   idx <- lookUpStatic nv
   n0 <- addNodeE []   $ NInst  (Load idx)
   n1 <- addNodeE [n0] $ NValue type0 

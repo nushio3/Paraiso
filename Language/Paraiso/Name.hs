@@ -4,8 +4,9 @@
 -- | name identifier.
 module Language.Paraiso.Name 
   (
-   Name, Named(..), mkName,
-   Nameable(..), namee
+    Nameable(..),
+    Name, mkName, giveName,  
+    Named(..), namee,
   ) where
 import Control.Monad
 import Data.Text (Text, unpack)
@@ -36,10 +37,15 @@ instance Nameable Name where
 -- | Convert some type to a named type.
 data Named a = Named Name a
 
+-- | create Named object in an instance.
+giveName ::  Text -> a -> Named a
+giveName n a = Named (mkName n) a
+
 instance Nameable (Named a) where
   name (Named n _) = n
 instance Functor Named where
   fmap f (Named n a) = Named n $ f a
+
 
 
 -- | The thing the name points to.
