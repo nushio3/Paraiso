@@ -6,7 +6,6 @@ cd Paraiso/
 cabal configure
 cabal install
 cd examples/Life/
-make lib
 make
 ./main.out
 
