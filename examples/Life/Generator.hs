@@ -2,7 +2,7 @@
 {-# LANGUAGE NoImplicitPrelude, OverloadedStrings #-}
 {-# OPTIONS -Wall #-}
 
-
+import           Control.Monad
 import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation.Boundary as Boundary
@@ -11,12 +11,14 @@ import qualified Language.Paraiso.Generator.Native as Native
 import           Language.Paraiso.Name
 import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
+import           Language.Paraiso.OM.Builder.Boolean (select,eq,ge,le)
 import           Language.Paraiso.OM.DynValue as DVal
-import           Language.Paraiso.OM.Value (StaticValue(..))
 import           Language.Paraiso.OM.Realm 
 import qualified Language.Paraiso.OM.Reduce as Reduce
+import           Language.Paraiso.OM.Value (StaticValue(..))
 import           Language.Paraiso.Optimization
-import           NumericPrelude
+import           Language.Paraiso.Prelude
+import           NumericPrelude hiding ((||),(&&))
 
 
 -- the main program
@@ -26,41 +28,80 @@ main = do
   return ()
 
 -- the code generation setup
-mySetup :: Native.Setup Vec1 Int
+mySetup :: Native.Setup Vec2 Int
 mySetup = 
   (Native.defaultSetup $ Vec :~ 80 :~ 48)
-  { Native.directory = "./dist/" 
+  { Native.directory = "./dist/" ,
+    Native.boundary = compose $ const Boundary.Cyclic
   }
 
 -- the orthotope machine to be generated
-myOM :: OM Vec1 Int Annotation
+myOM :: OM Vec2 Int Annotation
 myOM = optimize O3 $
-  makeOM (mkName "TableMaker") [] myVars myKernels
+  makeOM (mkName "Life") [] myVars myKernels
 
 -- the variables we use
 cell :: Named (StaticValue TArray Int)
 cell = "cell" `isNameOf` StaticValue TArray  undefined
 
-total :: Named (StaticValue TScalar Int)
-total = "total" `isNameOf` StaticValue TScalar undefined
+population :: Named (StaticValue TScalar Int)
+population = "population" `isNameOf` StaticValue TScalar undefined
 
 generation :: Named (StaticValue TScalar Int)
 generation = "generation" `isNameOf` StaticValue TScalar undefined
 
 
 myVars :: [Named DynValue]
-myVars = [f2d ce11, f2d total, f2d generation]
+myVars = [f2d cell, f2d population, f2d generation]
     
 -- our kernel
-myKernels :: [Named (Builder Vec1 Int Annotation ())]
-myKernels = ["create" `isNameOf` createBuilder]
+myKernels :: [Named (Builder Vec2 Int Annotation ())]
+myKernels = ["init" `isNameOf` initBuilder,
+             "proceed" `isNameOf` proceedBuilder]
 
-createBuilder :: Builder Vec1 Int Annotation ()
-createBuilder = do 
-  center <- bind $ loadIndex (Axis 0) 
-  right  <- bind $ shift (Vec :~ (-1)) center
-  left   <- bind $ shift (Vec :~ ( 1)) center
-  ret    <- bind $ 10000 * left + 100 * center + right
-  store table ret
-  store total $ reduce Reduce.Sum ret
+initBuilder :: Builder Vec2 Int Annotation ()
+initBuilder = do 
+  -- store the initial states.
+  store cell 0
+  store population 0
+  store generation 0
+
+-- adjacency vectors in Conway's game of Life
+adjVecs :: [Vec2 Int]
+adjVecs = zipWith (\x y -> Vec :~ x :~ y)
+          [-1, 0, 1,-1, 1,-1, 0, 1]
+          [-1,-1,-1, 0, 0, 1, 1, 1]
+
+
+proceedBuilder :: Builder Vec2 Int Annotation ()
+proceedBuilder = do 
+    -- load a Array variable called "cell."
+  oldCell <- bind $ load cell
+
+  -- load a Scalar variable called "generation."
+  gen  <- bind $ load generation
+
+  -- create a list of cell patterns, each shifted by an element of adjVects.
+  neighbours <- fmap (map return) $
+                forM adjVecs (\v -> shift v oldCell)
+
+  -- add them all.
+  num <- bind $ foldl1 (+) neighbours
+
+  -- The rule of Conway's game of Life.
+  isAlive <- bind $
+             (oldCell `eq` 0) && (num `eq` 3) ||
+             (oldCell `eq` 1) && (num `ge` 2) && (num `le` 3) 
+
+  -- create the new cell state based on the judgement.
+  newCell <- bind $ select isAlive (1::BuilderOf TArray Int) 0
+
+  -- count the number of alive cells and store it into "population."
+  store population $ reduce Reduce.Sum newCell
+
+  -- increment the generation.
+  store generation $ gen + 1
+
+  -- store the new cell state.
+  store cell $ newCell
 
