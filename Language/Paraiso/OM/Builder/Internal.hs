@@ -17,7 +17,7 @@ module Language.Paraiso.OM.Builder.Internal
      load, store,
      reduce, broadcast,
      shift, loadIndex,loadSize,
-     imm, mkOp1, mkOp2,
+     imm, mkOp1, mkOp2, cast,
      annotate, (<?>),
      withAnnotation
     ) where
