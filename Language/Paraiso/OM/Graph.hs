@@ -111,14 +111,14 @@ instance Show StaticIdx where
   show (StaticIdx x) = "static[" ++ show x ++ "]"
 
 data Inst vector gauge 
-  = Imm Dynamic 
-  | Load StaticIdx
+  = Load StaticIdx
   | Store StaticIdx
   | Reduce R.Operator 
   | Broadcast 
-  | Shift (vector gauge) 
   | LoadIndex (Axis vector) 
   | LoadSize (Axis vector) 
+  | Shift (vector gauge) 
+  | Imm Dynamic 
   | Arith A.Operator 
   deriving (Show)
 

@@ -51,8 +51,8 @@ Description: The purpose of this project is to design a high-level language
 	     concepts. The type @Vector@ represents rank-1 tensor, and tensors
 	     of higher ranks are recursively defined as @Vector@ of
 	     @Vector@s. With @Axis@ you can refer to the components of
-	     @Vector@s, compose them, or contract them. See the wiki:
-             <http://www.paraiso-lang.org/wiki/> and the paper:
+	     @Vector@s, compose them, or contract them. See the wiki
+             <http://www.paraiso-lang.org/wiki/> and the paper
              <http://arxiv.org/abs/1204.4779> for more detail.
              .
              * 0.3.0.0 /Doughnut/ : refined interface and support for cyclic boundary conditions.

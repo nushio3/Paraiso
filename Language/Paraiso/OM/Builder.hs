@@ -12,9 +12,11 @@ module Language.Paraiso.OM.Builder
      buildKernel,
      
      bind,
-     load, store, imm,
-     reduce, broadcast, shift, 
-     loadIndex, loadSize, cast,
+     load, store, 
+     reduce, broadcast, 
+     loadIndex, loadSize, 
+     shift, imm, 
+     cast,
      annotate, (<?>),
      withAnnotation
     ) where

@@ -16,7 +16,8 @@ module Language.Paraiso.OM.Builder.Internal
      bind,
      load, store,
      reduce, broadcast,
-     shift, loadIndex,loadSize,
+     loadIndex,loadSize,
+     shift, 
      imm, mkOp1, mkOp2, cast,
      annotate, (<?>),
      withAnnotation
@@ -225,20 +226,6 @@ broadcast builder1 = do
   n3 <- addNodeE [n2] $ NValue type2 
   return (FromNode TArray c1 n3)
 
--- | Shift a 'TArray' 'Value' with a constant vector.
-shift :: (Typeable c)
-  => v g                            -- ^ The amount of shift  
-  -> Builder v g a (Value TArray c) -- ^ The 'TArray' Value to be shifted
-  -> Builder v g a (Value TArray c) -- ^ The shifted 'TArray' 'Value' as a result.
-shift vec builder1 = do
-  val1 <- builder1
-  let 
-    type1 = toDyn val1
-    c1 = Val.content val1
-  n1 <- valueToNode val1
-  n2 <- addNodeE [n1] $ NInst $ Shift vec
-  n3 <- addNodeE [n2] $ NValue type1 
-  return (FromNode TArray c1 n3)
 
 -- | Load the 'Axis' component of the mesh address, to a 'TArray' 'Value'.
 loadIndex :: (Typeable g) 
@@ -265,6 +252,21 @@ loadSize axis = do
   n0 <- addNodeE []   $ NInst (LoadSize axis)
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TScalar c0 n1)
+
+-- | Shift a 'TArray' 'Value' with a constant vector.
+shift :: (Typeable c)
+  => v g                            -- ^ The amount of shift  
+  -> Builder v g a (Value TArray c) -- ^ The 'TArray' Value to be shifted
+  -> Builder v g a (Value TArray c) -- ^ The shifted 'TArray' 'Value' as a result.
+shift vec builder1 = do
+  val1 <- builder1
+  let 
+    type1 = toDyn val1
+    c1 = Val.content val1
+  n1 <- valueToNode val1
+  n2 <- addNodeE [n1] $ NInst $ Shift vec
+  n3 <- addNodeE [n2] $ NValue type1 
+  return (FromNode TArray c1 n3)
 
 
 -- | Create an immediate 'Value' from a Haskell concrete value. 
