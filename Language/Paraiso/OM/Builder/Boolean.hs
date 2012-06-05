@@ -15,6 +15,7 @@ import Language.Paraiso.OM.Realm as Realm
 import Language.Paraiso.OM.Value as Val
 import NumericPrelude 
 
+infix 4 `eq`, `ne`, `lt`, `le`, `gt`, `ge`
 
 -- | generate a binary operator that returns Bool results.
 mkOp2B :: (TRealm r, Typeable c) => 
