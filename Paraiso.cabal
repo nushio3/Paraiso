@@ -15,7 +15,7 @@ Name:                Paraiso
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.3.1.0
+Version:             0.3.1.1
 Tested-With:         GHC==7.4.1
 
 -- A short (one-line) description of the package.
@@ -54,7 +54,7 @@ Description: The purpose of this project is to design a high-level language
 	     @Vector@s, compose them, or contract them. See the wiki:
              <http://www.paraiso-lang.org/wiki/> and the paper:
              <http://arxiv.org/abs/1204.4779> for more detail.
-
+             .
              * 0.3.0.0 /Doughnut/ : refined interface and support for cyclic boundary conditions.
              .
              * 0.2.0.0 /Companion/ : genetic algorithm support for automated tuning.
