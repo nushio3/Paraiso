@@ -166,13 +166,11 @@ bind = fmap return
 
 -- | Load from a static value.
 load :: (TRealm r, Typeable c) => 
-        Named (Val.Value r c) -- the named static value to be loaded.
-     -> B (Value r c)         -- ^The loaded 'TArray' 'Value' as a result.
-load (Named name0 val0)= do
+        Named (Val.StaticValue r c) -- ^ the named static value to be loaded from.
+     -> B (Value r c)               -- ^ The loaded 'Value' as a result.
+load (Named name0 (Val.StaticValue r0 c0))= do
   let 
-    r0 = Val.realm val0
-    c0 = Val.content val0  
-    type0 = toDyn val0
+    type0 = mkDyn r0 c0
     nv = Named name0 type0
   idx <- lookUpStatic nv
   n0 <- addNodeE []   $ NInst  (Load idx)
@@ -181,10 +179,10 @@ load (Named name0 val0)= do
 
 -- | Store to a static value.
 store :: (TRealm r, Typeable c) => 
-         Name                    -- ^The 'Name' of the static value to store.
-      -> Builder v g a (Value r c) -- ^The 'Value' to be stored.
-      -> Builder v g a ()          -- ^The result.
-store name0 builder0 = do
+         Named (Val.StaticValue r c) -- ^ the named static value to be stored on.
+      -> Builder v g a (Value r c)   -- ^ The 'Value' to be stored.
+      -> Builder v g a ()            -- ^ The result.
+store (Named name0 _) builder0 = do
   val0 <- builder0
   let 
       type0 = toDyn val0
@@ -243,27 +241,30 @@ shift vec builder1 = do
   return (FromNode TArray c1 n3)
 
 -- | Load the 'Axis' component of the mesh address, to a 'TArray' 'Value'.
-loadIndex :: (Typeable c) => 
-             c                            -- ^The 'Val.content' type.
-          -> Axis v                       -- ^ The axis for which index is required
-          -> Builder v g a (Value TArray c) -- ^ The 'TArray' 'Value' that contains the address as a result.
-loadIndex c0 axis = do
-  let type0 = mkDyn TArray c0
+loadIndex :: (Typeable g) 
+          => Axis v                         -- ^ The axis for which index is required
+          -> Builder v g a (Value TArray g) -- ^ The 'TArray' 'Value' that contains the address as a result.
+loadIndex axis = do
+  -- create a phantom object of type g
+  c0 <- (return undefined) `asTypeOf` (fmap Val.content $ loadIndex axis)
+  let 
+    type0 = mkDyn TArray c0
   n0 <- addNodeE []   $ NInst (LoadIndex axis)
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TArray c0 n1)
 
 -- | Load the 'Axis' component of the mesh size, to either a  'TScalar' 'Value' or  'TArray' 'Value'..
-loadSize :: (TRealm r, Typeable c)
-            => r                            -- ^ The 'TRealm'
-            -> c                            -- ^The 'Val.content' type.
-            -> Axis v                       -- ^ The axis for which the size is required
-            -> Builder v g a (Value r c) -- ^ The 'TScalar' 'Value' that contains the size of the mesh in that direction.
-loadSize r0 c0 axis = do
-  let type0 = mkDyn r0 c0
+loadSize :: (Typeable g) 
+         => Axis v                          -- ^ The axis for which the size is required
+         -> Builder v g a (Value TScalar g) -- ^ The 'TScalar' 'Value' that contains the size of the mesh in that direction.
+loadSize axis = do
+  -- create a phantom object of type g
+  c0 <- (return undefined) `asTypeOf` (fmap Val.content $ loadSize axis)
+  let 
+    type0 = mkDyn TScalar c0
   n0 <- addNodeE []   $ NInst (LoadSize axis)
   n1 <- addNodeE [n0] $ NValue type0 
-  return (FromNode r0 c0 n1)
+  return (FromNode TScalar c0 n1)
 
 
 -- | Create an immediate 'Value' from a Haskell concrete value. 
@@ -272,6 +273,13 @@ imm :: (TRealm r, Typeable c) =>
        c             -- ^A Haskell value of type @c@ to be stored.
     -> B (Value r c) -- ^'TArray' 'Value' with the @c@ stored.
 imm c0 = return (FromImm unitTRealm c0)
+
+
+
+----------------------------------------------------------------
+-- Here comes the Arith instruction emitters.
+----------------------------------------------------------------
+
 
 -- | Make a unary operator
 mkOp1 :: (TRealm r, Typeable c) => 
@@ -307,40 +315,6 @@ mkOp2 op builder1 builder2 = do
   return $ FromNode r1 c1 n01
 
 
--- | Execute the builder under modifed annotation.
-withAnnotation :: (a -> a) -> Builder v g a ret ->  Builder v g a ret
-withAnnotation f builder1 = do
-  stat0 <- State.get
-  let curAnot0 = currentAnnotation (context stat0)
-      curAnot1 = f curAnot0
-  State.put $ stat0{ context = (context stat0){ currentAnnotation = curAnot1 } }
-  ret <- builder1
-  stat1 <- State.get
-  State.put $ stat1{ context = (context stat1){ currentAnnotation = curAnot0} }
-  return ret
-
-
--- | Execute the builder, and annotate the very result with the givin function. 
-annotate :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
-annotate f builder1 = do
-  v1 <- builder1
-  n1 <- valueToNode v1
-  let 
-    r1 = Val.realm v1
-    c1 = Val.content v1
-    annotator con@(ins, n2, node2, outs)
-      | n1 /= n2  = con
-      | otherwise = (ins, n2, fmap f node2, outs)
-  stat0 <- State.get
-  State.put $ stat0 {    
-    target = FGL.gmap annotator (target stat0)
-    }
-  return $ FromNode r1 c1 n1 
-
--- | (<?>) = annotate
-infixr 0 <?>
-(<?>) :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
-(<?>) = annotate
 
 -- | Builder is Additive 'Additive.C'.
 -- You can use 'Additive.zero', 'Additive.+', 'Additive.-', 'Additive.negate'.
@@ -369,6 +343,8 @@ instance (TRealm r, Typeable c, Ring.C c) => Ring.C (Builder v g a (Value r c)) 
                modify = if n2 - 2*n3 > 0 then (x*) else id
            bx_n3 <- fmap return $ f x n3
            modify $ bx_n3*bx_n3
+
+-- Here comes the Arith node creaters.
 
 -- | Builder is Ring 'IntegralDomain.C'.
 -- You can use div and mod.
@@ -438,3 +414,58 @@ instance (TRealm r, Typeable c,  Transcendental.C c) =>
         asin = mkOp1 A.Asin
         acos = mkOp1 A.Acos
         atan = mkOp1 A.Atan
+
+-- | A special Arith operation that keeps the realm and casts the content
+--   from one type to another.
+cast :: (TRealm r, Typeable c1,Typeable c2) => (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
+cast builder1 = do
+  -- create a phantom object of type c2
+  v1 <- builder1
+  c2 <- return undefined `asTypeOf` (fmap Val.content $ cast builder1)
+  let 
+      r1 = Val.realm v1
+      c1 = Val.content v1
+  n1 <- valueToNode v1
+  n0 <-  addNodeE [n1] $ NInst (Arith $ A.Cast $ Dynamic.typeOf c2) 
+  n01 <- addNodeE [n0] $ NValue (toDyn v1) 
+  return $ FromNode r1 c2 n01
+
+
+
+
+
+-- | Execute the builder under modifed annotation.
+withAnnotation :: (a -> a) -> Builder v g a ret ->  Builder v g a ret
+withAnnotation f builder1 = do
+  stat0 <- State.get
+  let curAnot0 = currentAnnotation (context stat0)
+      curAnot1 = f curAnot0
+  State.put $ stat0{ context = (context stat0){ currentAnnotation = curAnot1 } }
+  ret <- builder1
+  stat1 <- State.get
+  State.put $ stat1{ context = (context stat1){ currentAnnotation = curAnot0} }
+  return ret
+
+
+-- | Execute the builder, and annotate the very result with the givin function. 
+annotate :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
+annotate f builder1 = do
+  v1 <- builder1
+  n1 <- valueToNode v1
+  let 
+    r1 = Val.realm v1
+    c1 = Val.content v1
+    annotator con@(ins, n2, node2, outs)
+      | n1 /= n2  = con
+      | otherwise = (ins, n2, fmap f node2, outs)
+  stat0 <- State.get
+  State.put $ stat0 {    
+    target = FGL.gmap annotator (target stat0)
+    }
+  return $ FromNode r1 c1 n1 
+
+-- | (<?>) = annotate
+infixr 0 <?>
+(<?>) :: (TRealm r, Typeable c) => (a -> a) -> Builder v g a (Value r c) ->  Builder v g a (Value r c)
+(<?>) = annotate
+

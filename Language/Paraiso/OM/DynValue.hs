@@ -20,9 +20,19 @@ data DynValue = DynValue {realm :: R.Realm, typeRep :: TypeRep} deriving (Eq, Sh
 mkDyn :: (R.TRealm r, Typeable c) => r -> c -> DynValue
 mkDyn r0 c0 = DynValue (R.tRealm r0) (typeOf c0)
 
+
+-- | Something that can be converted to 'DynValue'
+class ToDynable a where
+  toDyn :: a -> DynValue
+
 -- | Convert 'Val.Value' to 'DynValue'
-toDyn :: (R.TRealm r, Typeable c) => Val.Value r c -> DynValue
-toDyn x = mkDyn (Val.realm x) (Val.content x)
+instance (R.TRealm r, Typeable c) => ToDynable (Val.Value r c) where
+  toDyn x = mkDyn (Val.realm x) (Val.content x)
+
+-- | Convert 'Val.StaticValue' to 'DynValue'
+instance (R.TRealm r, Typeable c) => ToDynable (Val.StaticValue r c) where
+  toDyn (Val.StaticValue r c) = mkDyn r c
+
 
 instance R.Realmable DynValue where
   realm = realm

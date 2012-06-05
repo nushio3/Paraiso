@@ -6,7 +6,8 @@ module Language.Paraiso.OM.Arithmetic
      Operator(..)
     ) where
 
-import NumericPrelude hiding (Ordering(..), Eq(..), Ord(..))
+import qualified Data.Dynamic as Dynamic
+import           NumericPrelude hiding (Ordering(..), Eq(..), Ord(..))
 import qualified NumericPrelude as P
 
 class Arity a where
@@ -60,8 +61,9 @@ data Operator =
   Acos |
   Atan |
   Atan2 |  
-  Sincos 
-  deriving (P.Eq, P.Ord, P.Show, P.Read)
+  Sincos |
+  Cast Dynamic.TypeRep
+  deriving (P.Eq, P.Ord, P.Show)
 
 instance Arity Operator where
   arity a = case a of
@@ -105,4 +107,4 @@ instance Arity Operator where
     Atan -> (1,1)
     Atan2 -> (2,1)
     Sincos -> (1,2)
-
+    Cast _ -> (1,1)

@@ -6,7 +6,7 @@
 
 module Language.Paraiso.OM.Value
   (
-   Value(..)
+   Value(..), StaticValue(..)
   ) where
 
 import Data.Typeable
@@ -27,6 +27,9 @@ data
   -- 'content' is the immediate value to be stored.
   FromImm {realm :: rea, content :: con} deriving (Eq, Show)
                        
+-- | static value type.
+data StaticValue rea con = StaticValue rea con deriving (Eq, Show)
+
 
 instance  (R.TRealm rea, Typeable con) => R.Realmable (Value rea con) where
   realm (FromNode r _ _) = R.tRealm r
