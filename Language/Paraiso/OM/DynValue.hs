@@ -6,7 +6,7 @@
 
 module Language.Paraiso.OM.DynValue
   (
-   DynValue(..), mkDyn, toDyn
+   DynValue(..), mkDyn, toDyn, ToDynable(..)
   ) where
 
 import Data.Typeable

@@ -415,13 +415,11 @@ instance (TRealm r, Typeable c,  Transcendental.C c) =>
         acos = mkOp1 A.Acos
         atan = mkOp1 A.Atan
 
--- | A special Arith operation that keeps the realm and casts the content
---   from one type to another.
-cast :: (TRealm r, Typeable c1,Typeable c2) => (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
-cast builder1 = do
-  -- create a phantom object of type c2
+-- | take a phantom object 'c2', and perform the cast that keeps the realm while
+--   change the content type from 'c1' to 'c2'.
+cast :: (TRealm r, Typeable c1,Typeable c2) => c2 -> (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
+cast c2 builder1 = do
   v1 <- builder1
-  c2 <- return undefined `asTypeOf` (fmap Val.content $ cast builder1)
   let 
       r1 = Val.realm v1
       c1 = Val.content v1

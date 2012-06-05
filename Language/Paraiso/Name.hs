@@ -5,7 +5,7 @@
 module Language.Paraiso.Name 
   (
     Nameable(..),
-    Name, mkName, giveName,  
+    Name, mkName, isNameOf,  
     Named(..), namee,
   ) where
 import Control.Monad
@@ -38,8 +38,8 @@ instance Nameable Name where
 data Named a = Named Name a
 
 -- | create Named object in an instance.
-giveName ::  Text -> a -> Named a
-giveName n a = Named (mkName n) a
+isNameOf ::  Text -> a -> Named a
+isNameOf n a = Named (mkName n) a
 
 instance Nameable (Named a) where
   name (Named n _) = n
