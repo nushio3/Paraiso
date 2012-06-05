@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP, NoImplicitPrelude, NoMonomorphismRestriction, RankNTypes #-}
 {-# OPTIONS -Wall #-}
-{-# OPTIONS_HADDOCK hide #-}
 -- | an extension of the standard Prelude for paraiso.
 
 module Language.Paraiso.Prelude
