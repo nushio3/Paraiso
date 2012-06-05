@@ -41,7 +41,7 @@ int main () {
 	<< "generation: " << sim.generation() << endl;
     cout << oss.str() << flush;
     usleep(wait);
-    wait = max(100000, int(wait*0.8));
+    wait = max(50000, int(wait*0.8));
     sim.proceed();
   }
 }
