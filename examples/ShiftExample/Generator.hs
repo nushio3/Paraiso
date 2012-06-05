@@ -48,10 +48,7 @@ total :: Named (StaticValue TScalar Int)
 total = "total" `isNameOf` StaticValue TScalar undefined
 
 myVars :: [Named DynValue]
-myVars = [use table, fmap DVal.toDyn total]
-  where
-    use :: (Functor f, DVal.ToDynable x) => f x -> f DynValue
-    use = fmap toDyn
+myVars = [ftd table, ftd total]
     
 -- our kernel
 myKernels :: [Named (Builder Vec1 Int Annotation ())]

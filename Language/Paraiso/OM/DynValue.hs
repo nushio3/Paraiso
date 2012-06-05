@@ -6,7 +6,7 @@
 
 module Language.Paraiso.OM.DynValue
   (
-   DynValue(..), mkDyn, toDyn, ToDynable(..)
+   DynValue(..), mkDyn, toDyn, ftd,  ToDynable 
   ) where
 
 import Data.Typeable
@@ -32,6 +32,12 @@ instance (R.TRealm r, Typeable c) => ToDynable (Val.Value r c) where
 -- | Convert 'Val.StaticValue' to 'DynValue'
 instance (R.TRealm r, Typeable c) => ToDynable (Val.StaticValue r c) where
   toDyn (Val.StaticValue r c) = mkDyn r c
+
+-- | map 'toDyn' over functors.
+--   an idiom used in collecting OM static variables.
+ftd :: (Functor f, ToDynable x) => f x -> f DynValue
+ftd = fmap toDyn
+
 
 
 instance R.Realmable DynValue where
