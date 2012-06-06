@@ -31,7 +31,7 @@ main = do
 -- the code generation setup
 mySetup :: Native.Setup Vec1 Int
 mySetup = 
-  (Native.defaultSetup $ Vec :~ 10)
+  (Native.defaultSetup $ Vec :~ 8)
   { Native.directory = "./dist-open/" 
   }
 
