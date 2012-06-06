@@ -52,14 +52,18 @@ myVars = [f2d table, f2d total]
     
 -- our kernel
 myKernels :: [Named (Builder Vec1 Int Annotation ())]
-myKernels = ["create" `isNameOf` createBuilder]
-
-createBuilder :: Builder Vec1 Int Annotation ()
-createBuilder = do 
-  center <- bind $ loadIndex (Axis 0) 
-  right  <- bind $ shift (Vec :~ (-1)) center
-  left   <- bind $ shift (Vec :~ ( 1)) center
-  ret    <- bind $ 10000 * left + 100 * center + right
-  store table ret
-  store total $ reduce Reduce.Sum ret
-
+myKernels = 
+  ["init" `isNameOf` do
+      store table $ loadIndex (Axis 0) 
+      
+  ,"increment" `isNameOf` do
+      store table $ 1 + load table 
+      
+  ,"calculate" `isNameOf` do
+      center <- bind $ load table
+      right  <- bind $ shift (Vec :~ (-1)) center
+      left   <- bind $ shift (Vec :~ ( 1)) center
+      ret    <- bind $ 10000 * left + 100 * center + right
+      store table ret
+      store total $ reduce Reduce.Sum ret
+  ]
