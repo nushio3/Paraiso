@@ -82,11 +82,11 @@ proceedBuilder = do
   gen  <- bind $ load generation
 
   -- create a list of cell patterns, each shifted by an element of adjVects.
-  neighbours <- fmap (map return) $
-                forM adjVecs (\v -> shift v oldCell)
+  neighbours <- forM adjVecs $
+    \v -> bind $ shift v oldCell
 
   -- add them all.
-  num <- bind $ foldl1 (+) neighbours
+  num <- bind $ sum neighbours
 
   -- The rule of Conway's game of Life.
   isAlive <- bind $
