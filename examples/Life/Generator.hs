@@ -94,7 +94,7 @@ proceedBuilder = do
              (oldCell `eq` 1) && (num `ge` 2) && (num `le` 3) 
 
   -- create the new cell state based on the judgement.
-  newCell <- bind $ select isAlive (1::BuilderOf TArray Int) 0
+  newCell <- bind $ select isAlive 1 0
 
   -- count the number of alive cells and store it into "population."
   store population $ reduce Reduce.Sum newCell
