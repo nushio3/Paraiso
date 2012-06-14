@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <iomanip>
 using namespace std;
@@ -7,14 +8,14 @@ int main () {
   TableMaker maker;
   maker.create();
 
+  ofstream ofs("heart.txt");
+
   for (int y = 0; y < maker.om_size_1(); ++y) {
     for (int x = 0; x < maker.om_size_0(); ++x) {
-      cout << setw(4) << right << maker.table(x,y);
+      ofs << x << " " << y << " " << maker.table(x,y) << endl;
     }
-    cout << endl;
+    ofs << endl;
   }
-  
-  cout << "total: " << maker.total() << endl;
   
   return 0;
 }
