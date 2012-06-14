@@ -28,6 +28,7 @@ import qualified Language.Paraiso.Annotation         as Anot
 import qualified Language.Paraiso.Annotation.Boundary as Boundary
 import qualified Language.Paraiso.Annotation.SyncThreads as Sync
 import qualified Language.Paraiso.Generator.Claris   as C
+import           Language.Paraiso.Generator.ClarisTrans (typeRepDB)
 import qualified Language.Paraiso.Generator.Native   as Native
 import qualified Language.Paraiso.Generator.Plan     as Plan
 import qualified Language.Paraiso.OM                 as OM
@@ -701,6 +702,9 @@ rhsArith (Env setup _) op argExpr = case (op, argExpr) of
   (Arith.Acos   , [x])  -> C.FuncCallStd "acos" [x]
   (Arith.Atan   , [x])  -> C.FuncCallStd "atan" [x]
   (Arith.Atan2  , [x,y])  -> C.FuncCallStd "atan2" [x,y]
+  (Arith.Cast tr, [x])  -> case typeRepDB tr of
+                                Just typeRepStr -> C.FuncCallStd ("(" ++ typeRepStr ++ ")") [x]
+                                _               -> x
   _ -> C.FuncCallStd (T.map toLower $ showT op) argExpr
   where
     nmsp a b = case Native.language setup of

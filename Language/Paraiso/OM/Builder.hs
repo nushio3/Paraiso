@@ -16,7 +16,7 @@ module Language.Paraiso.OM.Builder
      reduce, broadcast, 
      loadIndex, loadSize, 
      shift, imm, 
-     cast,
+     cast, castTo,
      annotate, (<?>),
      withAnnotation
     ) where

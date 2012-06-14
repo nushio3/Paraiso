@@ -18,7 +18,7 @@ module Language.Paraiso.OM.Builder.Internal
      reduce, broadcast,
      loadIndex,loadSize,
      shift, 
-     imm, mkOp1, mkOp2, cast,
+     imm, mkOp1, mkOp2, cast, castTo,
      annotate, (<?>),
      withAnnotation
     ) where
@@ -417,19 +417,33 @@ instance (TRealm r, Typeable c,  Transcendental.C c) =>
         acos = mkOp1 A.Acos
         atan = mkOp1 A.Atan
 
--- | take a phantom object 'c2', and perform the cast that keeps the realm while
+-- | Perform the cast that keeps the realm while
 --   change the content type from 'c1' to 'c2'.
-cast :: (TRealm r, Typeable c1,Typeable c2) => c2 -> (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
-cast c2 builder1 = do
+cast :: (TRealm r, Typeable c1,Typeable c2) => (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
+cast builder1 = do
+  c2 <- (return undefined) `asTypeOf` (fmap Val.content $ cast builder1)
   v1 <- builder1
   let 
       r1 = Val.realm v1
       c1 = Val.content v1
   n1 <- valueToNode v1
   n0 <-  addNodeE [n1] $ NInst (Arith $ A.Cast $ Dynamic.typeOf c2) 
-  n01 <- addNodeE [n0] $ NValue (toDyn v1) 
+  n01 <- addNodeE [n0] $ NValue (toDyn v1{Val.content = c2}) 
   return $ FromNode r1 c2 n01
 
+
+-- | take a phantom object 'c2', and perform the cast that keeps the realm while
+--   change the content type from 'c1' to 'c2'.
+castTo :: (TRealm r, Typeable c1,Typeable c2) => c2 -> (Builder v g a (Value r c1)) -> (Builder v g a (Value r c2))
+castTo c2 builder1 = do
+  v1 <- builder1
+  let 
+      r1 = Val.realm v1
+      c1 = Val.content v1
+  n1 <- valueToNode v1
+  n0 <-  addNodeE [n1] $ NInst (Arith $ A.Cast $ Dynamic.typeOf c2) 
+  n01 <- addNodeE [n0] $ NValue (toDyn v1{Val.content = c2}) 
+  return $ FromNode r1 c2 n01
 
 
 
