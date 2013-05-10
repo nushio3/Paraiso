@@ -159,7 +159,7 @@ Library
                        numeric-prelude       >= 0.2    ,
                        random                >= 1.0.0  ,
                        text                  >= 0.11.1 ,
-                       typelevel-tensor      >= 0.1    ,
+                       typelevel-tensor      >= 0.1 && <1,
                        vector                >= 0.7.1  
   -- Modules not exported by this package.
   -- Other-modules:       
@@ -191,7 +191,7 @@ test-suite runtests
                      numeric-prelude       >= 0.2    ,
                      random                >= 1.0.0  ,
                      text                  >= 0.11.1 ,
-                     typelevel-tensor      >= 0.1    ,
+                     typelevel-tensor      >= 0.1.1 && <1 ,
                      vector                >= 0.7.1  ,
 
                      test-framework,
