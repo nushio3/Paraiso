@@ -14,8 +14,6 @@ import           Data.Char
 import           Data.Dynamic
 import qualified Data.Graph.Inductive                as FGL
 import           Data.List (sortBy)
-import qualified Data.ListLike.String                as LL
-import           Data.ListLike.Text ()
 import qualified Data.Foldable                       as F
 import           Data.Maybe
 import qualified Data.Set                            as Set
@@ -68,7 +66,7 @@ translate setup plan =
   }
   where
     env = Env setup plan
-    comments = (:[]) $ C.Comment $ LL.unlines [ 
+    comments = (:[]) $ C.Comment $ T.unlines [ 
       "",
       "lowerMargin = " ++ showT (Plan.lowerMargin plan),
       "upperMargin = " ++ showT (Plan.upperMargin plan)
@@ -307,7 +305,7 @@ makeSubFunc env@(Env setup plan) subker =
            makeRawSubArg env True  (Plan.labNodesIn subker) ++
            makeRawSubArg env False (Plan.labNodesOut subker),
           C.funcBody = 
-          [ C.Comment $ LL.unlines 
+          [ C.Comment $ T.unlines 
             [ "",
               "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
               "upperMargin = " ++ showT (Plan.upperBoundary subker)
@@ -329,7 +327,7 @@ makeSubFunc env@(Env setup plan) subker =
           if rlm == Realm.Scalar 
           then loopMaker env rlm subker
           else
-            [ C.Comment $ LL.unlines 
+            [ C.Comment $ T.unlines 
               [ "",
                 "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
                 "upperMargin = " ++ showT (Plan.upperBoundary subker)
@@ -370,7 +368,7 @@ makeSubFunc env@(Env setup plan) subker =
           if rlm == Realm.Scalar 
           then loopMaker env rlm subker
           else
-            [ C.Comment $ LL.unlines 
+            [ C.Comment $ T.unlines 
               [ "",
                 "lowerMargin = " ++ showT (Plan.lowerBoundary subker),
                 "upperMargin = " ++ showT (Plan.upperBoundary subker)

@@ -12,8 +12,6 @@ import           Data.Maybe
 import qualified Data.Set                               as Set
 import qualified Data.Text                              as T
 import qualified Data.Vector                            as V
-import qualified Data.ListLike.String                   as LL
-import qualified Data.ListLike.Text ()
 import qualified Language.Paraiso.Annotation            as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
 import qualified Language.Paraiso.Annotation.Boundary   as Boundary
@@ -39,7 +37,7 @@ prettyPrintA1 om = prettyPrintA (ppAnot1 om) om
 -- | pretty print the OM with your choice of prettyprinter for annotation.
 prettyPrintA :: Opt.Ready v g => (a -> [T.Text]) -> OM v g a -> T.Text
 prettyPrintA ppAnot om 
-  = LL.unlines 
+  = T.unlines 
     [ "OM name: " ++ nameText om,
       "** Static Variables",
       staticList,
@@ -47,14 +45,14 @@ prettyPrintA ppAnot om
       kernelList
     ]
   where
-    staticList = LL.unlines $ V.toList $ V.map showT $ staticValues $ setup om
-    kernelList = LL.unlines $ V.toList $ V.map ppKern $ kernels om
+    staticList = T.unlines $ V.toList $ V.map showT $ staticValues $ setup om
+    kernelList = T.unlines $ V.toList $ V.map ppKern $ kernels om
 
-    ppKern kern = LL.unlines $ ["*** Kernel name: " ++ nameText kern] ++ concat (body (dataflow kern))
+    ppKern kern = T.unlines $ ["*** Kernel name: " ++ nameText kern] ++ concat (body (dataflow kern))
     body graph = map ppCon $ map (FGL.context graph) $ FGL.nodes graph
 
     ppCon (input, idx, nodeLabel, output) 
-      = LL.unwords
+      = T.unwords
         [ showT idx, 
           ppNode nodeLabel,
           ppEdges "<-" input,
@@ -69,7 +67,7 @@ prettyPrintA ppAnot om
 
     ppEdges symbol xs 
       | length xs == 0 = ""
-      | otherwise      = LL.unwords $ symbol : map ppEdge (sort xs)
+      | otherwise      = T.unwords $ symbol : map ppEdge (sort xs)
     ppEdge (e, i) = case e of
       EUnord -> showT i
       EOrd x -> "(" ++ showT x ++ ")" ++ showT i
@@ -95,7 +93,7 @@ ppAnot1 om anots = map ("  "++) $ concat cands
     toValidList :: Opt.Ready v g => OM v g Anot.Annotation -> Anot.Annotation -> [Boundary.Valid g]      
     toValidList _ = Anot.toList
 
-    ppValid (Boundary.Valid xs) = LL.unwords $ map ppInterval xs
+    ppValid (Boundary.Valid xs) = T.unwords $ map ppInterval xs
     ppInterval (Interval x y) 
       = ppNB x ++ ".." ++ ppNB y
     ppInterval Empty = "[empty]" 

@@ -13,8 +13,7 @@ module Language.Paraiso.Generator.ClarisTrans (
 import           Control.Monad 
 import qualified Data.Dynamic as Dyn
 import qualified Data.List as L
-import qualified Data.ListLike as LL
-import qualified Data.ListLike.String as LL
+import qualified Data.Text as T
 import           Language.Paraiso.Generator.Claris
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
@@ -43,7 +42,7 @@ sourceFile = Context {fileType = SourceFile, namespace = []}
 
 
 instance Translatable Program where
-  translate conf Program{topLevel = xs} = LL.unlines $ map (translate conf) xs
+  translate conf Program{topLevel = xs} = T.unlines $ map (translate conf) xs
 
 instance Translatable Statement where    
   translate conf stmt = case stmt of
@@ -107,13 +106,13 @@ instance Translatable Function where
     where
       ret = if fileType conf == HeaderFile then funcDecl else funcDef
       funcDecl
-        = LL.unwords
+        = T.unwords
           [ translate conf (funcType f)
           , funcName'
           , paren Paren $ joinBy ", " $ map (translate conf) (funcArgs f)
           , ";"]
       funcDef 
-        = LL.unwords
+        = T.unwords
           [ translate conf (funcType f)
           , funcName'
           , paren Paren $ joinBy ", " $ map (translate conf) (funcArgs f)
@@ -155,7 +154,7 @@ instance Translatable Dyn.Dynamic where
       Nothing  -> error $ "cannot translate value of Haskell type: " ++ show x
 
 instance Translatable Var where
-  translate conf (Var typ nam) = LL.unwords [translate conf typ, nameText nam]
+  translate conf (Var typ nam) = T.unwords [translate conf typ, nameText nam]
 
 instance Translatable Expr where
   translate conf expr = ret
@@ -174,8 +173,8 @@ instance Translatable Expr where
         MemberAccess x y       -> pt x ++ "." ++ t y
         Op1Prefix op x         -> op ++ pt x
         Op1Postfix op x        -> pt x ++ op
-        Op2Infix op x y        -> LL.unwords [pt x, op, pt y]
-        Op3Infix op1 op2 x y z -> LL.unwords [pt x, op1, pt y, op2, pt z]
+        Op2Infix op x y        -> T.unwords [pt x, op, pt y]
+        Op3Infix op1 op2 x y z -> T.unwords [pt x, op1, pt y, op2, pt z]
         ArrayAccess x y        -> pt x ++ paren Bracket (t y)
         CommentExpr str x      -> t x ++ " " ++ paren SlashStar str ++ " "
 -- | The databeses for Haskell -> Cpp type name translations.
@@ -225,7 +224,7 @@ paren p str = prefix ++ str ++ suffix
       SlashStar  -> ("/*","*/")      
 
 joinBy :: Text -> [Text] -> Text
-joinBy sep xs = LL.concat $ L.intersperse sep xs
+joinBy sep xs = T.concat $ L.intersperse sep xs
 
 joinEndBy :: Text -> [Text] -> Text
 joinEndBy sep xs = joinBy sep xs ++ sep

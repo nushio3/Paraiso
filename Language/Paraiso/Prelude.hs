@@ -13,13 +13,11 @@ import           Control.Monad hiding
     (mapM_, sequence_, forM_, msum, mapM, sequence, forM)
 -}
 
-import           Data.ListLike (append)
-import           Data.ListLike.Text ()
-import qualified Data.ListLike.Base (ListLike)
 import qualified Data.Text as Text
 import qualified NumericPrelude as Prelude
 
 import NumericPrelude hiding ((++), (||), (&&), not)
+import qualified Prelude
 
 -- | An efficient String that is used thoroughout Paraiso modules.
 type Text = Text.Text
@@ -31,11 +29,14 @@ infixr 3  &&
 infixr 2  ||
 infixr 5  ++
 
-(++) :: forall full item .
-        Data.ListLike.Base.ListLike full item =>
-        full -> full -> full
-
-(++) = append
+class Appendable a where
+  (++) :: a -> a -> a
+  
+instance Appendable [a] where
+  (++) = (Prelude.++)
+  
+instance Appendable Text.Text where
+  (++) = Text.append
 
 class Boolean b where
   true, false :: b
