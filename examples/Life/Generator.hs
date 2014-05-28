@@ -25,6 +25,10 @@ import           NumericPrelude hiding ((||),(&&))
 main :: IO ()
 main = do
   _ <- generateIO mySetup myOM
+  _ <- generateIO 
+       mySetup{ Native.language = Native.CUDA 
+              , Native.directory = "./dist-cuda/"}
+       myOM  
   return ()
 
 -- the code generation setup
