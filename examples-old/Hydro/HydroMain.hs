@@ -9,7 +9,7 @@ import           Data.Foldable
 import           Data.Tensor.TypeLevel
 import           Data.Traversable
 import qualified Data.Text.IO as T
-import           Data.Typeable
+import           Data.Typeable hiding (cast)
 import           Hydro
 import qualified Language.Paraiso.Annotation as Anot
 import qualified Language.Paraiso.Annotation.Allocation as Alloc
@@ -24,19 +24,20 @@ import           Language.Paraiso.OM.Graph
 import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.OM.Realm 
 import qualified Language.Paraiso.OM.Reduce as Reduce
+import           Language.Paraiso.OM.Value (StaticValue(..))
 import           Language.Paraiso.Optimization
 import           Language.Paraiso.Prelude 
 import           NumericPrelude hiding ((&&), (||), (++), mapM, sequence, foldl1)
 import           System.Directory (createDirectoryIfMissing)
 
 realDV :: DynValue
-realDV = DynValue{DVal.realm = Local, DVal.typeRep = typeOf (0::Real)}
+realDV = DynValue{DVal.realm = Array, DVal.typeRep = typeOf (0::Real)}
 
 intGDV :: DynValue
-intGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Int)}
+intGDV = DynValue{DVal.realm = Scalar, DVal.typeRep = typeOf (0::Int)}
 
 realGDV :: DynValue
-realGDV = DynValue{DVal.realm = Global, DVal.typeRep = typeOf (0::Real)}
+realGDV = DynValue{DVal.realm = Scalar, DVal.typeRep = typeOf (0::Real)}
 
 
 -- the list of static variables for this machine
@@ -61,9 +62,15 @@ extentNames :: Dim (Name)
 extentNames = compose (\axis -> mkName $ "extent" ++ showT (axisIndex axis))
 
 loadReal :: Name -> BR
-loadReal = load TLocal (undefined::Real) 
+loadReal na = load (Named na $ StaticValue TArray (undefined::Real) )
 loadGReal :: Name -> BGR
-loadGReal = load TGlobal (undefined::Real) 
+loadGReal na = load (Named na $ StaticValue TScalar (undefined::Real) )
+
+storeReal :: Name -> BR -> B ()
+storeReal na x = store (Named na $ StaticValue TArray (undefined::Real) ) x
+storeGReal :: Name -> BGR -> B ()
+storeGReal na x = store (Named na $ StaticValue TScalar (undefined::Real) ) x
+
 
 ----------------------------------------------------------------
 -- Hydro Implementations
@@ -75,7 +82,7 @@ buildInit = do
   extentG <- mapM (bind . loadGReal) extentNames
   dR <- mapM (bind . broadcast) dRG 
   extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
+  icoord  <- sequenceA $ compose (\axis -> bind $ (cast $ loadIndex axis :: BR))  
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
 
   let ex = Axis 0
@@ -90,9 +97,9 @@ buildInit = do
 
   factor <- bind $ 1 + 1e-3 * sin (6 * pi * coord ! ex)
 
-  store (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 10)
-  _ <- sequence $ compose(\i -> store (velocityNames!i) $ velo !i)
-  store (mkName "pressure") $ factor * 0.6
+  storeReal (mkName "density") $ factor * kGamma * (kGamma::BR) * (select region 1 10)
+  _ <- sequence $ compose(\i -> storeReal (velocityNames!i) $ velo !i)
+  storeReal (mkName "pressure") $ factor * 0.6
 
 
 boundaryCondition :: Hydro BR -> B (Hydro BR)
@@ -101,8 +108,8 @@ boundaryCondition cell = do
   extentG <- mapM (bind . loadGReal) extentNames
   dR <- mapM (bind . broadcast) dRG 
   extent <- mapM (bind . broadcast) extentG
-  icoord  <- sequenceA $ compose (\axis -> bind $ loadIndex (0::Real) axis)  
-  isize   <- sequenceA $ compose (\axis -> bind $ loadSize  TLocal (0::Real) axis)        
+  icoord  <- sequenceA $ compose (\axis -> bind $ (cast $loadIndex axis :: BR))  
+  isize   <- sequenceA $ compose (\axis -> bind $ (broadcast $cast $loadSize axis :: BR))        
   coord   <- mapM bind $ compose (\i -> dR!i * icoord!i)
 
   let ex = Axis 0
@@ -149,12 +156,12 @@ buildProceed = do
   cell2 <- proceedSingle 1 (dt/2) dR cell  cell
   cell3 <- proceedSingle 2  dt    dR cell2 cell
 
-  store (mkName "time") $ timeG + dtG
-  store (mkName "density") $ density cell3
-  _ <- sequence $ compose(\i ->  store (velocityNames!i) $ velocity cell3 !i)
+  storeGReal (mkName "time") $ timeG + dtG
+  storeReal (mkName "density") $ density cell3
+  _ <- sequence $ compose(\i ->  storeReal (velocityNames!i) $ velocity cell3 !i)
 
 
-  store (mkName "pressure") $ pressure cell3
+  storeReal (mkName "pressure") $ pressure cell3
 
 
 
@@ -276,8 +283,8 @@ hllc i left right = do
 myOM :: OM Dim Int Anot.Annotation
 myOM =  optimize O3 $ 
   makeOM (mkName "Hydro") [] hydroVars
-    [(mkName "init"   , buildInit),
-     (mkName "proceed", buildProceed)]
+    ["init"   `isNameOf` buildInit,
+     "proceed"`isNameOf` buildProceed]
 
 
 cpuSetup :: Native.Setup Vec2 Int

@@ -3,6 +3,7 @@
 {-# OPTIONS -Wall #-}
 
 import           Control.Monad
+import qualified Data.Text.IO as T
 import           Data.Tensor.TypeLevel
 import           Language.Paraiso.Annotation (Annotation)
 import qualified Language.Paraiso.Annotation.Boundary as Boundary
@@ -13,6 +14,7 @@ import           Language.Paraiso.OM
 import           Language.Paraiso.OM.Builder
 import           Language.Paraiso.OM.Builder.Boolean (select,eq,ge,le)
 import           Language.Paraiso.OM.DynValue as DVal
+import           Language.Paraiso.OM.PrettyPrint
 import           Language.Paraiso.OM.Realm 
 import qualified Language.Paraiso.OM.Reduce as Reduce
 import           Language.Paraiso.OM.Value (StaticValue(..))
@@ -24,6 +26,8 @@ import           NumericPrelude hiding ((||),(&&))
 -- the main program
 main :: IO ()
 main = do
+  T.writeFile "output/OM.txt" $ prettyPrintA1 $ myOM
+  
   _ <- generateIO mySetup myOM
   _ <- generateIO 
        mySetup{ Native.language = Native.CUDA 
@@ -54,7 +58,8 @@ population = "population" `isNameOf` StaticValue TScalar undefined
 generation :: Named (StaticValue TScalar Int)
 generation = "generation" `isNameOf` StaticValue TScalar undefined
 
-
+-- the list of variables we use.
+-- we need to dynamize every variable to put them into a same list.
 myVars :: [Named DynValue]
 myVars = [f2d cell, f2d population, f2d generation]
     

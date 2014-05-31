@@ -37,11 +37,11 @@ import           NumericPrelude hiding ((&&), (||), (++), mapM)
 type Real = Double
 type Dim = Vec2
 type B a = Builder Dim Int Annotation a
-type BR = B (Value TLocal Real)
-type BGR = B (Value TGlobal Real)
+type BR = B (Value TArray Real)
+type BGR = B (Value TScalar Real)
 
-bind :: B a -> B (B a)
-bind = fmap return
+--bind :: B a -> B (B a)
+--bind = fmap return
 
 ----------------------------------------------------------------
 -- Hydro utility functions.

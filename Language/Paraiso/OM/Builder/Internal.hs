@@ -240,7 +240,7 @@ loadIndex axis = do
   n1 <- addNodeE [n0] $ NValue type0 
   return (FromNode TArray c0 n1)
 
--- | Load the 'Axis' component of the mesh size, to either a  'TScalar' 'Value' or  'TArray' 'Value'..
+-- | Load the 'Axis' component of the mesh size, to a  'TScalar' 'Value'..
 loadSize :: (Typeable g) 
          => Axis v                          -- ^ The axis for which the size is required
          -> Builder v g a (Value TScalar g) -- ^ The 'TScalar' 'Value' that contains the size of the mesh in that direction.
