@@ -17,6 +17,8 @@ recomp:
 	ghc  -i../../ --make -O3 HydroMain.hs -fforce-recomp \
 	-fspec-constr-count=16
 
+movie:
+	./plot.rb output1/snapshot*.txt
 
 clean:
 	rm -fr *.o
