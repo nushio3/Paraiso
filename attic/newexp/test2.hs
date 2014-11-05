@@ -3,32 +3,70 @@
 import qualified Data.Vector as V
 import Data.Ratio
 import Data.List
+import System.Process
+import Text.Printf
+
+mkAxis :: VarName -> Expr Axis
+mkAxis = AVar
+
+type FunExpr a = [Expr Axis] -> Expr a
+
+mkF :: VarName -> FunExpr a
+mkF fn ixs = At  ixs (Var fn)
+
+mk2F :: VarName -> [Expr Axis] -> Expr a -> Expr a
+mk2F fn ixs = Apply (mkF fn ixs) 
+
 
 main = do
-  let i :: Expr Axis
-      i = AVar "i"
+  let i = mkAxis "i"
+      j = mkAxis "j"
+      k = mkAxis "k"
 
-      j :: Expr Axis
-      j = AVar "j"
+      f :: FunExpr S
+      f =  mkF "f"
+      σ :: FunExpr S
+      σ = mkF "\\sigma"
+
+      δ :: FunExpr S
+      δ = mkF "\\delta"
+
+      v :: FunExpr S
+      v = mkF "v"
+
+      λ :: Expr S
+      λ = Var "\\lambda"
+      μ :: Expr S
+      μ = Var "\\mu"
+
+      ә :: [Expr Axis] -> Expr a -> Expr a
+      ә = mk2F "\\partial"
+
+      әt :: Expr a -> Expr a
+      әt = Apply $ Var "\\partial_t"
+
+      p :: Expr a -> Expr a
+      p = Apply $ Var ""
 
 
-      f :: Expr (T S)
-      f = Var "f"
-
-      σ :: Expr (T S)
-      σ = Var "σ"
-      v :: Expr (T S)
-      v = Var "v"
-
-      ә :: Expr (T (S->S))
-      ә = Var "ә"
+      eqV = әt(v[i])   := ә[j] (σ[i,j]) + f[i]
+      eqS = әt(σ[i,j]) := μ * p(ә[i](v[j]) + ә[j](v[i]))
+                        + λ *  (δ[i,j] * ә[k](v[k]))
 
 
-  print (At [i] f)
-  print (At [i,j] σ)
-  print $ Apply (At [i] ә) (At [i,j] σ + At [i] f)
-  x <- einsteinRule $ At [i] v := Apply (At [j] ә) (At [i,j] σ) + At [i] f
-  print x
+
+  let progStr :: String 
+      progStr = 
+        intercalate "\\\\" $ 
+        map (++"\\nonumber") $
+        map show $ concatMap einsteinRule $ 
+        [eqV, eqS]
+
+  writeFile "tmp.tex" $ printf 
+    "\\documentclass[9pt]{article}\\begin{document}\\begin{eqnarray}%s\\end{eqnarray}\\end{document}" progStr
+  system "pdflatex tmp.tex"
+  return ()
+
 
 type VarName = String
 
@@ -42,7 +80,7 @@ data Stmt a where
   (:=) :: Expr a -> Expr a -> Stmt a 
 
 instance Show (Stmt a) where
-  show (a := b) = show a ++ " := " ++ show b
+  show (a := b) = show a ++ " &=& " ++ show b
 
 data Op2 = Add | Mul | Sub 
 instance Show Op2 where
@@ -77,8 +115,8 @@ instance Show (Expr a) where
   show (AVar n) = n
   show (Imm x) = show x
   show (Expr2 o a b) = show a ++ show o ++ show b
-  show (At ixs a) = show a ++ show ixs
-  show (Apply f a) = show f ++ "(" ++ show a ++ ")"
+  show (At ixs a) = show a ++ "_{" ++ (intercalate "," $ map show ixs) ++ "}"
+  show (Apply f a) = show f ++ "\\left(" ++ show a ++ "\\right)"
 
 -- todo: use syb
 indicesIn :: Expr a -> [VarName]
@@ -102,12 +140,8 @@ replaceI i1 i2 = go
 
 
 
-einsteinRule :: Stmt a -> IO [Stmt a]
-einsteinRule (lhs := rhs) = do
-  print $ lhsi
-  print $ rhsi
-  print $ freei
-  return $ ret
+einsteinRule :: Stmt a -> [Stmt a]
+einsteinRule (lhs := rhs) = ret
   where
     lhsi = indicesIn lhs
     rhsi = indicesIn rhs
