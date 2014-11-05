@@ -5,11 +5,11 @@ import Data.Ratio
 import Data.List
 
 main = do
-  let i :: Expr Index
-      i = IVar "i"
+  let i :: Expr Axis
+      i = AVar "i"
 
-      j :: Expr Index
-      j = IVar "j"
+      j :: Expr Axis
+      j = AVar "j"
 
 
       f :: Expr (T S)
@@ -34,7 +34,7 @@ type VarName = String
 
 data T x = T x  deriving (Eq, Show) -- tensor
 data S = S deriving (Eq, Show) -- scalar
-data Index = Index   deriving (Eq, Show)
+data Axis = Axis   deriving (Eq, Show)
 
 
 infix 1 :=
@@ -52,14 +52,14 @@ instance Show Op2 where
 
 data Expr a where
   Var :: VarName -> Expr x
-  IVar :: VarName -> Expr Index
+  AVar :: VarName -> Expr Axis
   Imm :: Double -> Expr x
   Expr2 :: Op2 -> Expr x -> Expr x -> Expr x
-  At :: [Expr Index] -> Expr (T a) -> Expr a
+  At :: [Expr Axis] -> Expr (T a) -> Expr a
   Apply :: Expr (a->b) -> Expr a -> Expr b
 
 instance Eq (Expr a) where
-  IVar x == IVar y = x == y
+  AVar x == AVar y = x == y
   _ == _ = False
 
 
@@ -74,7 +74,7 @@ instance Num (Expr a) where
 
 instance Show (Expr a) where
   show (Var n) = n
-  show (IVar n) = n
+  show (AVar n) = n
   show (Imm x) = show x
   show (Expr2 o a b) = show a ++ show o ++ show b
   show (At ixs a) = show a ++ show ixs
@@ -82,7 +82,7 @@ instance Show (Expr a) where
 
 -- todo: use syb
 indicesIn :: Expr a -> [VarName]
-indicesIn (IVar n) = [n]
+indicesIn (AVar n) = [n]
 indicesIn (Expr2 _ a b) = nub $ sort $ indicesIn a ++ indicesIn b
 indicesIn (At ixs a) =  nub $ sort $ concatMap indicesIn ixs ++ indicesIn a
 indicesIn (Apply f a) = nub $ sort $ indicesIn f ++ indicesIn a
@@ -92,9 +92,9 @@ replaceI :: VarName -> VarName -> Expr a -> Expr a
 replaceI i1 i2 = go
   where
     go :: Expr a -> Expr a
-    go (IVar i)
-      | i == i1 = IVar i2
-      | True    = IVar i
+    go (AVar i)
+      | i == i1 = AVar i2
+      | True    = AVar i
     go (Expr2 op a b) = Expr2 op (go a) (go b)
     go (At ixs a) =  At (map go ixs) (go a)
     go (Apply f a) = Apply (go f) (go a)
@@ -102,28 +102,37 @@ replaceI i1 i2 = go
 
 
 
-einsteinRule :: Stmt a -> IO (Stmt a)
+einsteinRule :: Stmt a -> IO [Stmt a]
 einsteinRule (lhs := rhs) = do
   print $ lhsi
   print $ rhsi
   print $ freei
-  print $ rterms
-  return (lhs := rhs)
+  return $ ret
   where
     lhsi = indicesIn lhs
     rhsi = indicesIn rhs
 
     freei = [i | i <- rhsi , not (i `elem` lhsi)]
+    boundi = lhsi
 
-    rterms = onTerms (replaceI "j" "x") rhs
+    rhs1 = foldr ($) rhs [byTerms (sumOver j)| j <- freei] 
+    
+    ret =  foldr (=<<) [lhs := rhs1] [specializeStmt i| i <- boundi] 
 
 -- todo : lens
-onTerms :: (forall b. Expr b -> Expr b) -> Expr a -> Expr a
-onTerms f (Expr2 Add a b) = Expr2 Add (onTerms f a)(onTerms f b)
-onTerms f (Expr2 Sub a b) = Expr2 Sub (onTerms f a)(onTerms f b)
-onTerms f x = f x
+byTerms :: (forall b. Expr b -> Expr b) -> Expr a -> Expr a
+byTerms f (Expr2 Add a b) = Expr2 Add (byTerms f a)(byTerms f b)
+byTerms f (Expr2 Sub a b) = Expr2 Sub (byTerms f a)(byTerms f b)
+byTerms f x = f x
 
+sumOver :: VarName -> Expr a -> Expr a
+sumOver i  expr 
+ | i `elem` indicesIn expr = foldr1 (Expr2 Add) [replaceI i j expr | j <- ["x","y","z"]]
+ | otherwise = expr
 
+specializeStmt :: VarName -> Stmt a -> [Stmt a]
+specializeStmt i (lhs := rhs) = 
+  [let f = replaceI i j in f lhs := f rhs| j <- ["x","y","z"]]
 
 
 
