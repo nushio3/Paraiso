@@ -1,8 +1,11 @@
-{-# LANGUAGE DeriveDataTypeable, GADTs, ScopedTypeVariables, RankNTypes, StandaloneDeriving, TupleSections #-}
-import Data.List
-import Text.Printf
+{-# LANGUAGE DeriveDataTypeable, DeriveFunctor, GADTs, ScopedTypeVariables, RankNTypes, StandaloneDeriving, TupleSections #-}
+import Control.Applicative
 import Data.Dynamic
+import Data.List
+import Data.Ratio
 import Linear
+import Text.Printf
+
 
 type VarName = String
 
@@ -11,13 +14,24 @@ data Axis = X | Y | Z
 
 type Pt = V3 Rational
 
-data Symbol = Add | Sub | Mul | Div | Partial | Pair
+data Symbol = Partial | Pair
+  deriving (Eq, Ord, Show, Read)            
+data Op1Symbol = Abs | Signum
+  deriving (Eq, Ord, Show, Read)            
+data Op2Symbol = Add | Sub | Mul | Div
   deriving (Eq, Ord, Show, Read)            
 
 data Expr a where
+  -- An atomic expr with given name
   Var :: VarName -> Expr a
+  -- An expr whose actual value is known (also its string expression)
   Static :: String -> a -> Expr a
+  -- Reserved Symbols
   Reserved :: Symbol -> Expr a
+  -- Operators encode closedness of algebras
+  Op1 :: Op1Symbol -> Expr a -> Expr a
+  Op2 :: Op2Symbol -> Expr a -> Expr a -> Expr a
+  -- Generic Functional Application
   (:$) :: (Typeable b) => Expr (b->a) -> Expr b -> Expr a
   deriving (Typeable)
 
@@ -47,10 +61,17 @@ instance Show (Stmt a) where
 (%?) :: (Typeable a,Typeable b) => (b->b) -> (a->a)
 (%?) g = g %|||? id
 
+--- type-specific overwrite with type-safe cast
+(?=) :: (Typeable a,Typeable b) => a -> b ->a
+(?=) a b = case cast b of 
+             Just a' -> a'
+             Nothing -> a
+
 
 infixr 9 |||? 
 infixr 9 %|||? 
 infixr 9 %? 
+infixl 9 ?=
 
 infixl 2 :$
 
@@ -58,28 +79,30 @@ instance (Typeable a) => Eq (Expr a) where
   Var a      == Var b      = a==b
   Static a _ == Static b _ = a==b
   Reserved a == Reserved b = a==b
+  Op1 o a    == Op1 p b    = (o,a) == (p,b)
+  Op2 o a c  == Op2 p b d  = (o,a,c) == (p,b,d)
   (f :$ a)   == (g :$ b)   = (Just f,Just a)==(cast g,cast b)
   _ == _ = False
 
 instance (Typeable a, Num a) => Num (Expr a) where
-  a+b = Reserved Add :$ a :$ b
-  a-b = Reserved Sub :$ a :$ b
-  a*b = Reserved Mul :$ a :$ b  
+  (+) = Op2 Add 
+  (-) = Op2 Sub 
+  (*) = Op2 Mul 
   fromInteger x = Static (show x) (fromInteger x)
-  abs = error "abs undefined for Expr"
-  signum = error "signum undefined for Expr"
+  abs = Op1 Abs 
+  signum = Op1 Signum
 
 instance Num a => Num (b->a) where
   a+b = (\x -> a x + b x)
   a-b = (\x -> a x - b x)
   a*b = (\x -> a x * b x)
   fromInteger = const . fromInteger
-  abs = error "abs undefined for Func"
-  signum = error "signum undefined for Func"
+  abs = (abs .)
+  signum = (signum .)
 
 
 instance (Typeable a, Fractional a) => Fractional (Expr a) where
-  a/b= Reserved Div :$ a :$ b
+  (/) = Op2 Div
   fromRational x = Static (show x) (fromRational x)
 
 instance Fractional a => Fractional (b->a) where
@@ -89,9 +112,11 @@ instance Fractional a => Fractional (b->a) where
 ppr :: forall a. Expr a -> String
 ppr x = case x of
   (Var x) -> x
-  (Reserved Add :$ a :$ b) -> printf "%s+%s" (ppr a) (ppr b)
-  (Reserved Sub :$ a :$ b) -> printf "%s-%s" (ppr a) (ppr b)
-  (Reserved Mul :$ a :$ b) -> printf "%s %s" (ppr a) (ppr b)
+  (Op1 o a) -> printf "%s(%s)" (show o) (ppr a)
+  (Op2 Add a b) -> printf "%s+%s" (ppr a) (ppr b)
+  (Op2 Sub a b) -> printf "%s-%s" (ppr a) (ppr b)
+  (Op2 Mul a b) -> printf "%s %s" (ppr a) (ppr b)
+  (Op2 Div a b) -> printf "\\frac{%s}{%s}" (ppr a) (ppr b)
   (Reserved Pair :$ a :$ b) -> printf "{%s,%s}" (ppr a) (ppr b)
   (Reserved Partial) -> "\\partial"
   (a :$ b) -> 
@@ -154,8 +179,8 @@ specializeStmt i (lhs := rhs) =
   [let f = replaceAtom i j in f lhs := f rhs| j <- axes]
 
 byTerms :: Typeable a => (Expr a -> Expr a) -> Expr a -> Expr a
-byTerms f (Reserved Add :$ a :$ b) = Reserved Add :$ byTerms f %? a :$ byTerms f %? b
-byTerms f (Reserved Sub :$ a :$ b) = Reserved Sub :$ byTerms f %? a :$ byTerms f %? b
+byTerms f (Op2 Add a b) = Op2 Add (byTerms f a) (byTerms f b)
+byTerms f (Op2 Sub a b) = Op2 Sub (byTerms f a) (byTerms f b)
 byTerms f x = f x
 
 
@@ -183,6 +208,22 @@ mkTF2 n (i,j) = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j
 partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
 partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
 
+
+partial4 :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
+partial4 i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
+              - (f (p + 1.5 *^ e(i)) - f (p - 1.5 *^ e(i))) * (fromRational $ 1%24)
+  where
+    e :: Axis -> Pt
+    e X = V3 1 0 0
+    e Y = V3 0 1 0
+    e Z = V3 0 0 1
+
+usePartial4 :: Expr a -> Expr a
+usePartial4 (y@(Reserved Partial) :$ x) 
+ = (Static "p4" undefined) :$ x
+usePartial4 x = x
+
+
 main :: IO ()
 main = do
   let i = Var "i" :: Expr Axis
@@ -194,7 +235,10 @@ main = do
       f = mkTF1 "f" 
       
       eqV :: Stmt (Pt -> Double)
-      eqV = f(i) := (partial(j)(sigma(i,j)) + f(i)) 
+      eqV = f(i)  := (partial(j)(sigma(i,j)) + f(i)) 
+
+      eqV' :: Stmt Double
+      eqV' = f(i) :$ r := ((partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)) 
 --      eqV = f(i) r := f i r
 
   print $ (delta (i,j)        :: Expr Double)
@@ -202,3 +246,4 @@ main = do
   print $ (sigma (i,j) :$ r      :: Expr Double)
   print $ (sigma (i,j) + f(i) :$ r:: Expr Double)
   mapM_ print $ einsteinRule $ eqV
+  mapM_ print $ einsteinRule $ eqV'
