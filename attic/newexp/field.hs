@@ -39,6 +39,10 @@ partial i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%
     e :: Tensor1 (Pt r)
     e = asT1 $ V3 (V3 1 0 0) (V3 0 1 0) (V3 0 0 1) 
 
+p2 :: Expr a -> Expr a
+p2 (Var x :$ y :$ z) = --rewrite rules
+p2 x = x
+
 
 -- The variables and the operators
 type VarName = String
@@ -52,6 +56,7 @@ instance Show Op2 where
 data Expr a where
   Var :: VarName -> Expr x
   AVar :: VarName -> Expr Axis
+--  Static :: use partial evalutation.
   Imm :: Double -> Expr x
   AImm :: Axis -> Expr Axis
   Expr2 :: Op2 -> Expr x -> Expr x -> Expr x
