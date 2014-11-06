@@ -52,7 +52,7 @@ infixr 9 |||?
 infixr 9 %|||? 
 infixr 9 %? 
 
-infixl 1 :$
+infixl 2 :$
 
 instance (Typeable a) => Eq (Expr a) where
   Var a      == Var b      = a==b
@@ -174,11 +174,11 @@ mkT1 n i = (Var n :: Expr (Axis->a)) :$ i
 mkT2 :: forall a. (Typeable a) => VarName -> (Expr Axis, Expr Axis) -> Expr a
 mkT2 n (i,j) = (Var n :: Expr ((Axis,Axis)->a)) :$ (Reserved Pair :$ i :$ j)
 
-mkTF1 :: forall a. (Typeable a) => VarName -> Expr Axis -> Expr Pt -> Expr a
-mkTF1 n i r = (Var n :: Expr (Axis->Pt->a)) :$ i :$ r
+mkTF1 :: forall a. (Typeable a) => VarName -> Expr Axis -> Expr (Pt -> a)
+mkTF1 n i = (Var n :: Expr (Axis->Pt->a)) :$ i 
 
-mkTF2 :: forall a. (Typeable a) => VarName -> (Expr Axis, Expr Axis) -> Expr Pt -> Expr a
-mkTF2 n (i,j) r = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j) :$ r
+mkTF2 :: forall a. (Typeable a) => VarName -> (Expr Axis, Expr Axis) -> Expr (Pt -> a)
+mkTF2 n (i,j) = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j) 
 
 partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
 partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
@@ -193,13 +193,12 @@ main = do
       sigma = mkTF2 "\\sigma" 
       f = mkTF1 "f" 
       
-      eqV :: Stmt Double
-      eqV = f(i) r := (partial(j)(sigma(i,j)) + f(i) $ r)
+      eqV :: Stmt (Pt -> Double)
+      eqV = f(i) := (partial(j)(sigma(i,j)) + f(i)) 
 --      eqV = f(i) r := f i r
 
   print $ (delta (i,j)        :: Expr Double)
-  print $ (f(i) r             :: Expr Double)
-  print $ (sigma (i,j) r      :: Expr Double)
-  print $ (sigma (i,j) + f(i) $ r:: Expr Double)
-  print $ axisVarsIn (sigma (i,j) + f(i) $ r:: Expr Double)
+  print $ (f(i) :$ r             :: Expr Double)
+  print $ (sigma (i,j) :$ r      :: Expr Double)
+  print $ (sigma (i,j) + f(i) :$ r:: Expr Double)
   mapM_ print $ einsteinRule $ eqV
