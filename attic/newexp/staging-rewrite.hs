@@ -21,13 +21,21 @@ data Expr a where
   (:$) :: (Typeable b) => Expr (b->a) -> Expr b -> Expr a
   deriving (Typeable)
 
+infix 1 :=
+data Stmt a where
+  (:=) :: Expr a -> Expr a -> Stmt a 
+
+instance Show (Stmt a) where
+  show (a := b) = show a ++ " &=& " ++ show b
+
+
 --- alternative call with type-safe cast
 (|||?) :: (Typeable a,Typeable c) => (c->b)->(a->b)->(a->b)
 (|||?) g f x = case cast x of
   Just x' -> g x'
   _       -> f x
 
---- type-specific modification with type-safe cast
+--- type-specific modification function with type-safe cast
 (%|||?) :: (Typeable a,Typeable b) => (b->b) -> (a->a) -> (a->a)
 (%|||?) g f x = case cast x of
   Just x' -> case cast (g x') of
@@ -35,9 +43,14 @@ data Expr a where
     _      -> f x
   _       -> f x
 
+--- type-specific modification with type-safe cast
+(%?) :: (Typeable a,Typeable b) => (b->b) -> (a->a)
+(%?) g = g %|||? id
+
 
 infixr 9 |||? 
 infixr 9 %|||? 
+infixr 9 %? 
 
 infixl 1 :$
 
@@ -95,25 +108,58 @@ ppr x = case x of
 
 instance Show (Expr a) where show = ppr
 
--- extract all axis variable names from Expr
-axisVarsIn :: (Typeable a) => Expr a -> [VarName]
-axisVarsIn x = nub $ sort $ go x
+-- extract all axis variables from Expr
+axisVarsIn :: (Typeable a) => Expr a -> [Expr Axis]
+axisVarsIn x = nub $ go x
   where
-    go :: (Typeable a) => Expr a -> [VarName]
-    go x@(Var n) = let fromA :: Expr Axis -> [VarName]
-                       fromA = const [n]
-                   in fromA |||? const [] $ x
+    go :: (Typeable a) => Expr a -> [Expr Axis]
     go (Static _ _) = []
     go (Reserved _) = []
     go (f :$ a)     = go f ++ go a
+    go x = let fromA :: Expr Axis -> [Expr Axis]
+               fromA = (:[])
+           in fromA |||? const [] $ x
 
-replaceTerm :: (Typeable a, Typeable b) => Expr b -> Expr b -> Expr a -> Expr a
-replaceTerm i1 i2 = go
+replaceAtom :: (Typeable a, Typeable b) => Expr b -> Expr b -> Expr a -> Expr a
+replaceAtom i1 i2 = go
   where
     go :: Typeable a => Expr a -> Expr a
     go (f :$ a) = go f :$ go a
-    go x        = (\i -> if i==i1 then i2 else i) %|||? id  $ x
+    go x        = (\i -> if i==i1 then i2 else i) %?  x
 
+
+einsteinRule :: (Typeable a, Num a) => Stmt a -> [Stmt a]
+einsteinRule (lhs := rhs) = ret
+  where
+    lhsi = axisVarsIn lhs
+    rhsi = axisVarsIn rhs
+
+    freei = [i | i <- rhsi , not (i `elem` lhsi)]
+    boundi = lhsi
+
+    rhs1 = foldr ($) rhs [byTerms (sumOver j)| j <- freei] 
+    
+    ret =  foldr (=<<) [lhs := rhs1] [specializeStmt i| i <- boundi] 
+
+axes :: [Expr Axis]
+axes = [Static "x" X, Static "y" Y, Static "z" Z]
+
+sumOver :: (Typeable a, Num a) => Expr Axis -> Expr a -> Expr a
+sumOver i  expr 
+ | i `elem` axisVarsIn expr = foldr1 (+) [replaceAtom i j expr | j <- axes]
+ | otherwise = expr
+
+specializeStmt :: Typeable a => Expr Axis -> Stmt a -> [Stmt a]
+specializeStmt i (lhs := rhs) = 
+  [let f = replaceAtom i j in f lhs := f rhs| j <- axes]
+
+byTerms :: Typeable a => (Expr a -> Expr a) -> Expr a -> Expr a
+byTerms f (Reserved Add :$ a :$ b) = Reserved Add :$ byTerms f %? a :$ byTerms f %? b
+byTerms f (Reserved Sub :$ a :$ b) = Reserved Sub :$ byTerms f %? a :$ byTerms f %? b
+byTerms f x = f x
+
+
+---- Constructions
 
 delta' :: (Num a) => Expr ((Axis,Axis) -> a)
 delta' = Static "\\delta" (\(i,j)-> if i==j then 1 else 0)
@@ -134,6 +180,8 @@ mkTF1 n i r = (Var n :: Expr (Axis->Pt->a)) :$ i :$ r
 mkTF2 :: forall a. (Typeable a) => VarName -> (Expr Axis, Expr Axis) -> Expr Pt -> Expr a
 mkTF2 n (i,j) r = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j) :$ r
 
+partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
+partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
 
 main :: IO ()
 main = do
@@ -144,9 +192,14 @@ main = do
 
       sigma = mkTF2 "\\sigma" 
       f = mkTF1 "f" 
+      
+      eqV :: Stmt Double
+      eqV = f(i) r := (partial(j)(sigma(i,j)) + f(i) $ r)
+--      eqV = f(i) r := f i r
 
   print $ (delta (i,j)        :: Expr Double)
   print $ (f(i) r             :: Expr Double)
   print $ (sigma (i,j) r      :: Expr Double)
   print $ (sigma (i,j) + f(i) $ r:: Expr Double)
   print $ axisVarsIn (sigma (i,j) + f(i) $ r:: Expr Double)
+  mapM_ print $ einsteinRule $ eqV
