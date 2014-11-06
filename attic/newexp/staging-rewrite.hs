@@ -4,7 +4,7 @@ import Data.Dynamic
 import Data.List
 import Data.Ratio
 import Text.Printf
-
+import System.Process
 
 type VarName = String
 
@@ -47,7 +47,7 @@ data Stmt a where
   (:=) :: Expr a -> Expr a -> Stmt a 
 
 instance Show (Stmt a) where
-  show (a := b) = show a ++ " &=& " ++ show b
+  show (a := b) = show a ++ " = " ++ show b
 
 
 --- alternative call with type-safe cast
@@ -110,7 +110,12 @@ instance Num a => Num (b->a) where
 
 instance (Typeable a, Fractional a) => Fractional (Expr a) where
   (/) = Op2 Div
-  fromRational x = Static (show x) (fromRational x)
+  fromRational x = Static str (fromRational x) 
+    where
+      str
+        | denominator x == 1 = show (numerator x)
+        | otherwise          = printf "\\frac{%s}{%s}" 
+           (show $ numerator x) (show $ denominator x)
 
 instance Fractional a => Fractional (b->a) where
   a/b = (\x -> a x / b x)
@@ -127,16 +132,18 @@ ppr x = case x of
   (Reserved Pair :$ a :$ b) -> printf "{%s,%s}" (ppr a) (ppr b)
   (Reserved Partial) -> "\\partial"
   (a :$ b) -> 
-     let pprApply1 :: Expr Axis -> String
-         pprApply1 b' = printf "%s_{%s}" (ppr a) (ppr b')
-         pprApply2 :: Expr (Axis,Axis) -> String
-         pprApply2 b' = printf "%s_{%s}" (ppr a) (ppr b')
+     let pprAp1 :: Expr Axis -> String
+         pprAp1 b' = printf "%s_{%s}" (ppr a) (ppr b')
+         pprAp2 :: Expr (Axis,Axis) -> String
+         pprAp2 b' = printf "%s_{%s}" (ppr a) (ppr b')
 
-         pprApplyDef :: Expr b -> String
-         pprApplyDef b' = printf "%s(%s)" (ppr a) (ppr b')
-     in pprApply1 |||? pprApply2 |||? pprApplyDef  $ b
+         pprApDef :: Expr b -> String
+         pprApDef b' = printf "%s\\!\\left(%s\\right)" (ppr a) (ppr b')
+     in pprAp1 |||? pprAp2 |||? pprApDef  $ b
   (Static s _) -> s
   _ -> "?"
+
+
 
 instance Show (Expr a) where show = ppr
 
@@ -232,11 +239,11 @@ partial4' i f p = (f (p + 0.5 * e(i)) - f (p - 0.5 * e(i))) * (fromRational $ 9%
     e i j = if i==j then 1 else 0
 
 partial4'' :: (Typeable a, Fractional a) => Axis -> Expr (Pt->a) -> (Expr Pt-> Expr a)
-partial4'' i f p = ((f :$ (p + 0.5 * e(i))) - (f :$ (p - 0.5 * e(i)))) * (fromRational $ 9%8)
-                 - ((f :$ (p + 1.5 * e(i))) - (f :$ (p - 1.5 * e(i)))) * (fromRational $ 1%24)
+partial4'' i f p = (fromRational $ 9%8)*((f :$ (p + 0.5 * e(i))) - (f :$ (p - 0.5 * e(i)))) 
+                 - (fromRational $ 1%24)*((f :$ (p + 1.5 * e(i))) - (f :$ (p - 1.5 * e(i)))) 
   where
     e :: Axis -> Expr Pt
-    e i = Static ("e"++show i) (\j -> if i==j then 1 else 0)
+    e i = Static ("\\mathbf{e}_"++show i) (\j -> if i==j then 1 else 0)
 
 
 stage :: Expr a -> Expr a
@@ -265,26 +272,30 @@ everywhereS :: (Typeable a, Typeable b) => (Expr b->Expr b)-> Stmt a -> Stmt a
 everywhereS f (lhs := rhs) = (everywhere f lhs := everywhere f rhs)
 
 
+
 main :: IO ()
 main = do
   let i = Var "i" :: Expr Axis
       j = Var "j" :: Expr Axis
 
-      r = Var "r" :: Expr Pt
+      r = Var "\\mathbf{r}" :: Expr Pt
 
       sigma = mkTF2 "\\sigma" 
       f = mkTF1 "f" 
+      dV = mkTF1 "\\Delta v" 
       
-      eqV :: Stmt (Pt -> Double)
-      eqV = f(i)  := (partial(j)(sigma(i,j)) + f(i)) 
-
       eqV' :: Stmt Double
-      eqV' = f(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
---      eqV = f(i) r := f i r
+      eqV' = dV(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
 
-  print $ (delta (i,j)        :: Expr Double)
-  print $ (f(i) :$ r             :: Expr Double)
-  print $ (sigma (i,j) :$ r      :: Expr Double)
-  print $ (sigma (i,j) + f(i) :$ r:: Expr Double)
-  mapM_ print $ einsteinRule $ eqV
-  mapM_ print $ map (everywhereS (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
+
+
+
+
+  let prog = map (everywhereS (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
+
+  mapM_ print $ prog
+
+  writeFile "tmp.tex" $ printf 
+    "\\documentclass[9pt]{article}\\begin{document}%s\\end{document}" (intercalate "\n\n\n" $ map (printf "$%s$" . show) prog)
+  system "pdflatex tmp.tex"
+  return ()
