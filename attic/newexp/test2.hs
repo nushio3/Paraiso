@@ -49,9 +49,9 @@ main = do
       p = Apply $ Var ""
 
 
-      eqV = әt(v[i])   := ә[j] (σ[i,j]) + f[i]
-      eqS = әt(σ[i,j]) := μ * p(ә[i](v[j]) + ә[j](v[i]))
-                        + λ *  (δ[i,j] * ә[k](v[k]))
+      eqV =     әt(v[i])   := ә[j] (σ[i,j]) + f[i]
+      eqS =     әt(σ[i,j]) := μ * p(ә[i](v[j]) + ә[j](v[i]))
+                            + λ *  (δ[i,j] * ә[k](v[k]))
 
 
 
