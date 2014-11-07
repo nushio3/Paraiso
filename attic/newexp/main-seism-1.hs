@@ -5,7 +5,7 @@ import System.Process
 import Expr
 import Tensor
 import Differential
-
+import Transformation
 
 
 main :: IO ()

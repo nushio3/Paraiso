@@ -8,7 +8,7 @@ import Data.Ratio
 import Text.Printf
 
 import Expr
-
+import Transformation
 
 -- extract all axis variables from Expr
 axisVarsIn :: (Typeable a) => Expr a -> [Expr Axis]
@@ -17,8 +17,8 @@ axisVarsIn x = nub $ go x
     go :: (Typeable a) => Expr a -> [Expr Axis]
     go (Static _ _) = []
     go (Reserved _) = []
-    go (Op1 _ a)    = go a
-    go (Op2 _ a b)  = go a ++ go b
+    go (Op1 _ _ a)  = go a
+    go (Op2 _ _ a b)= go a ++ go b
     go (f :$ a)     = go f ++ go a
     go x = let fromA :: Expr Axis -> [Expr Axis]
                fromA = (:[])
@@ -48,8 +48,8 @@ specializeStmt i (lhs := rhs) =
   [let f = replaceAtom i j in f lhs := f rhs| j <- axes]
 
 byTerms :: Typeable a => (Expr a -> Expr a) -> Expr a -> Expr a
-byTerms f (Op2 Add a b) = Op2 Add (byTerms f a) (byTerms f b)
-byTerms f (Op2 Sub a b) = Op2 Sub (byTerms f a) (byTerms f b)
+byTerms f (Op2 Add g a b) = Op2 Add g (byTerms f a) (byTerms f b)
+byTerms f (Op2 Sub g a b) = Op2 Sub g (byTerms f a) (byTerms f b)
 byTerms f x = f x
 
 

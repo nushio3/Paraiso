@@ -10,9 +10,9 @@ import Text.Printf
 type VarName = String
 
 -- Reserved symbols and operator names
-data Symbol = Partial | Pair
+data Symbol = Partial | Pair 
   deriving (Eq, Ord, Show, Read)            
-data Op1Symbol = Abs | Signum
+data Op1Symbol = Abs | Signum | Paren
   deriving (Eq, Ord, Show, Read)            
 data Op2Symbol = Add | Sub | Mul | Div
   deriving (Eq, Ord, Show, Read)            
@@ -40,19 +40,15 @@ data Expr a where
   Static :: String -> a -> Expr a
   -- Reserved Symbols
   Reserved :: Symbol -> Expr a
-  -- Operators encode closedness of algebras
-  Op1 :: Op1Symbol -> Expr a -> Expr a
-  Op2 :: Op2Symbol -> Expr a -> Expr a -> Expr a
+  -- Operators that encode closedness of algebras
+  Op1 :: Op1Symbol -> (a->a) -> Expr a -> Expr a
+  Op2 :: Op2Symbol -> (a->a->a) -> Expr a -> Expr a -> Expr a
   -- Generic Functional Application
   (:$) :: (Typeable b) => Expr (b->a) -> Expr b -> Expr a
   deriving (Typeable)
 
 infixl 2 :$
 
--- staged computation
-runStatic :: Expr a -> Maybe a
-runStatic (Static _ x) = Just x
-runStatic _            = Nothing
 
 -- The type for statement
 infix 1 :=
@@ -97,12 +93,12 @@ infixl 9 ?=
 -- Algebraic instances for Expr
 ------------------------------------------------
 instance (Typeable a) => Eq (Expr a) where
-  Var a      == Var b      = a==b
-  Static a _ == Static b _ = a==b
-  Reserved a == Reserved b = a==b
-  Op1 o a    == Op1 p b    = (o,a) == (p,b)
-  Op2 o a c  == Op2 p b d  = (o,a,c) == (p,b,d)
-  (f :$ a)   == (g :$ b)   = (Just f,Just a)==(cast g,cast b)
+  Var a       == Var b        = a==b
+  Static a _  == Static b _   = a==b
+  Reserved a  == Reserved b   = a==b
+  Op1 o _ a   == Op1 p _ b    = (o,a) == (p,b)
+  Op2 o _ a c == Op2 p _ b d  = (o,a,c) == (p,b,d)
+  (f :$ a)    == (g :$ b)     = (Just f,Just a)==(cast g,cast b)
   _ == _ = False
 
 instance Num a => Num (b->a) where
@@ -114,19 +110,19 @@ instance Num a => Num (b->a) where
   signum = (signum .)
 
 instance (Typeable a, Num a) => Num (Expr a) where
-  (+) = Op2 Add 
-  (-) = Op2 Sub 
-  (*) = Op2 Mul 
+  (+) = Op2 Add (+)
+  (-) = Op2 Sub (-)
+  (*) = Op2 Mul (*)
   fromInteger x = Static (show x) (fromInteger x)
-  abs = Op1 Abs 
-  signum = Op1 Signum
+  abs = Op1 Abs abs
+  signum = Op1 Signum signum
 
 instance Fractional a => Fractional (b->a) where
   a/b = (\x -> a x / b x)
   fromRational = const . fromRational
 
 instance (Typeable a, Fractional a) => Fractional (Expr a) where
-  (/) = Op2 Div
+  (/) = Op2 Div (/)
   fromRational x = Static str (fromRational x) 
     where
       str
@@ -140,10 +136,10 @@ replaceAtom :: (Typeable a, Typeable b) => Expr b -> Expr b -> Expr a -> Expr a
 replaceAtom i1 i2 = go
   where
     go :: Typeable a => Expr a -> Expr a
-    go (f :$ a) = go f :$ go a
-    go (Op1 o a) = Op1 o (go a)
-    go (Op2 o a b) = Op2 o (go a) (go b)
-    go x        = (\i -> if i==i1 then i2 else i) %?  x
+    go (f :$ a)      = go f :$ go a
+    go (Op1 o f a)   = Op1 o f (go a)
+    go (Op2 o f a b) = Op2 o f (go a) (go b)
+    go x             = (\i -> if i==i1 then i2 else i) %?  x
 
 
 
@@ -151,24 +147,28 @@ replaceAtom i1 i2 = go
 -- Pretty printer for Expr
 ------------------------------------------------
 
-ppr :: forall a. Expr a -> String
-ppr x = case x of
+ppr :: Expr a -> String
+ppr = pprRaw . insertParen
+
+pprRaw :: forall a. Expr a -> String
+pprRaw x = case x of
   (Var x) -> x
-  (Op1 o a) -> printf "%s(%s)" (show o) (ppr a)
-  (Op2 Add a b) -> printf "%s+%s" (ppr a) (ppr b)
-  (Op2 Sub a b) -> printf "%s-%s" (ppr a) (ppr b)
-  (Op2 Mul a b) -> printf "%s %s" (ppr a) (ppr b)
-  (Op2 Div a b) -> printf "\\frac{%s}{%s}" (ppr a) (ppr b)
-  (Reserved Pair :$ a :$ b) -> printf "{%s,%s}" (ppr a) (ppr b)
+  (Op1 Paren _ a) -> printf "\\left(%s\\right)" (pprRaw a)
+  (Op1 o _ a) -> printf "%s\\left(%s\\right)" (show o) (pprRaw a)
+  (Op2 Add _ a b) -> printf "%s + %s" (pprRaw a) (pprRaw b)
+  (Op2 Sub _ a b) -> printf "%s - %s" (pprRaw a) (pprRaw b)
+  (Op2 Mul _ a b) -> printf "%s %s" (pprRaw a) (pprRaw b)
+  (Op2 Div _ a b) -> printf "\\frac{%s}{%s}" (pprRaw a) (pprRaw b)
+  (Reserved Pair :$ a :$ b) -> printf "{%s,%s}" (pprRaw a) (pprRaw b)
   (Reserved Partial) -> "\\partial"
   (a :$ b) -> 
      let pprAp1 :: Expr Axis -> String
-         pprAp1 b' = printf "%s_{%s}" (ppr a) (ppr b')
+         pprAp1 b' = printf "%s_{%s}" (pprRaw a) (pprRaw b')
          pprAp2 :: Expr (Axis,Axis) -> String
-         pprAp2 b' = printf "%s_{%s}" (ppr a) (ppr b')
+         pprAp2 b' = printf "%s_{%s}" (pprRaw a) (pprRaw b')
 
          pprApDef :: Expr b -> String
-         pprApDef b' = printf "%s\\!\\left(%s\\right)" (ppr a) (ppr b')
+         pprApDef b' = printf "%s\\!\\left(%s\\right)" (pprRaw a) (pprRaw b')
      in pprAp1 |||? pprAp2 |||? pprApDef  $ b
   (Static s _) -> s
   _ -> "?"
@@ -176,29 +176,27 @@ ppr x = case x of
 instance Show (Expr a) where show = ppr
 
 
+insertParen :: Expr a -> Expr a
+insertParen x@(Op2 o f a b) = Op2 o f a2 b2
+  where
+    a1 = insertParen a
+    b1 = insertParen b
+    a2 = if precedence a1 < precedence x then paren a1 else a1
+    b2 = if precedence b1 < precedence x then paren b1 else b1
 
+    precedence :: Expr a -> Int
+    precedence (Op2 Add _ _ _) = 6
+    precedence (Op2 Sub _ _ _) = 6
+    precedence (Op2 Mul _ _ _) = 7
+    precedence (Op2 Div _ _ _) = 7
+    precedence _               = 10
 
+    paren :: Expr a -> Expr a
+    paren x' = Op1 Paren id x'
+insertParen (Op1 o f a) = Op1 o f (insertParen a)
+insertParen (f :$ a) = insertParen f :$ insertParen a
+insertParen x = x
 
-
-stage :: Expr a -> Expr a
-stage x@(f :$ a) = let f' = stage f
-                       a' = stage a
-                   in case (f', a') of
-                        (Static sf f0, Static sa a0) -> (Static (ppr x) (f0 a0))
-stage x = x
-
-
--- Apply the function at everywhere in an expresion
-everywhere :: (Typeable a, Typeable b) => (Expr b->Expr b)->Expr a -> Expr a
-everywhere f x = case x of
-  (Op1 o a)   -> f %? (Op1 o (everywhere f a))
-  (Op2 o a b) -> f %? (Op2 o (everywhere f a) (everywhere f b))
-  (g :$ a)    -> f %? ((everywhere f g) :$ (everywhere f a))
-  _           -> f %? x
-
--- Apply the function at everywhere in a statement
-everywhereS :: (Typeable a, Typeable b) => (Expr b->Expr b)-> Stmt a -> Stmt a
-everywhereS f (lhs := rhs) = (everywhere f lhs := everywhere f rhs)
 
 
 

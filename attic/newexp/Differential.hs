@@ -6,6 +6,7 @@ import Data.Dynamic
 import Data.Ratio
 
 import Expr
+import Transformation
 import Tensor
 
 -- A purely symbolic partial differentiation.
