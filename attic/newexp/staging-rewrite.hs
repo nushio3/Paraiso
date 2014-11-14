@@ -3,7 +3,6 @@ import Control.Applicative
 import Data.Dynamic
 import Data.List
 import Data.Ratio
-import Linear
 import Text.Printf
 
 
@@ -211,23 +210,15 @@ partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
 partial4 :: forall a. (Typeable a, Fractional a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
 partial4 i f = Static "\\partial" partial4' :$ i :$ f 
 
-partial4' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
-partial4' i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
-              - (f (p + 1.5 *^ e(i)) - f (p - 1.5 *^ e(i))) * (fromRational $ 1%24)
-  where
-    e :: Axis -> Pt
-    e X = V3 1 0 0
-    e Y = V3 0 1 0
-    e Z = V3 0 0 1
 
-partial4'' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
-partial4'' i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
-              - (f (p + 1.5 *^ e(i)) - f (p - 1.5 *^ e(i))) * (fromRational $ 1%24)
+
+partial4' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
+partial4' i f p = (f (p + 0.5 * e(i)) - f (p - 0.5 * e(i))) * (fromRational $ 9%8)
+              - (f (p + 1.5 * e(i)) - f (p - 1.5 * e(i))) * (fromRational $ 1%24)
   where
     e :: Axis -> Pt
-    e X = V3 1 0 0
-    e Y = V3 0 1 0
-    e Z = V3 0 0 1
+    e i j = if i==j then 1 else 0
+
 
 
 
