@@ -10,6 +10,10 @@ type VarName = String
 
 data Axis = X | Y | Z
   deriving (Eq, Ord, Typeable)
+instance Show Axis where
+  show X = "x"
+  show Y = "y"
+  show Z = "z"
 
 type Pt = Axis -> Rational
 
@@ -33,6 +37,10 @@ data Expr a where
   -- Generic Functional Application
   (:$) :: (Typeable b) => Expr (b->a) -> Expr b -> Expr a
   deriving (Typeable)
+
+runStatic :: Expr a -> Maybe a
+runStatic (Static _ x) = Just x
+runStatic _            = Nothing
 
 infix 1 :=
 data Stmt a where
@@ -139,6 +147,8 @@ axisVarsIn x = nub $ go x
     go :: (Typeable a) => Expr a -> [Expr Axis]
     go (Static _ _) = []
     go (Reserved _) = []
+    go (Op1 _ a)    = go a
+    go (Op2 _ a b)  = go a ++ go b
     go (f :$ a)     = go f ++ go a
     go x = let fromA :: Expr Axis -> [Expr Axis]
                fromA = (:[])
@@ -149,6 +159,8 @@ replaceAtom i1 i2 = go
   where
     go :: Typeable a => Expr a -> Expr a
     go (f :$ a) = go f :$ go a
+    go (Op1 o a) = Op1 o (go a)
+    go (Op2 o a b) = Op2 o (go a) (go b)
     go x        = (\i -> if i==i1 then i2 else i) %?  x
 
 
@@ -208,19 +220,46 @@ partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> 
 partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
 
 partial4 :: forall a. (Typeable a, Fractional a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
-partial4 i f = Static "\\partial" partial4' :$ i :$ f 
+partial4 i f = Static "{\\partial^(4)}" partial4' :$ i :$ f 
 
 
 
 partial4' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
 partial4' i f p = (f (p + 0.5 * e(i)) - f (p - 0.5 * e(i))) * (fromRational $ 9%8)
-              - (f (p + 1.5 * e(i)) - f (p - 1.5 * e(i))) * (fromRational $ 1%24)
+                - (f (p + 1.5 * e(i)) - f (p - 1.5 * e(i))) * (fromRational $ 1%24)
   where
     e :: Axis -> Pt
     e i j = if i==j then 1 else 0
 
+partial4'' :: (Typeable a, Fractional a) => Axis -> Expr (Pt->a) -> (Expr Pt-> Expr a)
+partial4'' i f p = ((f :$ (p + 0.5 * e(i))) - (f :$ (p - 0.5 * e(i)))) * (fromRational $ 9%8)
+                 - ((f :$ (p + 1.5 * e(i))) - (f :$ (p - 1.5 * e(i)))) * (fromRational $ 1%24)
+  where
+    e :: Axis -> Expr Pt
+    e i = Static ("e"++show i) (\j -> if i==j then 1 else 0)
 
 
+stage :: Expr a -> Expr a
+stage x@(f :$ a) = let f' = stage f
+                       a' = stage a
+                   in case (f', a') of
+                        (Static sf f0, Static sa a0) -> (Static (ppr x) (f0 a0))
+stage x = x
+
+
+usePartial4 :: (Typeable a, Fractional a) => Expr a -> Expr a -- Expr (Axis -> (Pt->a) -> (Pt->a)) -> Expr (Axis -> (Pt->a) -> (Pt->a))
+usePartial4 x = case x of
+  (Reserved Partial :$ i :$ f :$ r) -> case partial4'' <$> (runStatic i >>= cast) <*> cast f <*> cast r of
+    Just y -> y
+    _      -> x
+  _ -> x
+
+everywhere :: (Typeable a, Typeable b) => (Expr b->Expr b)->Expr a -> Expr a
+everywhere f x = case x of
+  (Op1 o a)   -> f %? (Op1 o (everywhere f a))
+  (Op2 o a b) -> f %? (Op2 o (everywhere f a) (everywhere f b))
+  (g :$ a)    -> f %? ((everywhere f g) :$ (everywhere f a))
+  _           -> f %? x
 
 main :: IO ()
 main = do
@@ -236,7 +275,7 @@ main = do
       eqV = f(i)  := (partial(j)(sigma(i,j)) + f(i)) 
 
       eqV' :: Stmt Double
-      eqV' = f(i) :$ r := ((partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)) 
+      eqV' = f(i) :$ r := (everywhere (usePartial4 :: Expr Double -> Expr Double)  $ (partial4(j)(sigma(i,j)) :$ r) + (f(i) :$ r)) 
 --      eqV = f(i) r := f i r
 
   print $ (delta (i,j)        :: Expr Double)
