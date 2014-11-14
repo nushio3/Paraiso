@@ -261,6 +261,10 @@ everywhere f x = case x of
   (g :$ a)    -> f %? ((everywhere f g) :$ (everywhere f a))
   _           -> f %? x
 
+everywhereS :: (Typeable a, Typeable b) => (Expr b->Expr b)-> Stmt a -> Stmt a
+everywhereS f (lhs := rhs) = (everywhere f lhs := everywhere f rhs)
+
+
 main :: IO ()
 main = do
   let i = Var "i" :: Expr Axis
@@ -275,7 +279,7 @@ main = do
       eqV = f(i)  := (partial(j)(sigma(i,j)) + f(i)) 
 
       eqV' :: Stmt Double
-      eqV' = f(i) :$ r := (everywhere (usePartial4 :: Expr Double -> Expr Double)  $ (partial4(j)(sigma(i,j)) :$ r) + (f(i) :$ r)) 
+      eqV' = f(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
 --      eqV = f(i) r := f i r
 
   print $ (delta (i,j)        :: Expr Double)
@@ -283,4 +287,4 @@ main = do
   print $ (sigma (i,j) :$ r      :: Expr Double)
   print $ (sigma (i,j) + f(i) :$ r:: Expr Double)
   mapM_ print $ einsteinRule $ eqV
-  mapM_ print $ einsteinRule $ eqV'
+  mapM_ print $ map (everywhereS (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
