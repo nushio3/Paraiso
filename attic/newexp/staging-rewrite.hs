@@ -12,7 +12,7 @@ type VarName = String
 data Axis = X | Y | Z
   deriving (Eq, Ord, Typeable)
 
-type Pt = V3 Rational
+type Pt = Axis -> Rational
 
 data Symbol = Partial | Pair
   deriving (Eq, Ord, Show, Read)            
@@ -208,9 +208,11 @@ mkTF2 n (i,j) = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j
 partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
 partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
 
+partial4 :: forall a. (Typeable a, Fractional a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
+partial4 i f = Static "\\partial" partial4' :$ i :$ f 
 
-partial4 :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
-partial4 i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
+partial4' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
+partial4' i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
               - (f (p + 1.5 *^ e(i)) - f (p - 1.5 *^ e(i))) * (fromRational $ 1%24)
   where
     e :: Axis -> Pt
@@ -218,10 +220,15 @@ partial4 i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9
     e Y = V3 0 1 0
     e Z = V3 0 0 1
 
-usePartial4 :: Expr a -> Expr a
-usePartial4 (y@(Reserved Partial) :$ x) 
- = (Static "p4" undefined) :$ x
-usePartial4 x = x
+partial4'' :: (Fractional a) => Axis -> (Pt->a) -> (Pt->a)
+partial4'' i f p = (f (p + 0.5 *^ e(i)) - f (p - 0.5 *^ e(i))) * (fromRational $ 9%8)
+              - (f (p + 1.5 *^ e(i)) - f (p - 1.5 *^ e(i))) * (fromRational $ 1%24)
+  where
+    e :: Axis -> Pt
+    e X = V3 1 0 0
+    e Y = V3 0 1 0
+    e Z = V3 0 0 1
+
 
 
 main :: IO ()
