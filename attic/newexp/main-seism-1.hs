@@ -8,7 +8,7 @@ import Expr
 import Tensor
 import Differential
 import Transformation
-
+import Semantics
 
 compileStmts :: [Stmt (Pt->Double)] -> String
 compileStmts xs = 
@@ -59,4 +59,7 @@ main = do
   system "pdflatex tmp.tex"
 
   mapM_ putStrLn $ map (\(l:=r) ->  debugPrint r) $ compile eqS
+
+  visualize $ initialState
+
   return ()
