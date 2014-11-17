@@ -32,7 +32,9 @@ main = do
 
   mapM_ print $ prog
 
-  writeFile "tmp.tex" $ printf 
-    "\\documentclass[9pt]{article}\\begin{document}%s\\end{document}" (intercalate "\n\n\n" $ map (printf "$%s$" . show) prog)
+  writeFile "tmp.tex" $ 
+    printf "\\documentclass[9pt]{article}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
+    intercalate "\n\n" $ 
+    map (printf "\\begin{dmath}%s\\end{dmath}" . show) prog
   system "pdflatex tmp.tex"
   return ()
