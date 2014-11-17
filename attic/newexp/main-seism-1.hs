@@ -17,9 +17,14 @@ compileStmts xs =
     map (printf "\\begin{dmath}%s\\end{dmath}" . show) $
     concat $ map compile xs
   where
+    r = Var "\\mathbf{r}" :: Expr Pt
+
+
     compile x = 
         map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
-        einsteinRule $ bhs (:$ r) x
+        einsteinRule $ 
+        bhs distributeApply $
+        bhs (:$ r) x
 
     
 
@@ -27,19 +32,28 @@ main :: IO ()
 main = do
   let i = Var "i" :: Expr Axis
       j = Var "j" :: Expr Axis
+      k = Var "k" :: Expr Axis
 
-      r = Var "\\mathbf{r}" :: Expr Pt
+      σ = mkTF2 "\\sigma" 
+      v = mkTF1 "v" 
 
-      sigma = mkTF2 "\\sigma" 
       f = mkTF1 "f" 
+
+      μ = mkTF0 "\\mu" 
+      λ = mkTF0 "\\lambda" 
+
       dV = mkTF1 "\\Delta v" 
+      dσ = mkTF2 "\\Delta \\sigma" 
       
-
       eqV :: Stmt (Pt -> Double)
-      eqV = dV(i)   := (partial(j)(sigma(i,j))  + f(i) ) 
+      eqV =       dV(i) := ә(j)(σ(i,j))  + f(i) 
+
+
+      eqS =     dσ(i,j) := μ * (ә(i)(v(j)) + ә(j)(v(i)))
+                         + λ * (δ(i,j) * ә(k)(v(k)))
 
 
 
-  writeFile "tmp.tex" $ compileStmts [eqV]    
+  writeFile "tmp.tex" $ compileStmts [eqV,eqS]    
   system "pdflatex tmp.tex"
   return ()

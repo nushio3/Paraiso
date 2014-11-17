@@ -9,9 +9,13 @@ import Expr
 import Transformation
 import Tensor
 
--- A purely symbolic partial differentiation.
+-- A symbolic partial differentiation.
 partial :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
 partial i f = (Reserved Partial :: Expr (Axis -> (Pt->a)->(Pt->a))) :$ i :$ f
+
+ә :: forall a. (Typeable a) => Expr Axis -> Expr (Pt -> a) -> Expr (Pt -> a)
+ә = partial
+
 
 
 

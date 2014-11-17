@@ -59,6 +59,9 @@ mkT1 n i = (Var n :: Expr (Axis->a)) :$ i
 mkT2 :: forall a. (Typeable a) => VarName -> (Expr Axis, Expr Axis) -> Expr a
 mkT2 n (i,j) = (Var n :: Expr ((Axis,Axis)->a)) :$ (Reserved Pair :$ i :$ j)
 
+mkTF0 :: forall a. (Typeable a) => VarName -> Expr (Pt -> a)
+mkTF0 n = (Var n :: Expr (Pt->a))
+
 mkTF1 :: forall a. (Typeable a) => VarName -> Expr Axis -> Expr (Pt -> a)
 mkTF1 n i = (Var n :: Expr (Axis->Pt->a)) :$ i 
 
@@ -68,6 +71,9 @@ mkTF2 n (i,j) = (Var n :: Expr ((Axis,Axis)->Pt->a)) :$ (Reserved Pair :$ i :$ j
 ---- Combinators
 delta :: (Num a, Typeable a) => (Expr Axis, Expr Axis) -> Expr a
 delta (i,j) = delta' :$ (Reserved Pair :$ i :$ j)
+
+δ :: (Num a, Typeable a) => (Expr Axis, Expr Axis) -> Expr a
+δ = delta 
 
 delta' :: (Num a) => Expr ((Axis,Axis) -> a)
 delta' = Static "\\delta" (\(i,j)-> if i==j then 1 else 0)

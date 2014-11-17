@@ -62,9 +62,9 @@ everywhereP f x = case x of
 -- Apply the polymorphic function at everywhere in an expresion, outside-in
 everywhereP' :: (Typeable a) => (forall b. Typeable b => Expr b->Expr b)->Expr a -> Expr a
 everywhereP' f x = let y = f x in case y of
-  (Op1 o g a)   -> (Op1 o g (everywhereP f a))
-  (Op2 o g a b) -> (Op2 o g (everywhereP f a) (everywhereP f b))
-  (g :$ a)    -> ((everywhereP f g) :$ (everywhereP f a))
+  (Op1 o g a)   -> (Op1 o g (everywhereP' f a))
+  (Op2 o g a b) -> (Op2 o g (everywhereP' f a) (everywhereP' f b))
+  (g :$ a)    -> ((everywhereP' f g) :$ (everywhereP' f a))
   _           -> y
 
 
