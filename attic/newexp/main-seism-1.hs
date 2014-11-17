@@ -10,6 +10,19 @@ import Differential
 import Transformation
 
 
+compileStmts :: [Stmt (Pt->Double)] -> String
+compileStmts xs = 
+    printf "\\documentclass[9pt]{article}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
+    intercalate "\n\n" $ 
+    map (printf "\\begin{dmath}%s\\end{dmath}" . show) $
+    concat $ map compile xs
+  where
+    compile x = 
+        map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
+        einsteinRule $ bhs (:$ r) x
+
+    
+
 main :: IO ()
 main = do
   let i = Var "i" :: Expr Axis
@@ -21,28 +34,12 @@ main = do
       f = mkTF1 "f" 
       dV = mkTF1 "\\Delta v" 
       
-      eqV' :: Stmt Double
-      eqV' = dV(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
 
-      eqV2 :: Stmt (Pt -> Double)
-      eqV2 = dV(i)   := (partial(j)(sigma(i,j))  + f(i) ) 
+      eqV :: Stmt (Pt -> Double)
+      eqV = dV(i)   := (partial(j)(sigma(i,j))  + f(i) ) 
 
 
-      eqV :: Stmt Double
-      eqV = bhs (distributeApply . (:$ r)) eqV2
 
-
-  let prog = 
-        map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
-        concat $ 
-        [einsteinRule $ eqV', einsteinRule $ eqV]
-
-  mapM_ print $ prog
-
-  writeFile "tmp.tex" $ 
-    printf "\\documentclass[9pt]{article}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
-    intercalate "\n\n" $ 
-    map (printf "\\begin{dmath}%s\\end{dmath}" . show) prog
-    
+  writeFile "tmp.tex" $ compileStmts [eqV]    
   system "pdflatex tmp.tex"
   return ()
