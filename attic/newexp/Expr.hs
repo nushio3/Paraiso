@@ -183,19 +183,22 @@ insertParen x@(Op2 o f a b) = Op2 o f a2 b2
     b1 = insertParen b
     a2 = if precedence a1 < precedence x then paren a1 else a1
     b2 = if precedence b1 < precedence x then paren b1 else b1
-
-    precedence :: Expr a -> Int
-    precedence (Op2 Add _ _ _) = 6
-    precedence (Op2 Sub _ _ _) = 6
-    precedence (Op2 Mul _ _ _) = 7
-    precedence (Op2 Div _ _ _) = 7
-    precedence _               = 10
-
-    paren :: Expr a -> Expr a
-    paren x' = Op1 Paren id x'
 insertParen (Op1 o f a) = Op1 o f (insertParen a)
-insertParen (f :$ a) = insertParen f :$ insertParen a
+insertParen x@(f :$ a) = f2 :$ insertParen a
+  where
+    f1 = insertParen f
+    f2 = if precedence f1 < precedence x then paren f1 else f1    
 insertParen x = x
+
+paren :: Expr a -> Expr a
+paren x = Op1 Paren id x
+
+precedence :: Expr a -> Int
+precedence (Op2 Add _ _ _) = 6
+precedence (Op2 Sub _ _ _) = 6
+precedence (Op2 Mul _ _ _) = 7
+precedence (Op2 Div _ _ _) = 7
+precedence _               = 10
 
 
 

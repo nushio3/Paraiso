@@ -50,7 +50,7 @@ everywhere f x = case x of
   (g :$ a)    -> f %? ((everywhere f g) :$ (everywhere f a))
   _           -> f %? x
 
--- Apply the polymorphic function at everywhere in an expresion
+-- Apply the polymorphic function at everywhere in an expresion, inside-out
 everywhereP :: (Typeable a) => (forall b. Typeable b => Expr b->Expr b)->Expr a -> Expr a
 everywhereP f x = case x of
   (Op1 o g a)   -> f (Op1 o g (everywhereP f a))
@@ -59,11 +59,26 @@ everywhereP f x = case x of
   _           -> f x
 
 
+-- Apply the polymorphic function at everywhere in an expresion, outside-in
+everywhereP' :: (Typeable a) => (forall b. Typeable b => Expr b->Expr b)->Expr a -> Expr a
+everywhereP' f x = let y = f x in case y of
+  (Op1 o g a)   -> (Op1 o g (everywhereP f a))
+  (Op2 o g a b) -> (Op2 o g (everywhereP f a) (everywhereP f b))
+  (g :$ a)    -> ((everywhereP f g) :$ (everywhereP f a))
+  _           -> y
+
+
 -- Apply the function at both hand sides of a statement
 bhs :: (Expr a->Expr a)-> Stmt a -> Stmt a
 bhs f (lhs := rhs) = (f lhs := f rhs)
 
 
--- 
-distributeApply :: Expr a -> Expr a
-distributeApply x = x
+-- distribute function application among operators
+distributeApply :: Typeable a => Expr a -> Expr a
+distributeApply = everywhereP' distributeApply1
+
+distributeApply1 :: Expr a -> Expr a
+distributeApply1 x = case x of
+  (Op1 o g a :$ y) -> (Op1 o (\a0 -> g (const a0) undefined) (a:$y) )
+  (Op2 o g a b :$ y) -> (Op2 o (\a0 b0 -> g (const a0) (const b0) undefined) (a:$y) (b:$y) )
+  _ -> x

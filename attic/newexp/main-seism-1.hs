@@ -24,11 +24,17 @@ main = do
       eqV' :: Stmt Double
       eqV' = dV(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
 
+      eqV :: Stmt  Double
+      eqV = dV(i) :$ r  := (partial(j)(sigma(i,j))  + f(i) ) :$ r
 
 
 
 
-  let prog = map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
+
+  let prog = 
+        map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
+        concat $ 
+        [einsteinRule $ eqV', einsteinRule eqV]
 
   mapM_ print $ prog
 
@@ -36,5 +42,6 @@ main = do
     printf "\\documentclass[9pt]{article}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
     intercalate "\n\n" $ 
     map (printf "\\begin{dmath}%s\\end{dmath}" . show) prog
+    
   system "pdflatex tmp.tex"
   return ()
