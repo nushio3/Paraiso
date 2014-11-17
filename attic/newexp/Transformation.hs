@@ -13,18 +13,22 @@ stage x = case x of
     let f' = stage f
         a' = stage a
     in case (f', a') of
-      (Static sf f0, Static sa a0) -> (Static (ppr x) (f0 a0))
+      (Static sf f0, Static sa a0) -> reStatic (f0 a0)
       _                            -> f' :$ a'
   Op1 o f' a -> 
     let a' = stage a
     in case a' of
-      (Static sa a0) -> Static (ppr x) (f' a0)
+      (Static sa a0) -> reStatic (f' a0)
   Op2 o f' a b -> 
     let a' = stage a
         b' = stage b
     in case (a', b') of
-      (Static sa a0, Static sb b0) -> Static (ppr x) (f' a0 b0)
+      (Static sa a0, Static sb b0) -> reStatic (f' a0 b0)
   _ -> x
+
+  where
+    reStatic val = Static (ppr x) val
+  
 
 -- obtain the result of staged computation, if possible
 runStatic :: Expr a -> Maybe a
