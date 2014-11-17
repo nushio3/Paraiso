@@ -20,6 +20,7 @@ executable newexp
   main-is:             main-seism-1.hs
   -- other-modules:       
   other-extensions:    
+  ghc-options:  -Odph -rtsopts -threaded -fno-liberate-case -funfolding-use-threshold1000 -funfolding-keeness-factor1000 -fllvm -optlo-O3
   build-depends:   
     base >=4.7 && <4.8
    ,containers

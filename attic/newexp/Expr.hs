@@ -54,7 +54,7 @@ debugPrint :: Typeable a => Expr a -> String
 debugPrint x = go x
   where
     go :: forall a. Typeable a => Expr a -> String
-    go (Var n) = printf "var(%s)" n
+    go x@(Var n) = printf "var(%s :: %s)" n  (show $ typeOf x)
     go (Static s x) = printf "static(%s :: %s)" s (show $ typeOf x)
     go (Reserved s) = printf "reserved(%s)" $ show s
     go (Op1 o _ a) = printf "%s(%s)" (show o) (go a)

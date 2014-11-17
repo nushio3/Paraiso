@@ -1,8 +1,10 @@
 #!/usr/bin/env runhaskell
 
 import Data.List
+import qualified Data.Map as M
 import Text.Printf
 import System.Process
+import Data.Array.Repa(ix3)
 
 import Expr
 import Tensor
@@ -45,12 +47,12 @@ main = do
       λ = mkTF0 "\\lambda" 
 
       dV = mkTF1 "\\Delta v" 
-      dσ = mkTF2 "\\Delta \\sigma" 
+      dσ = mkTF2 "\\Delta \\sigma"
       
       eqV :: Stmt (Pt -> Double)
       eqV =       dV(i) := ә(j)(σ(i,j))  + f(i) 
 
-
+      eqS :: Stmt (Pt -> Double)
       eqS =     dσ(i,j) := μ * (ә(i)(v(j)) + ә(j)(v(i)))
                          + λ * (δ(i,j) * ә(k)(v(k)))
 
@@ -58,8 +60,19 @@ main = do
   writeFile "tmp.tex" $ compileStmts [eqV,eqS]    
   system "pdflatex tmp.tex"
 
-  mapM_ putStrLn $ map (\(l:=r) ->  debugPrint r) $ compile eqS
 
+  let eqMap :: M.Map String (Expr Double)
+      eqMap =
+        M.fromList $
+        map (\(l:=r) -> (show l,r)) $
+        concat $ map compile  [eqV,eqS]    
+
+  print eqMap
+  
   visualize $ initialState
 
+--   mapM_ print $ map (\(l:=r) ->
+--     repaEval (cbcState initialState) r (ix3 201 151 0)) $ compile eqS
+
   return ()
+  
