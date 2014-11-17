@@ -50,6 +50,18 @@ data Expr a where
 infixl 2 :$
 
 
+debugPrint :: Typeable a => Expr a -> String
+debugPrint x = go x
+  where
+    go :: forall a. Typeable a => Expr a -> String
+    go (Var n) = printf "var(%s)" n
+    go (Static s x) = printf "static(%s :: %s)" s (show $ typeOf x)
+    go (Reserved s) = printf "reserved(%s)" $ show s
+    go (Op1 o _ a) = printf "%s(%s)" (show o) (go a)
+    go (Op2 o _ a b) = printf "(%s `%s` %s)" (go a) (show o) (go b)
+    go (f :$ a) = printf "%s(%s)" (go f) (go a)
+
+
 -- The type for statement
 infix 1 :=
 data Stmt a where

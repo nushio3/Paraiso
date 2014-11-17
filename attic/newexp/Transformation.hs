@@ -7,8 +7,17 @@ import Expr
 
 
 -- partially apply as much staged computation as possible
-stage :: Expr a -> Expr a
+stage :: Typeable a => Expr a -> Expr a
 stage x = case x of
+  (Reserved Pair :$ a :$ b) ->
+    let a' = stage a
+        b' = stage b
+    in case (a', b') of
+      (Static sa a0, Static sb b0) -> case cast (a0,b0) of
+        Just ret -> reStatic ret
+        Nothing  -> Reserved Pair :$  a' :$ b'
+      _                            -> Reserved Pair :$  a' :$ b'
+
   (f :$ a) -> 
     let f' = stage f
         a' = stage a
@@ -19,16 +28,22 @@ stage x = case x of
     let a' = stage a
     in case a' of
       (Static sa a0) -> reStatic (f' a0)
+      _              -> Op1 o f' a'
   Op2 o f' a b -> 
     let a' = stage a
         b' = stage b
     in case (a', b') of
       (Static sa a0, Static sb b0) -> reStatic (f' a0 b0)
+      _                            -> Op2 o f' a' b'
+
   _ -> x
 
   where
-    reStatic val = Static (ppr x) val
+    reStatic val = Static (reppr val) val
   
+    reppr :: forall a. Typeable a => a -> String
+    reppr a = (show :: Double -> String) |||? const (ppr x) $ a
+
 
 -- obtain the result of staged computation, if possible
 runStatic :: Expr a -> Maybe a
@@ -40,9 +55,9 @@ runStaticEither (Static _ x) = Right x
 runStaticEither y            = Left $ "not static: " ++ ppr y
 
 -- perform staged computation and obtain the result, if possible
-evalStatic :: Expr a -> Maybe a
+evalStatic :: Typeable a => Expr a -> Maybe a
 evalStatic = runStatic . stage
-evalStaticEither :: Expr a -> Either String a
+evalStaticEither :: Typeable a => Expr a -> Either String a
 evalStaticEither = runStaticEither . stage
 
 

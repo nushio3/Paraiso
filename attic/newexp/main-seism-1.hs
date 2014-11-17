@@ -16,15 +16,17 @@ compileStmts xs =
     intercalate "\n\n" $ 
     map (printf "\\begin{dmath}%s\\end{dmath}" . show) $
     concat $ map compile xs
+
+
+compile :: Stmt (Pt->Double) -> [Stmt Double]
+compile x = 
+    map (bhs stage) $
+    map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
+    einsteinRule $ 
+    bhs distributeApply $
+    bhs (:$ r) x
   where
     r = Var "\\mathbf{r}" :: Expr Pt
-
-
-    compile x = 
-        map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
-        einsteinRule $ 
-        bhs distributeApply $
-        bhs (:$ r) x
 
     
 
@@ -53,7 +55,8 @@ main = do
                          + λ * (δ(i,j) * ә(k)(v(k)))
 
 
-
   writeFile "tmp.tex" $ compileStmts [eqV,eqS]    
   system "pdflatex tmp.tex"
+
+  mapM_ putStrLn $ map (\(l:=r) ->  debugPrint r) $ compile eqS
   return ()
