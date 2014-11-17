@@ -1,3 +1,5 @@
+#!/usr/bin/env runhaskell
+
 import Data.List
 import Text.Printf
 import System.Process
