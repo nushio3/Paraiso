@@ -12,7 +12,7 @@ import Transformation
 
 compileStmts :: [Stmt (Pt->Double)] -> String
 compileStmts xs = 
-    printf "\\documentclass[9pt]{article}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
+    printf "\\documentclass{article}\\usepackage[a4paper,margin=1in,landscape]{geometry}\\usepackage{breqn}\\begin{document}%s\\end{document}" $
     intercalate "\n\n" $ 
     map (printf "\\begin{dmath}%s\\end{dmath}" . show) $
     concat $ map compile xs
