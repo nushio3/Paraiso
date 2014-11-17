@@ -24,17 +24,18 @@ main = do
       eqV' :: Stmt Double
       eqV' = dV(i) :$ r := (partial(j)(sigma(i,j)) :$ r) + (f(i) :$ r)
 
-      eqV :: Stmt  Double
-      eqV = dV(i) :$ r  := (partial(j)(sigma(i,j))  + f(i) ) :$ r
+      eqV2 :: Stmt (Pt -> Double)
+      eqV2 = dV(i)   := (partial(j)(sigma(i,j))  + f(i) ) 
 
 
-
+      eqV :: Stmt Double
+      eqV = bhs (distributeApply . (:$ r)) eqV2
 
 
   let prog = 
         map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ 
         concat $ 
-        [einsteinRule $ eqV', einsteinRule eqV]
+        [einsteinRule $ eqV', einsteinRule $ eqV]
 
   mapM_ print $ prog
 

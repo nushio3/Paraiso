@@ -69,7 +69,7 @@ everywhereP' f x = let y = f x in case y of
 
 
 -- Apply the function at both hand sides of a statement
-bhs :: (Expr a->Expr a)-> Stmt a -> Stmt a
+bhs :: (Expr a-> Expr b)-> Stmt a -> Stmt b
 bhs f (lhs := rhs) = (f lhs := f rhs)
 
 
