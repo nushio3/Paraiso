@@ -59,9 +59,11 @@ everywhereP f x = case x of
   _           -> f x
 
 
--- Apply the function at everywhere in a statement
-everywhereS :: (Typeable a, Typeable b) => (Expr b->Expr b)-> Stmt a -> Stmt a
-everywhereS f (lhs := rhs) = (everywhere f lhs := everywhere f rhs)
+-- Apply the function at both hand sides of a statement
+bhs :: (Expr a->Expr a)-> Stmt a -> Stmt a
+bhs f (lhs := rhs) = (f lhs := f rhs)
 
 
 -- 
+distributeApply :: Expr a -> Expr a
+distributeApply x = x

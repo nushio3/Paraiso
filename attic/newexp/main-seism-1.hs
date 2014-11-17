@@ -28,7 +28,7 @@ main = do
 
 
 
-  let prog = map (everywhereS (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
+  let prog = map (bhs $ everywhere (usePartial4 :: Expr Double -> Expr Double))  $ einsteinRule $ eqV'
 
   mapM_ print $ prog
 
