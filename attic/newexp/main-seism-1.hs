@@ -62,7 +62,7 @@ main = do
                          + λ * (δ(i,j) * ә(k)(v(k)))
 
 
-  writeFile "tmp.tex" $ compileStmts [eqVdebug,eqS]    
+  writeFile "tmp.tex" $ compileStmts [eqV,eqS]    
   system "pdflatex tmp.tex"
 
 
@@ -70,7 +70,7 @@ main = do
       eqMap =
         M.fromList $
         map (\(l:=r) -> (show l,r)) $
-        concat $ map compile  [eqVdebug,eqS]    
+        concat $ map compile  [eqV,eqS]    
 
   print $map fst $M.toList $eqMap
 
