@@ -25,6 +25,7 @@ executable newexp
     base >=4.7 && <4.8
    ,containers
    ,process 
+   ,mtl
    ,repa
    ,repa-io
    ,spoon

@@ -1,5 +1,6 @@
 #!/usr/bin/env runhaskell
 
+import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Text.Printf
@@ -52,12 +53,16 @@ main = do
       eqV :: Stmt (Pt -> Double)
       eqV =       dV(i) := ә(j)(σ(i,j))  + f(i) 
 
+      eqVdebug :: Stmt (Pt -> Double)
+      eqVdebug =       dV(i) := v(i)
+
+
       eqS :: Stmt (Pt -> Double)
       eqS =     dσ(i,j) := μ * (ә(i)(v(j)) + ә(j)(v(i)))
                          + λ * (δ(i,j) * ә(k)(v(k)))
 
 
-  writeFile "tmp.tex" $ compileStmts [eqV,eqS]    
+  writeFile "tmp.tex" $ compileStmts [eqVdebug,eqS]    
   system "pdflatex tmp.tex"
 
 
@@ -65,14 +70,27 @@ main = do
       eqMap =
         M.fromList $
         map (\(l:=r) -> (show l,r)) $
-        concat $ map compile  [eqV,eqS]    
+        concat $ map compile  [eqVdebug,eqS]    
 
-  print eqMap
+  print $map fst $M.toList $eqMap
+
+  visualize "st0.bmp" initialState
+  writeFile "st0.txt" $ show initialState
   
-  visualize $ initialState
+  let go s t = do
+        visualize "tmp.bmp" s
+        print t
+        proceed eqMap s
+
+  st2 <- foldM go initialState [0..99]
+ 
+  visualize "st2.bmp" st2
+  writeFile "st2.txt" $ show st2
 
 --   mapM_ print $ map (\(l:=r) ->
 --     repaEval (cbcState initialState) r (ix3 201 151 0)) $ compile eqS
+
+
 
   return ()
   

@@ -1,8 +1,9 @@
-{-# LANGUAGE FlexibleContexts, TypeOperators #-}
+{-# LANGUAGE FlexibleContexts, TypeOperators, TupleSections #-}
 -- repa semantics of the array language.
 
 module Semantics where
 
+import Control.Monad.Identity
 import Expr
 import Transformation
 
@@ -39,8 +40,8 @@ initialState = M.fromList
   where go = computeS . fromFunction simExtent
 
 
-visualize :: SimState U -> IO ()
-visualize s = do
+visualize :: FilePath -> SimState U -> IO ()
+visualize fn s = do
   let Just vz = M.lookup "Vz" s
 
       vz2D :: Array D DIM2 Double
@@ -55,7 +56,7 @@ visualize s = do
 
       bmp = R.map (\rz -> (255-bround (rz*300),255-bround (negate $ rz*300),255)) vz2D
 
-  writeImageToBMP "test.bmp" (computeS bmp)
+  writeImageToBMP fn (computeS bmp)
 
 
 
@@ -64,17 +65,18 @@ visualize s = do
 
 
 
-repaEval :: SimState D -> Expr Double -> IO (Array U DIM3 Double)
-repaEval stat expr = computeUnboxedP ret
+repaEval :: Expr Double -> SimState D -> Array D DIM3 Double
+repaEval expr stat = ret
   where
     ret :: Array D DIM3 Double
     ret = fromFunction simExtent evalAt
     
     expr' =
-      replaceAtom (Var "\\sigma")  (Static "!" sigma) $
-      replaceAtom (Var "v")        (Static "!" velocity) $
-      replaceAtom (Var "\\mu")     (Static "!" mu) $
-      replaceAtom (Var "\\lambda") (Static "!" lambda) $
+      replaceAtom (Var "\\sigma")  (Static "\\sigma" sigma) $
+      replaceAtom (Var "v")        (Static "v" velocity) $
+      replaceAtom (Var "\\mu")     (Static "\\mu" mu) $
+      replaceAtom (Var "\\lambda") (Static "\\lambda" lambda) $
+      replaceAtom (Var "f")        (Static "f" extForce) $
       expr
 
     evalAt :: DIM3 -> Double
@@ -109,9 +111,57 @@ repaEval stat expr = computeUnboxedP ret
     velocity :: Axis -> Pt -> Double
     velocity i = statLookup $ "V" ++ show i
 
+    extForce :: Axis -> Pt -> Double
+    extForce _ _ = 0
+
     mu :: Pt -> Double
     mu = const 0.35
     lambda :: Pt -> Double
     lambda = const 1.0
 
+-- "\\Delta \\sigma_{{x,x}}"
+-- "\\Delta v_{x}"
 
+
+mmapM :: (Ord k, Functor m, Monad m) => (a->m b) -> M.Map k a -> m (M.Map k b)
+mmapM f map0 = fmap M.fromList $ mapM (\(k,v) -> fmap (k,) $ f v)  $ M.toList map0
+
+proceed :: M.Map String (Expr Double) ->  SimState U -> IO (SimState U)
+proceed eqMap state0 = do
+  let state0D :: SimState D        
+      state0D = M.map cbc state0
+
+  state1 <- mmapM computeP $
+    M.adjust (R.zipWith (+) $ repaEval (lookUpEqList "Vx") state0D) "Vx" $
+    M.adjust (R.zipWith (+) $ repaEval (lookUpEqList "Vy") state0D) "Vy" $
+    M.adjust (R.zipWith (+) $ repaEval (lookUpEqList "Vz") state0D) "Vz" $
+    state0D
+
+  let state1D :: SimState D
+      state1D = M.map cbc (state1 :: SimState U)
+
+  state2 <- mmapM computeP $ 
+    M.insert "Sxx" (repaEval (lookUpEqList "Sxx") state1D) $
+    M.insert "Syy" (repaEval (lookUpEqList "Syy") state1D) $
+    M.insert "Szz" (repaEval (lookUpEqList "Szz") state1D) $
+    M.insert "Sxy" (repaEval (lookUpEqList "Sxy") state1D) $
+    M.insert "Sxz" (repaEval (lookUpEqList "Sxz") state1D) $
+    M.insert "Syz" (repaEval (lookUpEqList "Syz") state1D) $
+    state1D
+
+  return state2
+
+  where
+    eqList = M.toList eqMap
+  
+    lookUpEqList :: String -> Expr Double
+    lookUpEqList "Vx" = snd $ head $ filter (\(k,_) ->  "v_" `isInfixOf`k &&  "{x}"`isInfixOf`k) eqList
+    lookUpEqList "Vy" = snd $ head $ filter (\(k,_) ->  "v_" `isInfixOf`k &&  "{y}"`isInfixOf`k) eqList
+    lookUpEqList "Vz" = snd $ head $ filter (\(k,_) ->  "v_" `isInfixOf`k &&  "{z}"`isInfixOf`k) eqList
+    lookUpEqList "Sxx" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{x,x}"`isInfixOf`k) eqList
+    lookUpEqList "Syy" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{y,y}"`isInfixOf`k) eqList
+    lookUpEqList "Szz" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{z,z}"`isInfixOf`k) eqList
+    lookUpEqList "Sxy" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{x,y}"`isInfixOf`k) eqList
+    lookUpEqList "Sxz" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{x,z}"`isInfixOf`k) eqList
+    lookUpEqList "Syz" = snd $ head $ filter (\(k,_) ->  "sigma_" `isInfixOf`k &&  "{y,z}"`isInfixOf`k) eqList
+  
