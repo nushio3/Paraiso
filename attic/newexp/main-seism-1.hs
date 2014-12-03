@@ -51,7 +51,11 @@ main = do
       dσ = mkTF2 "\\Delta \\sigma"
       
       eqV :: Stmt (Pt -> Double)
+      eqS :: Stmt (Pt -> Double)
+      
       eqV =       dV(i) := ә(j)(σ(i,j))  + f(i) 
+      eqS =     dσ(i,j) := μ * (ә(i)(v(j)) + ә(j)(v(i)))
+                         + λ * (δ(i,j) * ә(k)(v(k)))
 
       eqVdebug :: Stmt (Pt -> Double)
       eqVdebug =       dV(i) := v(i)
