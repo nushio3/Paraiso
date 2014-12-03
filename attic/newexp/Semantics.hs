@@ -6,7 +6,7 @@ module Semantics where
 import Control.Monad.Identity
 import Expr
 import Transformation
-
+import Data.Ratio
 import Data.Array.Repa as R hiding (Z,(++))
 import qualified Data.Array.Repa as R
 import Data.Array.Repa.IO.BMP
@@ -63,7 +63,10 @@ visualize fn s = do
 
 
 
-
+sround :: Rational -> Int
+sround x
+  | denominator x == 1 = round x
+  | otherwise          = error $ "expected an integer, but got: " ++ show x
 
 repaEval :: Expr Double -> SimState D -> Array D DIM3 Double
 repaEval expr stat = ret
@@ -98,7 +101,7 @@ repaEval expr stat = ret
 
 
     pt2ix3 :: Pt -> DIM3
-    pt2ix3 f = ix3 (floor $ f X) (floor $ f Y) (floor $ f Z)
+    pt2ix3 f = ix3 (sround $ f X) (sround $ f Y) (sround $ f Z)
 
     statLookup :: String -> Pt -> Double
     statLookup varn pt = case M.lookup varn stat of
