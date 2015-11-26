@@ -149,7 +149,7 @@ Library
   Build-depends:       array                 >= 0.2    ,    
                        base                  == 4.*    ,
                        containers            >= 0.4.0  ,
-                       control-monad-failure >= 0.7.0  ,
+                       failure               >= 0.1.0  ,
                        directory             >= 1.0    ,
                        filepath              >= 1.2.0  ,
                        fgl                   >= 5.4.2  ,

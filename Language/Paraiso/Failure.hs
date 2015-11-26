@@ -3,10 +3,10 @@
 -- | a module for handling failure
 module Language.Paraiso.Failure
     (
-     module Control.Monad.Failure, unsafePerformFailure
+     module Control.Failure, unsafePerformFailure
     ) where
 
-import Control.Monad.Failure
+import Control.Failure
 import System.IO.Unsafe
 
 unsafePerformFailure :: IO a -> a
