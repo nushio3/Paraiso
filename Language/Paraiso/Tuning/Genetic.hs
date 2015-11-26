@@ -173,8 +173,10 @@ overwriteGenome dna oldSpec =
 
 
 
-newtype Get a = Get { getGet :: State.State [Bool] a } deriving (Monad)
-newtype Put a = Put { getPut :: State.State [Bool] a } deriving (Monad)
+newtype Get a = Get { getGet :: State.State [Bool] a }
+    deriving (Prelude.Functor, Prelude.Applicative, Monad)
+newtype Put a = Put { getPut :: State.State [Bool] a }
+    deriving (Prelude.Functor, Prelude.Applicative, Monad)
 
 get :: Get Bool
 get = Get $ do
