@@ -4,14 +4,14 @@ Paraiso [![Build Status](https://travis-ci.org/nushio3/Paraiso.svg?branch=master
 
 Type the following commands to play with the Lifegame example.
 
-
+```
 git clone https://github.com/nushio3/Paraiso.git
 cd Paraiso/
 stack install
 cd examples/Life/
 make
 ./main.out
-
+```
 
 The libraries are generated under the dist/ directory.
 The intermediate virtual machine programs are generated under output/ directory.
