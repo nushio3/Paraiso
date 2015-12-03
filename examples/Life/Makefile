@@ -5,4 +5,4 @@ main.out: main.cpp dist/Life.cpp
 
 dist/Life.cpp: Generator.hs
 	mkdir -p output
-	runhaskell Generator.hs
+	stack runhaskell Generator.hs
