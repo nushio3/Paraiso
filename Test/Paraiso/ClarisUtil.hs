@@ -5,8 +5,9 @@ module Test.Paraiso.ClarisUtil (
   ) where
 
 import           Control.Concurrent         (forkIO)
-import qualified Data.ListLike                          as LL
-import           Data.Tensor.TypeLevel 
+import           Control.Monad
+import           Data.List (isSuffixOf)
+import           Data.Tensor.TypeLevel
 import qualified Data.Text                              as T
 import qualified Data.Text.IO                           as T
 import           Language.Paraiso.Generator (generateIO)
@@ -15,6 +16,7 @@ import qualified Language.Paraiso.Generator.ClarisTrans as C
 import qualified Language.Paraiso.Generator.Native      as Native
 import           Language.Paraiso.Name
 import           Language.Paraiso.Prelude
+import           Prelude hiding ((++))
 import           System.Directory           (createDirectoryIfMissing)
 import           System.FilePath            ((</>))
 import           System.IO                  (hGetLine, hIsEOF, Handle)
@@ -25,15 +27,15 @@ import           System.Random              (randomIO)
 import qualified Test.Paraiso.Option                    as Option
 
 
-evaluate :: C.Program -> Int    
+evaluate :: C.Program -> Int
 evaluate prog = unsafePerformIO $ do
   key <- randomIO
   let path :: FilePath
-      path = "/tmp/" ++ (show :: Int -> String) key 
+      path = "/tmp/" ++ (show :: Int -> String) key
       exeFn = path </> "dragon.out" -- roar!
-      filetasks = [ (headerFn, C.translate C.headerFile prog),  
-                    (cppFn   , C.translate C.sourceFile prog)      
-                  ]  
+      filetasks = [ (headerFn, C.translate C.headerFile prog),
+                    (cppFn   , C.translate C.sourceFile prog)
+                  ]
       headerFn  = nameStr prog ++ ".hpp"
       cppFn     = nameStr prog ++ ".cpp"
 
@@ -45,7 +47,7 @@ evaluate prog = unsafePerformIO $ do
 
 
   let cppFn :: FilePath
-      cppFn = head $ filter (LL.isSuffixOf ".cpp") $ map fst $ files
+      cppFn = head $ filter (isSuffixOf ".cpp") $ map fst $ files
   _ <- system $ unwords [Option.cppc, "-O3",  cppFn, "-I", path,  "-o",  exeFn]
   (_, Just hout, _, handle) <- createProcess (shell exeFn) {std_out = CreatePipe}
   ret <- fmap (read :: String -> Int) $ hGetLine hout
@@ -58,7 +60,6 @@ evaluate prog = unsafePerformIO $ do
 suckAll :: Handle -> IO ()
 suckAll hdl = do
   eof <- hIsEOF hdl
-  if eof 
+  if eof
     then return ()
     else hGetLine hdl >> suckAll hdl
-

@@ -4,7 +4,7 @@
 
 -- cabal cheatsheet
 --   cabal init    : initialize .cabal
---   cabal check   : detect format error 
+--   cabal check   : detect format error
 --   cabal haddock : create haddock documentation
 --   cabal sdist   : create tarball
 --   cabal upload dist/Paraiso-....tar.gz : hackage debut!
@@ -15,7 +15,7 @@ Name:                Paraiso
 -- The package version. See the Haskell package versioning policy
 -- (http://www.haskell.org/haskellwiki/Package_versioning_policy) for
 -- standards guiding when and how versions should be incremented.
-Version:             0.3.1.4
+Version:             0.3.1.5
 Tested-With:         GHC==7.4.1
 
 -- A short (one-line) description of the package.
@@ -42,7 +42,7 @@ Description: The purpose of this project is to design a high-level language
              functions that can be used to build Paraiso
              programs. Reserved words are @load@, @store@, @imm@,
              @loadIndex@, @loadSize@, @shift@, @reduce@ and
-             @broadcast@. 
+             @broadcast@.
              .
              Paraiso frontend uses "Data.Tensor.Typelevel"
              <http://hackage.haskell.org/package/typelevel-tensor>,
@@ -55,6 +55,8 @@ Description: The purpose of this project is to design a high-level language
              <http://www.paraiso-lang.org/wiki/> and the paper
              <http://arxiv.org/abs/1204.4779> for more detail. Examples
              are in <https://github.com/nushio3/Paraiso/tree/master/examples>.
+             .
+             * 0.3.1.5 : Catch up to stack lts-3.16/ghc 7.10.2, thanks to Justus Sagemüller's patch!
              .
              * 0.3.0.0 /Doughnut/ : refined interface and support for cyclic boundary conditions.
              .
@@ -81,7 +83,7 @@ Author:              Takayuki Muranushi
 Maintainer:          muranushi@gmail.com
 
 -- A copyright notice.
--- Copyright:           
+-- Copyright:
 
 Category:            Language
 
@@ -90,7 +92,7 @@ Build-type:          Simple
 
 -- Extra files to be distributed with the package, such as examples or
 -- a README.
--- Extra-source-files:  
+-- Extra-source-files:
 
 -- Constraint on the version of Cabal needed to build this package.
 Cabal-version:       >=1.10
@@ -121,7 +123,7 @@ Library
                        Language.Paraiso.Generator.Plan
                        Language.Paraiso.Generator.PlanTrans
                        Language.Paraiso.Interval
-                       Language.Paraiso.Name        
+                       Language.Paraiso.Name
                        Language.Paraiso.OM
                        Language.Paraiso.OM.Arithmetic
                        Language.Paraiso.OM.Builder
@@ -146,7 +148,7 @@ Library
                        Language.Paraiso.Tuning.Genetic
 
   -- Packages needed in order to build this package.
-  Build-depends:       array                 >= 0.2    ,    
+  Build-depends:       array                 >= 0.2    ,
                        base                  == 4.*    ,
                        containers            >= 0.4.0  ,
                        failure               >= 0.1.0  ,
@@ -160,12 +162,12 @@ Library
                        random                >= 1.0.0  ,
                        text                  >= 0.11.1 ,
                        typelevel-tensor      >= 0.1 && <1,
-                       vector                >= 0.7.1  
+                       vector                >= 0.7.1
   -- Modules not exported by this package.
-  -- Other-modules:       
-  
+  -- Other-modules:
+
   -- Extra tools (e.g. alex, hsc2hs, ...) needed to build the source.
-  -- Build-tools:         
+  -- Build-tools:
   ghc-options:     -Wall -O2  -fspec-constr-count=25
 
 
@@ -174,21 +176,21 @@ Library
 source-repository head
   type:     git
   location: https://github.com/nushio3/Paraiso
-  
+
 
 test-suite runtests
   type: exitcode-stdio-1.0
   Build-depends:     array                 >= 0.2    ,
                      base                  == 4.*    ,
                      containers            >= 0.4.0  ,
-                     control-monad-failure >= 0.7.0  ,
                      directory             >= 1.0    ,
                      filepath              >= 1.2.0  ,
                      fgl                   >= 5.4.2  ,
-                     ListLike              >= 3.1.1  ,
-                     listlike-instances    >= 0.1    ,
+--                      ListLike              >= 3.1.1  ,
+--                      listlike-instances    >= 0.1    ,
                      mtl                   >= 2.0.1  ,
                      numeric-prelude       >= 0.2    ,
+                     process,
                      repa                            ,
                      random                >= 1.0.0  ,
                      text                  >= 0.11.1 ,
@@ -199,8 +201,7 @@ test-suite runtests
                      test-framework-quickcheck2,
                      test-framework-hunit,
                      HUnit,
-                     QuickCheck >= 2 
+                     QuickCheck >= 2
   main-is: runtests.hs
   ghc-options:     -Wall -O3  -fspec-constr-count=25
   Default-Language: Haskell2010
-

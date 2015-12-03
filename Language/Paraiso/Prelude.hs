@@ -5,11 +5,11 @@
 module Language.Paraiso.Prelude
   (
    Boolean(..),
-   Text, showT, 
+   Text, showT,
    (++)) where
 {-
 import           Control.Applicative (Applicative(..), (<$>))
-import           Control.Monad hiding 
+import           Control.Monad hiding
     (mapM_, sequence_, forM_, msum, mapM, sequence, forM)
 -}
 
@@ -31,10 +31,10 @@ infixr 5  ++
 
 class Appendable a where
   (++) :: a -> a -> a
-  
+
 instance Appendable [a] where
   (++) = (Prelude.++)
-  
+
 instance Appendable Text.Text where
   (++) = Text.append
 
