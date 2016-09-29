@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, FlexibleContexts, ImpredicativeTypes, NoImplicitPrelude,
+{-# LANGUAGE CPP, FlexibleContexts, NoImplicitPrelude,
 MultiParamTypeClasses, OverloadedStrings,
 RankNTypes #-}
 
