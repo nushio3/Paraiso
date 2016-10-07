@@ -35,7 +35,7 @@ mkOp2B op builder1 builder2 = do
   return $ FromNode r1 True n01
 
 
-type CompareOp =  (TRealm r, Typeable c) => 
+type CompareOp = forall r c v g a. (TRealm r, Typeable c) => 
     (Builder v g a (Value r c)) -> (Builder v g a (Value r c)) -> (Builder v g a (Value r Bool))
 
 -- | Equal
